@@ -7,6 +7,22 @@ package dk.ekot.ibm;
  */
 public class Jan2016 {
 
+    /*
+
+    The code below works from a functional point of view, but runtime is horrible
+    as it uses dumb brute force for constructing candidates and checking them.
+    Runtime is roughly O(n^6) for the challenge of finding 2 6-tuples with N=56.
+
+    Ideas for improvements:
+    - Linear scaling by threading
+    -
+
+    Observations (after a night of running)
+
+    s1[3, 9, 10, 11, 13, 24] s2[1, 2, 3, 4, 5, 14] 56
+    s1[3, 5, 6, 8, 13, 17] s2[1, 3, 4, 6, 7, 9] 57
+     */
+
     public static int findMaxNaive(int tuple1, int tuple2, int max) {
         return findMaxNaive(tuple1, tuple2, max, tuple1, tuple2);
     }
