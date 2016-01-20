@@ -12,6 +12,10 @@ public class Jan2016Test extends TestCase {
         assertEquals("Assignment gave the answer", 19, Jan2016.getMaxNaive(new int[]{1,3,6}, new int[]{2,3,5}));
     }
 
+    public void testGetMaxBitmap() throws Exception {
+        assertEquals("Assignment gave the answer", 19, Jan2016.getMaxBitmap(new int[]{1,3,6}, new int[]{2,3,5}));
+    }
+
     public void testFindMaxNaive() {
         assertEquals(21, Jan2016.findMaxNaive(3, 3, 19));
     }
