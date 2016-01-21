@@ -1,6 +1,7 @@
 package dk.ekot.ibm;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * http://www.research.ibm.com/haifa/ponderthis/challenges/January2016.html
@@ -63,6 +64,36 @@ public class Jan2016 {
         return hasSolutionWithRules(tuple1, tuple2, new HashSet<>(), new HashSet<>(), rules, 0);
     }
 
+    public static int largestSolutionWithRules(int maxSetSize) {
+        return largestSolutionWithRules(maxSetSize, maxSetSize);
+    }
+
+    public static int largestSolutionWithRules(int maxSetSize1, int maxSetSize2) {
+        return largestSolutionWithRules(maxSetSize1, maxSetSize2, maxSetSize1*maxSetSize2*3);
+    }
+
+    public static int largestSolutionWithRules(int maxSetSize1, int maxSetSize2, int maxGear) {
+        long startMS = System.currentTimeMillis();
+
+
+        List<Set<Pair>> rules = new ArrayList<>(maxGear);
+        int totalRules = 0;
+        for (int i = 0; i <= maxGear ; i++) {
+            if (i < 3) {
+                rules.add(new HashSet<>());
+            } else {
+                rules.add(getNeededPairsWithGap(i));
+                System.out.println(i + ": " + toString(rules.get(rules.size()-1)));
+            }
+            totalRules += rules.get(rules.size()-1).size();
+        }
+        System.out.println("Calculated " + totalRules + " rules for checking up to " + maxGear + " gears");
+        AtomicInteger largestGear = new AtomicInteger(0);
+        largestSolutionWithRules(maxSetSize1, maxSetSize2, new boolean[maxGear*maxGear], new boolean[maxGear*maxGear], 0, 0, rules, 0, largestGear);
+        System.out.println("Finished in " + (System.currentTimeMillis()-startMS)/1000 + " seconds");
+        return largestGear.get();
+    }
+
     private static boolean hasSolutionWithRules(
             int tuple1, int tuple2, Set<Integer> set1, Set<Integer> set2, List<Set<Pair>> rules, int index) {
         if (set1.size() > tuple1 || set2.size() > tuple2) { // A tuple got too big
@@ -97,6 +128,64 @@ public class Jan2016 {
             }
         }
         return false;
+    }
+
+    private static void largestSolutionWithRules(
+            final int maxSetSize1, final int maxSetSize2, final boolean[] set1, final boolean[] set2,
+            int setSize1, int setSize2, final List<Set<Pair>> rules, final int gear, final AtomicInteger largestGear) {
+        if (setSize1 > maxSetSize1 || setSize2 > maxSetSize2) { // A tuple got too big, back up 1 gear
+            if (largestGear.get() < gear-1) {
+                largestGear.set(gear-1);
+                System.out.println("Gear " + largestGear + ": " + toString(set1) + ", " + toString(set2));
+            }
+            return;
+        }
+        if (gear == rules.size()) { // Reached end
+            if (largestGear.get() < gear-1) {
+                largestGear.set(gear-1);
+                System.out.println("Max " + largestGear + " reached: " + toString(set1) + ", " + toString(set2));
+            }
+            return;
+        }
+        if (rules.get(gear).isEmpty()) { // 0-2
+            largestSolutionWithRules(maxSetSize1, maxSetSize2, set1, set2, setSize1, setSize2, rules, gear+1, largestGear);
+            return;
+        }
+
+        int test = 0;
+        for (Pair rule: rules.get(gear)) {
+            test++;
+/*            if (gear == 3) {
+                System.out.println("Checking " + test + "/" + rules.get(gear).size() + " " + rule);
+            } else if (gear == 4) {
+                System.out.println(" - 4     " + test + "/" + rules.get(gear).size() + " " + rule);
+            } else if (gear == 5) {
+                System.out.println("  - 5    " + test + "/" + rules.get(gear).size() + " " + rule);
+            } else if (gear == 6) {
+                System.out.println("   - 6   " + test + "/" + rules.get(gear).size() + " " + rule);
+            } else if (gear == 7) {
+                System.out.println("    - 7  " + test + "/" + rules.get(gear).size() + " " + rule);
+            } else if (gear == 8) {
+                System.out.println("     - 8 " + test + "/" + rules.get(gear).size() + " " + rule);
+            }*/
+            boolean wasSet1 = set1[rule.s1];
+            boolean wasSet2 = set2[rule.s2];
+            if ((!wasSet1 && setSize1 == maxSetSize1 || !wasSet2 && setSize2 == maxSetSize2)
+                && largestGear.get() < gear) {
+                largestGear.set(gear);
+                System.out.println("Gear " + largestGear + ": " + toString(set1) + ", " + toString(set2));
+                continue;
+            }
+            set1[rule.s1] = true;
+            set2[rule.s2] = true;
+            largestSolutionWithRules(
+                    maxSetSize1, maxSetSize2, set1, set2,
+                    wasSet1 ? setSize1 : setSize1+1, wasSet2 ? setSize2 : setSize2+1,
+                    rules, gear+1, largestGear);
+            // Reset to input
+            set1[rule.s1] = wasSet1;
+            set2[rule.s2] = wasSet2;
+        }
     }
 
     // Forces 1 twin pair from each TWINS-row up till the row for max to be part of the tuples
@@ -138,6 +227,16 @@ public class Jan2016 {
 
     public static int findMaxNaive(int tuple1, int tuple2, int max) {
         return findMaxNaive(tuple1, tuple2, max, tuple1, tuple2);
+    }
+
+    public static int findMaxFixed(int tupleSize1, int tupleSize2, int max, int fixed1, int fixed2) {
+        long startMS = System.currentTimeMillis();
+        int[] s1 = new int[tupleSize1];
+        int[] s2 = new int[tupleSize2];
+        s1[0] = fixed1;
+        int result = down1(s1, s2, tupleSize1-2, 1, max, tupleSize1, tupleSize2);
+        System.out.println("Finished in " + (System.currentTimeMillis()-startMS)/1000 + " seconds");
+        return result;
     }
 
     public static int findMaxNaive(int tuple1, int tuple2, int max, int s1min, int s2min) {
@@ -213,13 +312,10 @@ public class Jan2016 {
         return last+1;
     }
 
-    private static boolean[] cache = null; // In case of multi threading, make the cache (and the methods) non-static
+    private static boolean[] cache = new boolean[10000]; // This should neither be static nor fixed in size
     public static int getMaxBitmap(int[] s1, int[] s2) {
-        if (cache == null || cache.length < s1[s1.length-1] * s2[s2.length-2]) {
-            cache = new boolean[s1[s1.length-1] * s2[s2.length-1] + 3]; // + 3 to ensure false at end
-        } else {
-            Arrays.fill(cache, false);
-        }
+        System.out.println("Checking s1[" + toString(s1) + "] s2[" + toString(s2) + "]");
+        Arrays.fill(cache, false);
         // Fill cache
         for (int i1 = 0 ; i1 < s1.length ; i1++) {
             for (int i2 = 0; i2 < s2.length; i2++) {
@@ -274,6 +370,22 @@ public class Jan2016 {
         sb.append("]");
         return sb.toString();
     }
+
+    public static String toString(boolean[] bitmap) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0 ; i < bitmap.length ; i++) {
+            if (bitmap[i]) {
+                if (sb.length() > 1) {
+                    sb.append(", ");
+                }
+                sb.append(Integer.toString(i));
+            }
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
 
     private static class Pair { // Order is significant
         public final int s1;

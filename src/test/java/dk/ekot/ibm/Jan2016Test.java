@@ -23,12 +23,17 @@ public class Jan2016Test extends TestCase {
          assertTrue(Jan2016.hasSolutionWithTwins(3, 3, 19));
      }
 
+
     public void testFindMaxNaive3_50() {
         assertEquals(21, Jan2016.findMaxNaive(3, 3, 30));
     }
 
     public void testFindMaxNaive6_56() {
-        assertEquals(56, Jan2016.findMaxNaive(6, 6, 56));
+        assertEquals(57, Jan2016.findMaxNaive(6, 6, 56));
+    }
+
+    public void testFindMaxFixed6_56_f6_7() {
+        assertEquals(56, Jan2016.findMaxFixed(6, 6, 80, 6, 7));
     }
 
     public void testHasSolutionWithTwins6_56() {
@@ -49,6 +54,23 @@ public class Jan2016Test extends TestCase {
          for (int i = 1 ; i <= 12 ; i++) {
              System.out.println(i + ": " + Jan2016.toString(Jan2016.getNeededPairsWithGap(i)));
          }
+     }
+
+    public void testLargestSolutionWithRulesSetSize1() {
+         assertEquals(3, Jan2016.largestSolutionWithRules(1));
+     }
+    public void testLargestSolutionWithRulesSetSize2() {
+         assertEquals(12, Jan2016.largestSolutionWithRules(2));
+     }
+    public void testLargestSolutionWithRulesSetSize3() {
+         assertEquals(23, Jan2016.largestSolutionWithRules(3));
+     }
+    public void testLargestSolutionWithRulesSetSize4() {
+         assertEquals(33, Jan2016.largestSolutionWithRules(4));
+     }
+    // Fast up until 43, slower until 50, horribly slow after that
+    public void testLargestSolutionWithRulesSetSize6() {
+         assertEquals(23, Jan2016.largestSolutionWithRules(6));
      }
 
 }
