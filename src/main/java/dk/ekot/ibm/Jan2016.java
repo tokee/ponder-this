@@ -30,6 +30,16 @@ public class Jan2016 {
         return findMaxNaive(tuple1, tuple2, max, tuple1, tuple2);
     }
 
+    public static int findMaxFixed(int tupleSize1, int tupleSize2, int max, int fixed1, int fixed2) {
+        long startMS = System.currentTimeMillis();
+        int[] s1 = new int[tupleSize1];
+        int[] s2 = new int[tupleSize2];
+        s1[0] = fixed1;
+        int result = down1(s1, s2, tupleSize1-2, 1, max, tupleSize1, tupleSize2);
+        System.out.println("Finished in " + (System.currentTimeMillis()-startMS)/1000 + " seconds");
+        return result;
+    }
+
     public static int findMaxNaive(int tuple1, int tuple2, int max, int s1min, int s2min) {
         long startMS = System.currentTimeMillis();
         int[] s1 = new int[tuple1];
@@ -103,13 +113,10 @@ public class Jan2016 {
         return last+1;
     }
 
-    private static boolean[] cache = null; // In case of multi threading, make the cache (and the methods) non-static
+    private static boolean[] cache = new boolean[10000]; // This should neither be static nor fixed in size
     public static int getMaxBitmap(int[] s1, int[] s2) {
-        if (cache == null || cache.length < s1[s1.length-1] * s2[s2.length-2]) {
-            cache = new boolean[s1[s1.length-1] * s2[s2.length-1] + 3]; // + 3 to ensure false at end
-        } else {
-            Arrays.fill(cache, false);
-        }
+        System.out.println("Checking s1[" + toString(s1) + "] s2[" + toString(s2) + "]");
+        Arrays.fill(cache, false);
         // Fill cache
         for (int i1 = 0 ; i1 < s1.length ; i1++) {
             for (int i2 = 0; i2 < s2.length; i2++) {

@@ -25,6 +25,10 @@ public class Jan2016Test extends TestCase {
     }
 
     public void testFindMaxNaive6_56() {
-        assertEquals(56, Jan2016.findMaxNaive(6, 6, 56));
+        assertEquals(57, Jan2016.findMaxNaive(6, 6, 56));
+    }
+
+    public void testFindMaxFixed6_56_f6_7() {
+        assertEquals(56, Jan2016.findMaxFixed(6, 6, 80, 6, 7));
     }
 }
