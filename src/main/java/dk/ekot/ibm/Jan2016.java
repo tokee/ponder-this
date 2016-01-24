@@ -50,18 +50,23 @@ public class Jan2016 {
 
 
     public static boolean hasSolutionWithTwins(int tuple1, int tuple2, int required) {
+        List<Set<Pair>> rules = calculateRules(required);
+        return hasSolutionWithRules(tuple1, tuple2, new HashSet<>(), new HashSet<>(), rules, 0);
+    }
+
+    public static List<Set<Pair>> calculateRules(int required) {
         List<Set<Pair>> rules = new ArrayList<>(required);
         int totalRules = 0;
         for (int i = 0; i <= required ; i++) {
             if (i < 3) {
-                rules.add(new HashSet<>());
+                rules.add(new HashSet<Pair>());
             } else {
                 rules.add(getNeededPairsWithGap(i));
             }
             totalRules += rules.get(rules.size()-1).size();
         }
         System.out.println("Calculated " + totalRules + " rules for test for " + required + " gears");
-        return hasSolutionWithRules(tuple1, tuple2, new HashSet<>(), new HashSet<>(), rules, 0);
+        return rules;
     }
 
     public static int largestSolutionWithRules(int maxSetSize) {
@@ -389,7 +394,7 @@ public class Jan2016 {
     }
 
 
-    private static class Pair { // Order is significant
+    public static class Pair { // Order is significant
         public final int s1;
         public final int s2;
 

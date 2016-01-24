@@ -2,6 +2,11 @@ package dk.ekot.ibm;
 
 import junit.framework.TestCase;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+
 public class Jan2016Test extends TestCase {
 
     /*
@@ -72,5 +77,24 @@ public class Jan2016Test extends TestCase {
     public void testLargestSolutionWithRulesSetSize6() {
          assertEquals(23, Jan2016.largestSolutionWithRules(6));
      }
+
+    public void testDumpSortedByLength() {
+        final int maxGear = 102;
+        List<Set<Jan2016.Pair>> sets = Jan2016.calculateRules(maxGear);
+        Collections.sort(sets, new Comparator<Set<Jan2016.Pair>>() {
+            @Override
+            public int compare(Set<Jan2016.Pair> o1, Set<Jan2016.Pair> o2) {
+                return o1.size() - o2.size();
+            }
+        });
+        for (Set<Jan2016.Pair> rule: sets) {
+            int max = 0 ;
+            for (Jan2016.Pair pair: rule) {
+                max = Math.max(max, Math.max(pair.s1, pair.s2));
+            }
+            System.out.println(max + ": " + Jan2016.toString(rule));
+        }
+    }
+
 
 }
