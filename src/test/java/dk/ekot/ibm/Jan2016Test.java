@@ -2,10 +2,7 @@ package dk.ekot.ibm;
 
 import junit.framework.TestCase;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class Jan2016Test extends TestCase {
 
@@ -17,8 +14,18 @@ public class Jan2016Test extends TestCase {
         assertEquals("Assignment gave the answer", 19, Jan2016.getMaxNaive(new int[]{1,3,6}, new int[]{2,3,5}));
     }
 
-    public void testGetMaxBitmap() throws Exception {
+    public void testGetMaxNaive59() throws Exception {
+        assertEquals("Assignment gave the answer",
+                     57, Jan2016.getMaxNaive(new int[]{2, 5, 7, 8, 9, 13}, new int[]{1, 3, 4, 6, 7, 9}));
+    }
+
+    public void testGetMaxBitmapA() throws Exception {
         assertEquals("Assignment gave the answer", 19, Jan2016.getMaxBitmap(new int[]{1, 3, 6}, new int[]{2, 3, 5}));
+    }
+
+    public void testGetMaxBitmapB() throws Exception {
+        assertEquals("Assignment gave the answer", 41, Jan2016.getMaxBitmap(
+                new int[]{2, 4, 5, 6, 7, 8}, new int[]{1, 2, 3, 4, 5, 19}));
     }
 
     public void testFindMaxNaive() {
@@ -70,23 +77,41 @@ public class Jan2016Test extends TestCase {
     public void testLargestSolutionWithRulesSetSize3() {
          assertEquals(23, Jan2016.largestSolutionWithRules(3));
      }
-    public void testLargestSolutionWithRulesSetSize4() {
+    public void testLargestSolutionWithRulesSetSize4() { // 40 seconds with sets, 30 seconds with arrays, 0 with already
          assertEquals(33, Jan2016.largestSolutionWithRules(4));
      }
     // Fast up until 43, slower until 50, horribly slow after that
     public void testLargestSolutionWithRulesSetSize6() {
-         assertEquals(23, Jan2016.largestSolutionWithRules(6));
+         assertEquals(59, Jan2016.largestSolutionWithRules(6));
      }
+
+    public void testPrintNumberFrequency() {
+        int maxGear = 65;
+        List<Set<Jan2016.Pair>> rules = Jan2016.getRuleSets(maxGear);
+        int[] frequency = new int[maxGear*2];
+        for (Set<Jan2016.Pair> ruleSet: rules) {
+            for (Jan2016.Pair pair: ruleSet) {
+                frequency[pair.s1]++;
+                frequency[pair.s2]++;
+            }
+        }
+        for (int i = 0 ; i < frequency.length ; i++) {
+            frequency[i] = (frequency[i] << 16) | i;
+        }
+        Arrays.sort(frequency);
+        for (int i = frequency.length-1 ; i >= 0 ; i--) {
+            int number = frequency[i] & 0xFFFF;
+            int freq = frequency[i] >> 16;
+            if (freq == 0) {
+                break;
+            }
+            System.out.println(number + " (" + freq/2 + ")");
+        }
+    }
 
     public void testDumpSortedByLength() {
         final int maxGear = 102;
         List<Set<Jan2016.Pair>> sets = Jan2016.calculateRules(maxGear);
-        Collections.sort(sets, new Comparator<Set<Jan2016.Pair>>() {
-            @Override
-            public int compare(Set<Jan2016.Pair> o1, Set<Jan2016.Pair> o2) {
-                return o1.size() - o2.size();
-            }
-        });
         for (Set<Jan2016.Pair> rule: sets) {
             int max = 0 ;
             for (Jan2016.Pair pair: rule) {
