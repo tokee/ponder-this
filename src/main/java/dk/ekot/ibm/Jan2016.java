@@ -35,7 +35,7 @@ public class Jan2016 {
     s1[3, 9, 10, 11, 13, 24] s2[1, 2, 3, 4, 5, 14] 56
     s1[3, 5, 6, 8, 13, 17] s2[1, 3, 4, 6, 7, 9] 57
 
-    Gear 59: [2, 5, 7, 8, 9, 13], [1, 3, 4, 6, 7, 9]
+    Gear 58: [2, 5, 7, 8, 9, 13], [1, 3, 4, 6, 7, 9]
      */
 
     public static final int[][][] TWINS = new int[][][] {
@@ -110,7 +110,7 @@ public class Jan2016 {
 //                System.out.println(i + ": " + toString(rules.get(rules.size()-1)));
             } else {
                 rules.add(getNeededPairsWithGap(i));
-                System.out.println(i + ": " + toString(rules.get(rules.size()-1)));
+//                System.out.println(i + ": " + toString(rules.get(rules.size()-1)));
             }
             totalRules += rules.get(rules.size()-1).size();
         }

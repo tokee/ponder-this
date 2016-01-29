@@ -82,7 +82,7 @@ public class Jan2016Test extends TestCase {
      }
     // Fast up until 43, slower until 50, horribly slow after that
     public void testLargestSolutionWithRulesSetSize6() {
-         assertEquals(59, Jan2016.largestSolutionWithRules(6));
+         assertEquals(58, Jan2016.largestSolutionWithRules(6));
      }
 
     public void testPrintNumberFrequency() {
