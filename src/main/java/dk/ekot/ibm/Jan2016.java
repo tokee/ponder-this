@@ -384,6 +384,8 @@ public class Jan2016 {
 //        for (int i = 1 ; i <= Math.sqrt(gear) ; i++) {
             if (gear % i == 0) {
                 pairs.add(new Pair(gear/i, i));
+                // TODO: For gear 3 we can use one side only: [1, 1] [1, 2] {1, 3]
+                // The rest of the pairs must
                 pairs.add(new Pair(i, gear/i));
             }
         }

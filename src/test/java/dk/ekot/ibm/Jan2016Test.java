@@ -49,7 +49,7 @@ public class Jan2016Test extends TestCase {
     }
 
     public void testHasSolutionWithTwins6_56() {
-         assertTrue(Jan2016.hasSolutionWithTwins(6, 6, 42));
+         assertTrue(Jan2016.hasSolutionWithTwins(6, 6, 72));
      }
 
     public void testFindMaxTwins() {
