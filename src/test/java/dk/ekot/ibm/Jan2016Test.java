@@ -93,6 +93,14 @@ public class Jan2016Test extends TestCase {
          assertEquals(72, Jan2016.largestSolutionWithRules(7));
      }
 
+    public void testLargestSolutionWithRulesSetSize8() {
+          assertEquals(72, Jan2016.largestSolutionWithRules(8));
+      }
+
+    public void testLargestSolutionWithRulesSetSize20() {
+           assertEquals(72, Jan2016.largestSolutionWithRules(20));
+       }
+
     public void testPrintNumberFrequency() {
         int maxGear = 65;
         List<Set<Jan2016.Pair>> rules = Jan2016.getRuleSets(maxGear);

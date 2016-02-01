@@ -190,14 +190,14 @@ public class Jan2016 {
     @SuppressWarnings("ForLoopReplaceableByForEach")
     private static void iterateRules(int maxSetSize1, int maxSetSize2, boolean[] set1, boolean[] set2,
                                      int setSize1, int setSize2, int[][][] rules, int gear, AtomicInteger largestGear) {
-/*        if (alreadySatisfied(set1, set2, rules, gear, largestGear, true)) {
+        if (alreadySatisfied(set1, set2, rules, gear, largestGear, true)) {
             if (largestGear.get() < gear) {
                 largestGear.set(gear);
                 System.out.println("Gear " + largestGear + ": " + toString(set1) + ", " + toString(set2));
             }
             iterateRules(maxSetSize1, maxSetSize2, set1, set2, setSize1, setSize2, rules, gear+1, largestGear);
             return;
-        }*/
+        }
         if (largestGear.get() < gear) {
             iteratePotentialNewMax(maxSetSize1, maxSetSize2, set1, set2, setSize1, setSize2, rules, gear, largestGear);
         } else {
