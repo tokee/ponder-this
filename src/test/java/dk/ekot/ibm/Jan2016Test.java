@@ -74,15 +74,23 @@ public class Jan2016Test extends TestCase {
     public void testLargestSolutionWithRulesSetSize2() {
          assertEquals(12, Jan2016.largestSolutionWithRules(2));
      }
+
+    // M[4, 5] Gear 21: [3, 4, 6], [1, 3, 5]
     public void testLargestSolutionWithRulesSetSize3() {
          assertEquals(23, Jan2016.largestSolutionWithRules(3));
      }
+
+    // M[6, 5] Gear 31: [2, 3, 6, 21], [1, 4, 5, 9]
     public void testLargestSolutionWithRulesSetSize4() { // 40 seconds with sets, 30 seconds with arrays, 0 with already
-         assertEquals(33, Jan2016.largestSolutionWithRules(4));
+         assertEquals(31, Jan2016.largestSolutionWithRules(4));
      }
-    // Fast up until 43, slower until 50, horribly slow after that
+    // M[7, 8] Gear 57: [2, 3, 4, 6, 7, 9], [1, 5, 6, 7, 8, 13]
     public void testLargestSolutionWithRulesSetSize6() {
-         assertEquals(58, Jan2016.largestSolutionWithRules(6));
+         assertEquals(57, Jan2016.largestSolutionWithRules(6));
+     }
+
+    public void testLargestSolutionWithRulesSetSize7() {
+         assertEquals(72, Jan2016.largestSolutionWithRules(7));
      }
 
     public void testPrintNumberFrequency() {
@@ -111,7 +119,7 @@ public class Jan2016Test extends TestCase {
 
     public void testDumpSortedByLength() {
         final int maxGear = 102;
-        List<Set<Jan2016.Pair>> sets = Jan2016.calculateRules(maxGear);
+        List<Set<Jan2016.Pair>> sets = Jan2016.getRuleSets(maxGear);
         for (Set<Jan2016.Pair> rule: sets) {
             int max = 0 ;
             for (Jan2016.Pair pair: rule) {

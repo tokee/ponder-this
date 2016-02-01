@@ -53,23 +53,8 @@ public class Jan2016 {
 
 
     public static boolean hasSolutionWithTwins(int tuple1, int tuple2, int required) {
-        List<Set<Pair>> rules = calculateRules(required);
+        List<Set<Pair>> rules = getRuleSets(required);
         return hasSolutionWithRules(tuple1, tuple2, new LinkedHashSet<>(), new LinkedHashSet<>(), rules, 0);
-    }
-
-    public static List<Set<Pair>> calculateRules(int required) {
-        List<Set<Pair>> rules = new ArrayList<>(required);
-        int totalRules = 0;
-        for (int i = 0; i <= required ; i++) {
-            if (i < 3) {
-                rules.add(new LinkedHashSet<Pair>());
-            } else {
-                rules.add(getNeededPairsWithGap(i));
-            }
-            totalRules += rules.get(rules.size()-1).size();
-        }
-        System.out.println("Calculated " + totalRules + " rules for test for " + required + " gears");
-        return rules;
     }
 
     public static int largestSolutionWithRules(int maxSetSize) {
@@ -95,18 +80,18 @@ public class Jan2016 {
         List<Set<Pair>> rules = new ArrayList<>(maxGear);
         int totalRules = 0;
         for (int i = 0; i <= maxGear ; i++) {
-            if (i < 3) {
+            if (i == 1) {
                 rules.add(Collections.emptySet());
 //            } else if (i == 2) { // 59 & 61 are twin primes and we guess we will reach 60 and that 59 and 61 will not be used
-//                rules.add(toPairs(new int[][]{{30, 2}, {15, 4}, {10, 6}}));
+                rules.add(toPairs(new int[][]{{19, 3}, {29, 2}}));
 
-            } else if (i == 3) { //  [[1, 1], [1, 2], [1, 3], [3, 1], [2, 1]]
+/*            } else if (i == 2) { //  [[1, 1], [1, 2], [1, 3], [3, 1], [2, 1]]
                 // We are allowed to make 1 rule non-mirrored, so we choose the one with largest percentage impact
                 Set<Pair> threeRule = new LinkedHashSet<>();
                 threeRule.add(new Pair(2, 1));
                 threeRule.add(new Pair(3, 1));
                 threeRule.add(new Pair(1, 1));
-                rules.add(threeRule);
+                rules.add(threeRule);         */
 //                System.out.println(i + ": " + toString(rules.get(rules.size()-1)));
             } else {
                 rules.add(getNeededPairsWithGap(i));
@@ -232,7 +217,6 @@ public class Jan2016 {
                 }
                 return true;
             }
-            ;
         }
         return false;
     }
@@ -369,9 +353,13 @@ public class Jan2016 {
     // This means either the gear itself, one less or 2 less
     public static Set<Pair> getNeededPairsWithGap(int gear) {
         Set<Pair> pairs = new LinkedHashSet<>();
-        for (int i = gear ; i >= 1 && i >= gear-2 ; i--) {
-            pairs.addAll(getAllPairs(i));
-        }
+//        for (int i = gear-1 ; i <= gear+1 ; i++) {
+//        for (int i = gear+1 ; i >= 1 && i >= gear-1 ; i--) {
+//        for (int i = gear ; i >= 1 && i >= gear-2 ; i--) {
+            pairs.addAll(getAllPairs(gear));
+            pairs.addAll(getAllPairs(gear+1));
+            pairs.addAll(getAllPairs(gear-1));
+//        }
         return pairs;
     }
 
