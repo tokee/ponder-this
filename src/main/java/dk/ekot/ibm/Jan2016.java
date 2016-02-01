@@ -82,16 +82,16 @@ public class Jan2016 {
         for (int i = 0; i <= maxGear ; i++) {
             if (i < 2) {
                 rules.add(Collections.emptySet());
-            } else if (i == 2) { // 59 & 61 are twin primes and we guess we will reach 60 and that 59 and 61 will not be used
+            } else if (i == 2 && maxGear >= 6*6*2) { // 59 & 61 are twin primes and we guess we will reach 60 and that 59 and 61 will not be used
                 rules.add(toPairs(new int[][]{{19, 3}, {29, 2}}));
 
-/*            } else if (i == 2) { //  [[1, 1], [1, 2], [1, 3], [3, 1], [2, 1]]
+            } else if (i == 2 && maxGear < 6*6*2) { //  [[1, 1], [1, 2], [1, 3], [3, 1], [2, 1]]
                 // We are allowed to make 1 rule non-mirrored, so we choose the one with largest percentage impact
                 Set<Pair> threeRule = new LinkedHashSet<>();
                 threeRule.add(new Pair(2, 1));
                 threeRule.add(new Pair(3, 1));
                 threeRule.add(new Pair(1, 1));
-                rules.add(threeRule);         */
+                rules.add(threeRule);
 //                System.out.println(i + ": " + toString(rules.get(rules.size()-1)));
             } else {
                 rules.add(getNeededPairsWithGap(i));
@@ -357,7 +357,7 @@ public class Jan2016 {
 //        for (int i = gear+1 ; i >= 1 && i >= gear-1 ; i--) {
 //        for (int i = gear ; i >= 1 && i >= gear-2 ; i--) {
             pairs.addAll(getAllPairs(gear));
-            pairs.addAll(getAllPairs(gear+1));
+            pairs.addAll(getAllPairs(gear + 1));
             pairs.addAll(getAllPairs(gear-1));
 //        }
         return pairs;
