@@ -80,9 +80,9 @@ public class Jan2016 {
         List<Set<Pair>> rules = new ArrayList<>(maxGear);
         int totalRules = 0;
         for (int i = 0; i <= maxGear ; i++) {
-            if (i == 1) {
+            if (i < 2) {
                 rules.add(Collections.emptySet());
-//            } else if (i == 2) { // 59 & 61 are twin primes and we guess we will reach 60 and that 59 and 61 will not be used
+            } else if (i == 2) { // 59 & 61 are twin primes and we guess we will reach 60 and that 59 and 61 will not be used
                 rules.add(toPairs(new int[][]{{19, 3}, {29, 2}}));
 
 /*            } else if (i == 2) { //  [[1, 1], [1, 2], [1, 3], [3, 1], [2, 1]]
@@ -190,14 +190,14 @@ public class Jan2016 {
     @SuppressWarnings("ForLoopReplaceableByForEach")
     private static void iterateRules(int maxSetSize1, int maxSetSize2, boolean[] set1, boolean[] set2,
                                      int setSize1, int setSize2, int[][][] rules, int gear, AtomicInteger largestGear) {
-        if (alreadySatisfied(set1, set2, rules, gear, largestGear, true)) {
+/*        if (alreadySatisfied(set1, set2, rules, gear, largestGear, true)) {
             if (largestGear.get() < gear) {
                 largestGear.set(gear);
                 System.out.println("Gear " + largestGear + ": " + toString(set1) + ", " + toString(set2));
             }
             iterateRules(maxSetSize1, maxSetSize2, set1, set2, setSize1, setSize2, rules, gear+1, largestGear);
             return;
-        }
+        }*/
         if (largestGear.get() < gear) {
             iteratePotentialNewMax(maxSetSize1, maxSetSize2, set1, set2, setSize1, setSize2, rules, gear, largestGear);
         } else {
