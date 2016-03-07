@@ -14,25 +14,33 @@
  */
 package dk.ekot.ibm;
 
-import dk.statsbiblioteket.util.qa.QAInfo;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
+import java.math.BigInteger;
 
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/March2016.html
- * 1^2 = 1
- * 2^2 = 4
- * 3^2 = 9
- * 4^2 -> 6
- * 5^2 -> 5
- * 6^2 -> 6
- * 7^2 -> 9
- * 8^2 ->
- 
+ * Take the last x digits, square them, take the last x digits of that, reverse them,
+ * try X=1...9 of revXorg
  */
 public class Mar2016 {
 
-    public void simple(long maxDigits) {
+    public void simple(int digits) {
+        BigInteger bi = new BigInteger("10");
+        bi = bi.pow(digits-1);
+        BigInteger end = bi.multiply(BigInteger.TEN);
+        System.out.println("End: " + end);
+        while (!bi.equals(end)) {
+            String firstDigits= new StringBuilder(bi.pow(2).mod(end).toString()).reverse().toString();
+            String lastDigits = bi.toString();
+            for (int i = 0 ; i < 10 ; i++) {
+                String candidate = firstDigits + i + lastDigits;
+                BigInteger powEnd = new BigInteger(candidate).pow(2).mod();
+                String revPow = new StringBuilder(pow.toString()).reverse().toString();
+            }
+            bi = bi.add(BigInteger.ONE);
+        }
+    }
 
+    public static void main(String[] args) {
+        new Mar2016().simple(2);
     }
 }
