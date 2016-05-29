@@ -33,8 +33,8 @@ public class Mar2016 {
             String lastDigits = bi.toString();
             for (int i = 0 ; i < 10 ; i++) {
                 String candidate = firstDigits + i + lastDigits;
-                BigInteger powEnd = new BigInteger(candidate).pow(2).mod();
-                String revPow = new StringBuilder(pow.toString()).reverse().toString();
+                BigInteger powEnd = new BigInteger(candidate).pow(2);
+                String revPow = new StringBuilder(powEnd.toString()).reverse().toString();
             }
             bi = bi.add(BigInteger.ONE);
         }
