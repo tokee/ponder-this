@@ -9,7 +9,6 @@
 package dk.ekot.misc;
 
 import java.awt.*;
-import java.awt.event.KeyEvent;
 import java.util.Arrays;
 
 /**
@@ -33,10 +32,21 @@ public class RomanNumerals {
     final static String rules4c = "、搅氊㰲ᡤ\u1DF4䏨";
 
     public static void main(String[] args) {
+//        useArray("CMMIV");
+
 //        generate4a();
 //        String in = args[0] + " ";
-        String in = "CMMIV ";
-        vPack(in);
+        for (String test: new String[]{
+                "CMMIV 1904", "M 1000", "IV 4", "XIV 14", "XVIII 18", "DCCCXC 890"
+        }) {
+            String rom = test.split(" ")[0];
+            int dec = Integer.parseInt(test.split(" ")[1]);
+            if (dec != romanToDecimal(rom)) {
+                System.err.println("Error: " + rom + ": " + romanToDecimal(rom) + " (expected " + dec + ")");
+            } else {
+                System.out.println("OK: " + rom + ": " + romanToDecimal(rom));
+            }
+        }
 //        dumpRomans();
     }
 
@@ -85,6 +95,94 @@ public class RomanNumerals {
             }
         }
         System.out.println(result);
+    }
+
+    public static int romanToDecimal(String rom) {
+        char[] map = "?£ȳ????@??qЧ????????D?I".toCharArray();
+        char[] s = (rom+"E").toCharArray();
+        int dec = 0;
+        for (int i = 0 ; i < s.length-1 ;) {
+            dec += (map[s[i]-0x42] < map[s[i+1]-0x42] ? -1 : 1) * (map[s[i++]-0x42]-'?');
+        }
+        return dec;
+    }
+
+    public static void useArray(String in) {
+        // Store in array from 'C'-'C' to 'X'-'C'
+        // Each entry contains priority and value
+        char[] map = getArrayTweaked();
+        System.out.println(new String(map));
+//        System.out.println("Array-length: " + map.length);
+        System.out.println("In: " + in);
+//        char[] map = "£ȳ????@??qЧ????????D?I\n".toCharArray();
+        char[] s = (in+"S").toCharArray();
+        int result = 0;
+        for (int i = 0 ; i < s.length-1 ; i++) {
+            result += (map[s[i]-INDEX_BASE] < map[s[i+1]-INDEX_BASE] ? -1 : 1) * (map[s[i]-INDEX_BASE]-TWEAK_BASE);
+        }
+        System.out.println(result);
+    }
+    static final char TWEAK_BASE = '?';
+    static final char INDEX_BASE = 'B';
+    private static char[] getArrayTweaked() {
+        char[] map = new char['X'-INDEX_BASE+1];
+        Arrays.fill(map, TWEAK_BASE);
+        map['I'-INDEX_BASE] += 1;
+        map['V'-INDEX_BASE] += 5;
+        map['X'-INDEX_BASE] += 10;
+        map['L'-INDEX_BASE] += 50;
+        map['C'-INDEX_BASE] += 100;
+        map['D'-INDEX_BASE] += 500;
+        map['M'-INDEX_BASE] += 1000;
+        return map;
+    }
+
+    private static char[] getArrayFlip() {
+        char[] map = new char['Z'-'C'+1];
+        Arrays.fill(map, '_');
+        final int offset = 5;
+        map['I'-'C'] = 1 | (1 << offset);
+        map['V'-'C'] = 2 | (5 << offset);
+        map['X'-'C'] = 3 | (10 << offset);
+        map['L'-'C'] = 4 | (50 << offset);
+        map['C'-'C'] = 5 | (100 << offset);
+        map['D'-'C'] = 6 | (500 << offset);
+        map['M'-'C'] = 7 | (1000 << offset);
+        map['S'-'C'] = 0 | (0); // S = Stop
+        return map;
+    }
+
+    public static void useArrayWorks1(String in) {
+        // Store in array from 'C'-'C' to 'X'-'C'
+        // Each entry contains priority and value
+        char[] map = getArray();
+        System.out.println("Array-length: " + map.length);
+        System.out.println("In: " + in);
+
+        int result = 0;
+        for (int i = 0 ; i < in.length()-1 ; i++) {
+            System.out.println("Checking: " + in.charAt(i));
+            if (map[in.charAt(i)-'C']>>10 < map[in.charAt(i+1)-'C']>>10) {
+                result -= map[in.charAt(i)-'C'] & 0b1111111111;
+            } else {
+                result += map[in.charAt(i)-'C'] & 0b1111111111;
+            }
+        }
+        System.out.println(result);
+    }
+
+    private static char[] getArray() {
+        char[] map = new char['Z'-'C'+1];
+        Arrays.fill(map, '_');
+        map['I'-'C'] = (1 << 10) | 1;
+        map['V'-'C'] = (2 << 10) | 5;
+        map['X'-'C'] = (3 << 10) | 10;
+        map['L'-'C'] = (4 << 10) | 50;
+        map['C'-'C'] = (5 << 10) | 100;
+        map['D'-'C'] = (6 << 10) | 500;
+        map['M'-'C'] = (7 << 10) | 1000;
+        map['Z'-'C'] = (0 << 10) | 0;
+        return map;
     }
 
     public static void generate46() {
