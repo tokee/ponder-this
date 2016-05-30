@@ -23,14 +23,40 @@ public class RomanNumerals {
             "\u2004IV", "\u2009IX", "\u1001I", "\u1005V", "\u2028XL", "\u205aXC", "\u100aX",
             "\u1032L", "\u2190CD", "\u2384CM", "\u1064C", "\u11f4D", "\u13e8M"};
 
+
     final static String[] rules3 = new String[]{ // 0x5000 0x6000
             "怄IV", "怉IX", "倁I", "倅V", "怨XL", "恚XC", "倊X", "倲L", "憐CD", "掄CM", "偤C", "凴D", "叨M"};
 
+    final static String[] rules4a = new String[]{
+            "\u0001I", "\u0005V", "\nX", "\u0032L", "\u0064C", "\u01f4D", "\u03e8M"};
+
+    final static String rules4c = "、搅氊㰲ᡤ\u1DF4䏨";
+
     public static void main(String[] args) {
-        generate();
+//        generate4a();
 //        String in = args[0] + " ";
         String in = "CMMIV ";
-        v1(in);
+        vPack(in);
+//        dumpRomans();
+    }
+
+    public static void dumpRomans() {
+        char min = Character.MAX_VALUE;
+        for (char co: "IVXLCDM".toCharArray()) {
+            char c = (char) (co - 67);
+            System.out.println(co + ": " + align(Integer.toBinaryString(c), 5));
+            if (min > c) {
+                min = c;
+            }
+        }
+        System.out.println("Min: " + min);
+    }
+
+    public static String align(String v, int digits) {
+        while (v.length() < digits) {
+            v = "0" + v;
+        }
+        return v;
     }
 
     private static void v3(String in) {
@@ -59,6 +85,154 @@ public class RomanNumerals {
             }
         }
         System.out.println(result);
+    }
+
+    public static void generate46() {
+        int rules[] = new int[]{ // roman, exp, 1/5
+                0b00_01001_0,
+                0b00_10110_1,
+                0b01_11000_0,
+                0b01_01100_1,
+                0b10_00011_0,
+                0b10_00100_1,
+                0b11_01101_0
+        };
+        for (int rule : rules) {
+            char roman = (char) ((rule >> 1) | 0b1000000);
+            int value = (int) (((rule & 0b1) == 0 ? 1 : 5) * Math.pow(10, ((rule & 0b11000000)>>6)));
+            System.out.println(roman + " " + value + ": " + (char) rule);
+        }
+    }
+    public static void generate4g() {
+        int rules[] = new int[]{ // padding, roman, exp, 1/5
+                0b1_01001_00_0,
+                0b1_10110_00_1,
+                0b1_11000_01_0,
+                0b1_01100_01_1,
+                0b1_00011_10_0,
+                0b1_00100_10_1,
+                0b1_01101_11_0
+        };
+        for (int rule : rules) {
+            char roman = (char) ((rule >> 3) | 0b1000000);
+            int value = (int) (((rule & 0b1) == 0 ? 1 : 5) * Math.pow(10, ((rule & 0b110)>>1)));
+            System.out.println(roman + " " + value + ": " + (char) rule);
+        }
+    }
+    String pack4g = "ňƱǂţĜĥŮ"; //  1-bit padding, roman-64, 10^x, 1=0 / 5=1
+
+    public static void generate4a() {
+        int rules[] = new int[]{ // padding, roman, 1/5, exp
+                0b1_01001_0_00,
+                0b1_10110_1_00,
+                0b1_11000_0_01,
+                0b1_01100_1_01,
+                0b1_00011_0_10,
+                0b1_00100_1_10,
+                0b1_01101_0_11
+        };
+        for (int rule : rules) {
+            char roman = (char) ((rule >> 3) | 0b1000000);
+            int value = (int) ((rule & 4|1) * Math.pow(10, rule & 0b11));
+            //System.out.print((char)rule);
+            System.out.println(roman + " " + value + ": " + (char) rule);
+        }
+    }
+    static String pack = "ňƴǁťĚĦū"; //  1-bit padding, roman-64, 1=0 / 5=1, 10^x
+    private static void vPack(String in) {
+        System.out.println("In: " + in);
+        int result = 0;
+        for (int i = 0 ; i < in.length() ; i++) {
+            for (char rule : pack.toCharArray()) {
+                char roman = (char) ((rule >> 3) + 32);
+                int value = (int) ((rule & 4|1) * Math.pow(10, rule & 0b11));
+                if (in.charAt(i) == roman) {
+                    if (in.charAt(i+1) != roman && in.charAt(i+1) != ' ') {
+                        System.out.println("-" + roman + " (" + value + ")");
+                        result -= value;
+                    } else {
+                        System.out.println("+" + roman + " (" + value + ")");
+                        result += value;
+                    }
+                }
+            }
+        }
+        System.out.println(result);
+    }
+
+
+
+    public static void generate4c() {
+        // 5^x ->
+        // 1: 1*10^0 b000
+        // 5: 5*10^0 b100
+        // 10: 1*10^1 b001
+        // 50: 5*10^1 b101
+        // 100: 1*10^2 b010
+        // 500: 5*10^2 b110
+        // 1000: 1*10^3 b011
+
+        int rules[] = new int[]{ // roman, 1/5, exp
+                0b01001_000, // 1: I - 64
+                0b10110_100, // 5: V
+                0b11000_001, // 10: X
+                0b01100_101, // 50:
+                0b00011_010, // 100
+                0b00100_110, // 500
+                0b01101_011 // 1000
+        };
+        for (int rule : rules) {
+            char roman = (char) ((rule >> 3) | 0b1000000);
+            int value = (int) (((rule & 0b100) == 0 ? 1 : 5) * Math.pow(10, rule & 0b11));
+            System.out.println(roman + " " + value + ": " + (char) rule);
+        }
+    }
+    public static void generate4b() {
+        // 5^x ->
+        // 1: 5^0  1*10^0 b000
+        // 5: 5^1 5*10^0 b100
+        // 10: 5^1*2 1*10^1 b001
+        // 50: 5^2*2 5*10^1 b101
+        // 100: 5^2*4 1*10^2 b010
+        // 500: 5^2*20 5*10^2 b110
+        // 1000: 5^2*40 3+6 bits 1*10^3 b011
+
+        // 1: 0b01001 ^ 00000 01000
+        // 5: 0b10110 ^ 00000
+        int rules[] = new int[] {
+                0b000_01001, // 1: I - 64
+                0b100_10110, // 5: V
+                0b001_11000, // 10: X
+                0b101_01100, // 50:
+                0b010_00011, // 100
+                0b110_00100, // 500
+                0b011_01101 // 1000
+        };
+        for (int rule: rules) {
+            char roman = (char) ((rule & 0b11111) | 0b1000000);
+            int value = (int) (((rule & 10000000) == 0 ? 1 : 5) * Math.pow(10, (rule & 0b1100000) >> 5));
+            System.out.println(roman + " " + value + ": " + (char)rule);
+        }
+/*
+        for (String rule: rules4a) {
+            int value = rule.charAt(0); // 1 5 10 50 100 500 1000
+            char roman = rule.charAt(1);
+            char romanMod = (char) ((roman-64));
+            int ocode = (value << 5 | romanMod);
+            char ucode = (char)(ocode);
+//            System.out.println(ocode + " " + (ucode^1984));
+            System.out.println(a(value, 10) + " " + a(romanMod, 5));// + " " + ucode);*/
+            /*System.out.println(
+                               " value" + a(value, 10)
+                               + " roman" + a(roman, 7)
+                               + ", romanMod" + a(romanMod, 5)
+                               + ", " + roman + ": " + ucode + " " + a(ucode, 16) + " V:" + (int)value);*/
+//        }
+  //      System.out.println();
+    }
+
+    public static String a(int val, int digits) {
+        return "(" + align(Integer.toBinaryString(val), digits) + ")";
     }
 
     public static void generate() {
