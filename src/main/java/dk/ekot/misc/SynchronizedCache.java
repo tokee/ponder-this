@@ -45,26 +45,32 @@ public class SynchronizedCache {
                 log.trace("Interrupted waiting for " + fullCachePath + " after " +
                           TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) + "ms");
             }
-            log.debug("Adding to lock set: " + fullCachePath);
+            log.trace("Adding to lock set: " + fullCachePath);
             fileCopyLockSet.add(fullCachePath.toString());
         }
 
         try {
             long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             if (elapsed > 250) {
-                log.warn(String.format("File copy of %s delayed %d ms.  Possible DDOS.",
+                log.warn(String.format("File copy of '%s' delayed %d ms.  Possible DDOS.",
                                        fullCachePath.toString(), elapsed));
             }
-            Files.createDirectories(fullCachePath.getParent());
-            Files.copy(fullSourcePath, fullCachePath, StandardCopyOption.REPLACE_EXISTING);
+            copy(fullSourcePath, fullCachePath);
         } finally {
-            log.debug("Removing " + fullCachePath + " from lock set");
-            fileCopyLockSet.remove(fullCachePath.toString());
+            log.trace("Removing " + fullCachePath + " from lock set");
+            // https://docs.oracle.com/javase/tutorial/essential/concurrency/guardmeth.html
             synchronized (fileCopyLockSet) {
-                fileCopyLockSet.notify(); // Notify waiters
+                fileCopyLockSet.remove(fullCachePath.toString());
+                fileCopyLockSet.notifyAll(); // Notify waiters
             }
         }
         Path extractedPath = fullSourcePath;
         cache.put(extractedPath.toString(), fullCachePath);
+    }
+
+    // Hack to make it easier to mock unit testing
+    protected void copy(Path fullSourcePath, Path fullCachePath) throws IOException {
+        Files.createDirectories(fullCachePath.getParent());
+        Files.copy(fullSourcePath, fullCachePath, StandardCopyOption.REPLACE_EXISTING);
     }
 }
