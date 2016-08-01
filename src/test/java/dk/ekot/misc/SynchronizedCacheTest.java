@@ -30,6 +30,10 @@ import static org.junit.Assert.*;
 public class SynchronizedCacheTest {
     private static Log log = LogFactory.getLog(SynchronizedCacheTest.class);
 
+    public void testBigHammer() {
+
+    }
+
     @Test
     public void testHammering() throws InterruptedException {
         final int THREADS = 20;
@@ -56,7 +60,7 @@ public class SynchronizedCacheTest {
                     e.printStackTrace();
                 }
             }).start();
-            Thread.sleep(5);
+        //    Thread.sleep(5);
         }
         Thread.sleep(1000); // It should take 19*20ms
         log.debug("Mock file copy order: " + copied);
