@@ -37,27 +37,33 @@ public class Aug2016 {
     public static final int BAD = 9;
 
     public static void main(String[] args) {
+
         //sampleRun();
-        for (int bags = 1 ; bags <= 10 ; bags++) {
+        final int BAGS = 10;
+        permutateRun(Math.min(BAGS, 3), BAGS, 174, false);
+/*        for (int bags = 1 ; bags <= 10 ; bags++) {
             permutateRun(Math.min(bags, 3), bags, 174);
-        }
+        }*/
     }
 
-    private static void permutateRun(int atMostBadBags, int bagCount, int atMostCoinsPerBag) {
+    private static void permutateRun(int atMostBadBags, int bagCount, int atMostCoinsPerBag, boolean stopWhenFound) {
+        final int[] best = new int[bagCount];
+        Arrays.fill(best, atMostCoinsPerBag);
         final int[] bags = new int[bagCount];
         final boolean[] inUse = new boolean[atMostCoinsPerBag];
         final boolean[] existing = new boolean[bagCount*atMostCoinsPerBag*Math.max(GOOD, BAD)];
         long startTime = System.nanoTime();
-        boolean solved = permutateAndCheck(bags, inUse, existing, 0, 0, atMostCoinsPerBag, atMostBadBags);
+        boolean solved = permutateAndCheck(
+                bags, best, inUse, existing, 0, 0, atMostCoinsPerBag, atMostBadBags, stopWhenFound);
         System.out.println(String.format(
                 "atMostBadBags=%d, bagCount=%d, atMostCoinsPerBag=%d, time=%.2fms, solution=%s",
                 atMostBadBags, bagCount, atMostCoinsPerBag, (System.nanoTime()-startTime)/1000000.0,
-                solved ? Arrays.toString(bags) : "N/A"));
+                Arrays.toString(best)));
     }
 
     private static boolean permutateAndCheck(
-            int[] bags, boolean[] inUse, boolean[] existing, int index, int lastCoins,
-            double atMostCoinsPerBag, int atMostBadBags) {
+            int[] bags, int[] best, boolean[] inUse, boolean[] existing, int index, int lastCoins,
+            double atMostCoinsPerBag, int atMostBadBags, boolean stopWhenFound) {
         // TODO: Always check to break bad solutions before the array is full
         if (index > 0) {
             Arrays.fill(existing, false);
@@ -72,13 +78,24 @@ public class Aug2016 {
         }
 
         boolean checked = false;
-        for (int coins = lastCoins+1 ; coins < atMostCoinsPerBag ; coins++) {
+        final int bestIndex = best.length-1;
+        final int bestLeft = best.length-index+1;
+        for (int coins = lastCoins+1 ; coins < best[bestIndex]-bestLeft ; coins++) {
             if (!inUse[coins]) {
                 inUse[coins] = true;
                 checked = true;
                 bags[index] = coins;
-                if (permutateAndCheck(bags, inUse, existing, index+1, coins, atMostCoinsPerBag, atMostBadBags)) {
-                    return true;
+                if (permutateAndCheck(bags, best, inUse, existing, index+1, coins, atMostCoinsPerBag, atMostBadBags,
+                                      stopWhenFound)) {
+                    if (stopWhenFound) {
+                        return true;
+                    } else {
+                        if (bags[bags.length-1] < best[best.length-1]) {
+                            System.out.println(Arrays.toString(bags));
+                            System.arraycopy(bags, 0, best, 0, bags.length);
+                        }
+                        continue;
+                    }
                 }
                 inUse[coins] = false;
             }
@@ -126,3 +143,27 @@ public class Aug2016 {
         return true;
     }
 }
+
+/*
+
+  atMostBadBags=1, bagCount=1, atMostCoinsPerBag=5574, time=1.35ms, solution=[1]
+atMostBadBags=2, bagCount=2, atMostCoinsPerBag=5574, time=1.16ms, solution=[1, 2]
+atMostBadBags=3, bagCount=3, atMostCoinsPerBag=5574, time=1.34ms, solution=[1, 2, 3]
+atMostBadBags=3, bagCount=4, atMostCoinsPerBag=5574, time=47.68ms, solution=[1, 2, 4, 5]
+atMostBadBags=3, bagCount=5, atMostCoinsPerBag=5574, time=248.90ms, solution=[1, 2, 4, 8, 9]
+atMostBadBags=3, bagCount=6, atMostCoinsPerBag=5574, time=776.86ms, solution=[1, 2, 4, 8, 15, 16]
+atMostBadBags=3, bagCount=7, atMostCoinsPerBag=5574, time=2073.66ms, solution=[1, 2, 4, 8, 15, 28, 29]
+atMostBadBags=3, bagCount=8, atMostCoinsPerBag=5574, time=4769.95ms, solution=[1, 2, 4, 8, 15, 28, 52, 53]
+atMostBadBags=3, bagCount=9, atMostCoinsPerBag=5574, time=10776.46ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 97]
+atMostBadBags=3, bagCount=10, atMostCoinsPerBag=5574, time=21165.85ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 166]
+atMostBadBags=3, bagCount=11, atMostCoinsPerBag=5574, time=39665.24ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 279]
+atMostBadBags=3, bagCount=12, atMostCoinsPerBag=5574, time=71297.57ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 461]
+atMostBadBags=3, bagCount=13, atMostCoinsPerBag=5574, time=109865.99ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 664]
+atMostBadBags=3, bagCount=14, atMostCoinsPerBag=5574, time=170580.48ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 981]
+atMostBadBags=3, bagCount=15, atMostCoinsPerBag=5574, time=242107.54ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 1332, 1333]
+atMostBadBags=3, bagCount=16, atMostCoinsPerBag=5574, time=340697.04ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 1332, 1864, 1865]
+atMostBadBags=3, bagCount=17, atMostCoinsPerBag=5574, time=467159.20ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 1332, 1864, 2609, 2610]
+
+10: [1, 2, 30, 56, 68, 91, 106, 110, 114, 115]
+
+ */
