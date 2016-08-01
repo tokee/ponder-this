@@ -19,6 +19,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/August2016.html
@@ -31,6 +32,10 @@ import java.util.Arrays;
  * three such bags out of the ten, and when N=174.
  * Bonus '*' for solving it with even smaller N.
  */
+/*
+    No (x1+y1+z1)*0.9 == (x2+y2)*0.9 == x3*0.9 == any_single_value
+    No (x1+y1+z1) == (x2+y2) == x3 == any_single_value/0.9
+ */
 public class Aug2016 {
     private static Log log = LogFactory.getLog(Aug2016.class);
     public static final int GOOD = 10;
@@ -38,23 +43,43 @@ public class Aug2016 {
 
     public static void main(String[] args) {
 
-        //sampleRun();
+//        checkValidate();
+
+//        permutateRun(3, 7, 174, true, true);
+//        permutateRun(3, 10, 174, true, true);
+
+
         final int BAGS = 10;
-        permutateRun(Math.min(BAGS, 3), BAGS, 174, false);
-/*        for (int bags = 1 ; bags <= 10 ; bags++) {
-            permutateRun(Math.min(bags, 3), bags, 174);
-        }*/
+        final int MAX = 174;
+        //permutateRun(Math.min(BAGS, 3), BAGS, 100, true, true);
+        for (int bags = 1 ; bags <= BAGS ; bags++) {
+            permutateRun(Math.min(bags, 3), bags, MAX, true, true);
+        }
     }
 
-    private static void permutateRun(int atMostBadBags, int bagCount, int atMostCoinsPerBag, boolean stopWhenFound) {
+    private static void checkValidate() {
+        int[] bags = new int[]{1, 2, 3};
+        boolean[] existing = new boolean[bags.length*3*Math.max(GOOD, BAD)];
+        for (int checks = 1 ; checks <= 3 ; checks++) {
+            if (!validates(bags, bags.length, existing, checks)) {
+                // 1*9+2*9+3*10 == 1*10+2*10+3*9
+                System.out.println("All OK: " + Arrays.toString(bags) + " did not validate");
+                return;
+            }
+        }
+        System.out.println("Problem: " + Arrays.toString(bags) + " validated but should not");
+    }
+
+    private static void permutateRun(
+            int atMostBadBags, int bagCount, int atMostCoinsPerBag, boolean print, boolean forward) {
         final int[] best = new int[bagCount];
         Arrays.fill(best, atMostCoinsPerBag);
         final int[] bags = new int[bagCount];
-        final boolean[] inUse = new boolean[atMostCoinsPerBag];
+        Arrays.fill(bags, atMostCoinsPerBag);
         final boolean[] existing = new boolean[bagCount*atMostCoinsPerBag*Math.max(GOOD, BAD)];
+        AtomicLong solutionCount = new AtomicLong(0);
         long startTime = System.nanoTime();
-        boolean solved = permutateAndCheck(
-                bags, best, inUse, existing, 0, 0, atMostCoinsPerBag, atMostBadBags, stopWhenFound);
+        permutateAndCheck(bags, best, existing, 0, atMostBadBags, print, forward, solutionCount, atMostCoinsPerBag);
         System.out.println(String.format(
                 "atMostBadBags=%d, bagCount=%d, atMostCoinsPerBag=%d, time=%.2fms, solution=%s",
                 atMostBadBags, bagCount, atMostCoinsPerBag, (System.nanoTime()-startTime)/1000000.0,
@@ -62,13 +87,15 @@ public class Aug2016 {
     }
 
     private static boolean permutateAndCheck(
-            int[] bags, int[] best, boolean[] inUse, boolean[] existing, int index, int lastCoins,
-            double atMostCoinsPerBag, int atMostBadBags, boolean stopWhenFound) {
-        // TODO: Always check to break bad solutions before the array is full
+            int[] bags, int[] best, boolean[] existing, int index, int atMostBadBags, boolean print, boolean forward,
+            AtomicLong solutionCount, int atMostCoinsPerBag) {
         if (index > 0) {
             Arrays.fill(existing, false);
-            if (!validates(bags, index-1, existing, atMostBadBags)) {
-                return false;
+            for (int badBags = 1 ; badBags <= atMostBadBags ; badBags++) { // a+b+c == d+e == f
+//                Arrays.fill(existing, false);
+                if (!validates(bags, index, existing, badBags)) {
+                    return false;
+                }
             }
             if (index == bags.length) {
                 return true;
@@ -77,42 +104,47 @@ public class Aug2016 {
             }
         }
 
-        boolean checked = false;
-        final int bestIndex = best.length-1;
-        final int bestLeft = best.length-index+1;
-        for (int coins = lastCoins+1 ; coins < best[bestIndex]-bestLeft ; coins++) {
-            if (!inUse[coins]) {
-                inUse[coins] = true;
-                checked = true;
-                bags[index] = coins;
-                if (permutateAndCheck(bags, best, inUse, existing, index+1, coins, atMostCoinsPerBag, atMostBadBags,
-                                      stopWhenFound)) {
-                    if (stopWhenFound) {
-                        return true;
-                    } else {
-                        if (bags[bags.length-1] < best[best.length-1]) {
-                            System.out.println(Arrays.toString(bags));
-                            System.arraycopy(bags, 0, best, 0, bags.length);
-                        }
-                        continue;
-                    }
+        if (forward) {
+            final int startCoins = index == 0 ? 1 : bags[index - 1] + 1;
+            final int bestIndex = best.length-1;
+            final int bestLeft = best.length-index+1;
+            for (int coins = startCoins ; coins < best[bestIndex]-bestLeft ; coins++) {
+                if (index == 0) {
+                    System.out.print(coins + ": ");
                 }
-                inUse[coins] = false;
+                bags[index] = coins;
+                if (permutateAndCheck(bags, best, existing, index + 1, atMostBadBags, print, true, solutionCount,
+                                      atMostCoinsPerBag)) {
+                    if (index > 0) {
+                        return true;
+                    }
+                    if (print || solutionCount.getAndAdd(1) % 100 == 0) {
+                        System.out.println(Arrays.toString(bags));
+                    }
+                    System.arraycopy(bags, 0, best, 0, bags.length);
+                }
+            }
+        } else {
+            final int startCoins = index == 0 ? bags[0] : bags[index - 1] - 1;
+            final int endCoins = best.length - index;
+            for (int coins = startCoins; coins >= endCoins; coins--) {
+                if (index == 0) {
+                    System.out.print(coins + ": ");
+                }
+                bags[index] = coins;
+                if (permutateAndCheck(bags, best, existing, index + 1, atMostBadBags, print, false, solutionCount,
+                                      atMostCoinsPerBag)) {
+                    if (index > 0) {
+                        return true;
+                    }
+                    if (print || solutionCount.getAndAdd(1) % 100 == 0) {
+                        System.out.println(Arrays.toString(bags));
+                    }
+                    System.arraycopy(bags, 0, best, 0, bags.length);
+                }
             }
         }
-        return false; // What if not checked?
-    }
-
-    private static void sampleRun() {
-        final int[] SAMPLE = new int[]{1, 2, 4};
-        final int atMostCoinsPerBag = 4;
-        //int[] SAMPLE = new int[]{1, 174, 3, 4, 5, 6};
-        boolean[] existing = new boolean[SAMPLE.length*atMostCoinsPerBag*Math.max(GOOD, BAD)];
-        if (validates(SAMPLE, SAMPLE.length, existing, 2)) {
-            System.out.println("It works!");
-        } else {
-            System.out.println("Fails!");
-        }
+        return false;
     }
 
     private static boolean validates(int[] bags, int bagCount, boolean[] existing, int atMostBadBags) {
@@ -128,13 +160,15 @@ public class Aug2016 {
         if (nextFreeBad == bagCount || missingBad == 0) {
             return true;
         }
-        for (int bag = nextFreeBad ; bag < bagCount ; bag++) {
+        for (int bag = nextFreeBad ; bag < bagCount-(missingBad-1) ; bag++) {
             final int diff = bags[bag]*BAD - bags[bag]*GOOD;
             sum += diff;
-            if (existing[sum]) {
-                return false;
+            if (missingBad == 1) {
+                if (existing[sum]) {
+                    return false;
+                }
+                existing[sum] = true;
             }
-            existing[sum] = true;
             if (!validates(bags, bagCount, existing, bag+1, missingBad-1, sum)) {
                 return false;
             }
@@ -146,24 +180,6 @@ public class Aug2016 {
 
 /*
 
-  atMostBadBags=1, bagCount=1, atMostCoinsPerBag=5574, time=1.35ms, solution=[1]
-atMostBadBags=2, bagCount=2, atMostCoinsPerBag=5574, time=1.16ms, solution=[1, 2]
-atMostBadBags=3, bagCount=3, atMostCoinsPerBag=5574, time=1.34ms, solution=[1, 2, 3]
-atMostBadBags=3, bagCount=4, atMostCoinsPerBag=5574, time=47.68ms, solution=[1, 2, 4, 5]
-atMostBadBags=3, bagCount=5, atMostCoinsPerBag=5574, time=248.90ms, solution=[1, 2, 4, 8, 9]
-atMostBadBags=3, bagCount=6, atMostCoinsPerBag=5574, time=776.86ms, solution=[1, 2, 4, 8, 15, 16]
-atMostBadBags=3, bagCount=7, atMostCoinsPerBag=5574, time=2073.66ms, solution=[1, 2, 4, 8, 15, 28, 29]
-atMostBadBags=3, bagCount=8, atMostCoinsPerBag=5574, time=4769.95ms, solution=[1, 2, 4, 8, 15, 28, 52, 53]
-atMostBadBags=3, bagCount=9, atMostCoinsPerBag=5574, time=10776.46ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 97]
-atMostBadBags=3, bagCount=10, atMostCoinsPerBag=5574, time=21165.85ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 166]
-atMostBadBags=3, bagCount=11, atMostCoinsPerBag=5574, time=39665.24ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 279]
-atMostBadBags=3, bagCount=12, atMostCoinsPerBag=5574, time=71297.57ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 461]
-atMostBadBags=3, bagCount=13, atMostCoinsPerBag=5574, time=109865.99ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 664]
-atMostBadBags=3, bagCount=14, atMostCoinsPerBag=5574, time=170580.48ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 981]
-atMostBadBags=3, bagCount=15, atMostCoinsPerBag=5574, time=242107.54ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 1332, 1333]
-atMostBadBags=3, bagCount=16, atMostCoinsPerBag=5574, time=340697.04ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 1332, 1864, 1865]
-atMostBadBags=3, bagCount=17, atMostCoinsPerBag=5574, time=467159.20ms, solution=[1, 2, 4, 8, 15, 28, 52, 96, 165, 278, 460, 663, 980, 1332, 1864, 2609, 2610]
 
-10: [1, 2, 30, 56, 68, 91, 106, 110, 114, 115]
 
  */
