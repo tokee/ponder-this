@@ -58,10 +58,19 @@ public class Aug2016 {
     private static boolean permutateAndCheck(
             int[] bags, boolean[] inUse, boolean[] existing, int index, int lastCoins,
             double atMostCoinsPerBag, int atMostBadBags) {
-        if (index == bags.length) {
+        // TODO: Always check to break bad solutions before the array is full
+        if (index > 0) {
             Arrays.fill(existing, false);
-            return validates(bags, existing, atMostBadBags);
+            if (!validates(bags, index-1, existing, atMostBadBags)) {
+                return false;
+            }
+            if (index == bags.length) {
+                return true;
+//            Arrays.fill(existing, false);
+//            return validates(bags, bags.length, existing, atMostBadBags);
+            }
         }
+
         boolean checked = false;
         for (int coins = lastCoins+1 ; coins < atMostCoinsPerBag ; coins++) {
             if (!inUse[coins]) {
@@ -82,33 +91,34 @@ public class Aug2016 {
         final int atMostCoinsPerBag = 4;
         //int[] SAMPLE = new int[]{1, 174, 3, 4, 5, 6};
         boolean[] existing = new boolean[SAMPLE.length*atMostCoinsPerBag*Math.max(GOOD, BAD)];
-        if (validates(SAMPLE, existing, 2)) {
+        if (validates(SAMPLE, SAMPLE.length, existing, 2)) {
             System.out.println("It works!");
         } else {
             System.out.println("Fails!");
         }
     }
 
-    private static boolean validates(int[] bags, boolean[] existing, int atMostBadBags) {
+    private static boolean validates(int[] bags, int bagCount, boolean[] existing, int atMostBadBags) {
         int idealSum = 0;
         for (int val: bags) {
             idealSum += val*GOOD;
         }
-        return validates(bags, existing, 0, atMostBadBags, idealSum);
+        return validates(bags, bagCount, existing, 0, atMostBadBags, idealSum);
     }
 
-    private static boolean validates(int[] bags, boolean[] existing, int nextFreeBad, int missingBad, int sum) {
-        if (nextFreeBad == bags.length || missingBad == 0) {
+    private static boolean validates(int[] bags, int bagCount,
+                                     boolean[] existing, int nextFreeBad, int missingBad, int sum) {
+        if (nextFreeBad == bagCount || missingBad == 0) {
             return true;
         }
-        for (int bag = nextFreeBad ; bag < bags.length ; bag++) {
+        for (int bag = nextFreeBad ; bag < bagCount ; bag++) {
             final int diff = bags[bag]*BAD - bags[bag]*GOOD;
             sum += diff;
             if (existing[sum]) {
                 return false;
             }
             existing[sum] = true;
-            if (!validates(bags, existing, bag+1, missingBad-1, sum)) {
+            if (!validates(bags, bagCount, existing, bag+1, missingBad-1, sum)) {
                 return false;
             }
             sum -= diff;
