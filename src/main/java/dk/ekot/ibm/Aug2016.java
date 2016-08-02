@@ -19,6 +19,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -35,6 +36,14 @@ import java.util.concurrent.atomic.AtomicLong;
 /*
     No (x1+y1+z1)*0.9 == (x2+y2)*0.9 == x3*0.9 == any_single_value
     No (x1+y1+z1) == (x2+y2) == x3 == any_single_value/0.9
+
+    Level 3: Keep a stack of values that cannot be used anywhere
+    [1]: [1]
+    [1, 2]: [1, 2, 3]
+    [1, 3]: [1, 3, 4]
+    [1, 2, 4]: [1, 2, 3, 4, 5, 6, 7]
+    [1, 2, 5]: [1, 2, 4, 5, 6, 7, 8]
+    When the next number is to be tried, iterate through non-taken values and test those
  */
 public class Aug2016 {
     private static Log log = LogFactory.getLog(Aug2016.class);
@@ -47,17 +56,101 @@ public class Aug2016 {
 //        checkValidate2();
 
         //permutateRun(3, 7, 174, false, true);
-        permutateRun(3, 8, 6, 174, true, true);
-//        permutateRun(3, 10, 150, true, false);
+        //permutateRun(3, 8, 6, 174, true, true);
+        //permutateRun(3, 10, 1, 174, true, true);
 
-                /*
+        for (int bags = 1 ; bags < 20 ; bags++) {
+            onlyValid(bags, 100);
+        }
+
+        /*
         final int BAGS = 10;
         final int MAX = 174;
         //permutateRun(Math.min(BAGS, 3), BAGS, 100, true, true);
         for (int bags = 1 ; bags <= BAGS ; bags++) {
-            permutateRun(Math.min(bags, 3), bags, MAX, true, true);
+            permutateRun(Math.min(bags, 3), bags, 1, MAX, true, true);
         }
         */
+    }
+
+    public static void onlyValid(int bagCount, int atMostCoinsPerBag) {
+        int[] bags = new int[bagCount+1];
+        int[] best = new int[bagCount+1];
+        boolean[][] used = new boolean[bagCount+1][atMostCoinsPerBag+1];
+        AtomicInteger atMost = new AtomicInteger(atMostCoinsPerBag);
+        long startTime = System.nanoTime();
+        boolean ok = onlyValid(1, bags, best, used, atMost);
+        System.out.println(String.format("bags=%d, atMost=%d, time=%.2fms, pass=%b, result=%s",
+                                         bagCount, atMostCoinsPerBag, (System.nanoTime()-startTime)/1000000.0, ok,
+                                         ok ? toString(best, 1, best.length) : "N/A"));
+    }
+
+    private static boolean onlyValid(int bag, int[] bags, int[] best, boolean[][] usedStack, AtomicInteger atMost) {
+        if (bag == usedStack.length) {
+//            System.out.println(toString(bags, 1, bags.length));
+            System.arraycopy(bags, 0, best, 0, bags.length);
+            atMost.set(Math.min(atMost.get(), bags[bags.length-1]));
+            atMost.decrementAndGet();
+            return true;
+        }
+
+        final boolean[] previousCache = usedStack[bag-1];
+        boolean[] cache = usedStack[bag];
+        boolean someFound = false;
+        for (int coins = bags[bag-1]+1 ; coins <= atMost.get() ; coins++) {
+            if (previousCache[coins]) {
+                continue;
+            }
+            bags[bag] = coins;
+            System.arraycopy(usedStack[bag-1], 0, cache, 0, atMost.get());
+            if (!markAndCheckAllPermutations(bags, bag, cache, atMost.get())) {
+                continue;
+            }
+            if (onlyValid(bag+1, bags, best, usedStack, atMost)) {
+                someFound = true;
+            }
+        }
+        return someFound;
+    }
+
+    private static boolean markAndCheckAllPermutations(int[] bags, int bagIndex, boolean[] cache, int maxBagSize) {
+        final int coins = bags[bagIndex];
+        cache[coins] = true;
+        for (int i2 = 1 ; i2 < bagIndex ; i2++) { // Iterate previous bags to populate cache
+            final int c2 = bags[i2];
+            final int sum2 = coins+c2;
+            if (sum2 <= maxBagSize && cache[sum2]) { // 2 bad bags: a+b=c
+                return false;
+            }
+            if (sum2 <= maxBagSize) {
+                cache[sum2] = true;
+            }
+
+            for (int i3 = 1 ; i3 < i2 ; i3++) { // 3 bad bags: a*b*c=d
+                final int c3 = bags[i3];
+                final int sum3a = c3+coins+c2;
+                if ((sum3a <= maxBagSize && cache[sum3a])) { // 2 bad bags: a+c=d
+                    return false;
+                }
+                if (sum3a <= maxBagSize) {
+                    cache[sum3a] = true;
+                }
+            }
+        }
+        return true; // No collisions
+    }
+
+    private static String toString(int[] values, int start, int end) {
+        StringBuilder sb = new StringBuilder(100);
+        sb.append("[");
+        for (int i = start ; i < end ; i++) {
+            if (i != start) {
+                sb.append(", ");
+            }
+            sb.append(values[i]);
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private static void checkValidate1() {
@@ -92,66 +185,80 @@ public class Aug2016 {
         AtomicLong solutionCount = new AtomicLong(0);
 
         long startTime = System.nanoTime();
-        permutateAndCheck(bags, best, existing, 0, atMostBadBags, print, forward, solutionCount,
-                          atLeastCoinsPerBag, atMostCoinsPerBag);
+        if (forward) {
+            permutateAndCheckForward(
+                    bags, best, existing, 0, atMostBadBags, print, solutionCount, atLeastCoinsPerBag);
+        } else {
+            permutateAndCheckBackwards(
+                    bags, best, existing, 0, atMostBadBags, print, solutionCount, atLeastCoinsPerBag);
+        }
         System.out.println(String.format(
                 "\natMostBadBags=%d, bagCount=%d, atMostCoinsPerBag=%d, time=%.2fms, solution=%s",
                 atMostBadBags, bagCount, atMostCoinsPerBag, (System.nanoTime()-startTime)/1000000.0,
                 Arrays.toString(best)));
     }
 
-    private static boolean permutateAndCheck(
-            int[] bags, int[] best, boolean[] existing, int index, int atMostBadBags, boolean print, boolean forward,
-            AtomicLong solutionCount, int atLeastCoinsPerBag, int atMostCoinsPerBag) {
+    private static boolean permutateAndCheckForward(
+            int[] bags, int[] best, boolean[] existing, int index, int atMostBadBags, boolean print,
+            AtomicLong solutionCount, int atLeastCoinsPerBag) {
         if (index > 0) {
             if (!validates(bags, index, existing, atMostBadBags)) {
                 return false;
             }
             if (index == bags.length) {
                 return true;
-//            Arrays.fill(existing, false);
-//            return validates(bags, bags.length, existing, atMostBadBags);
             }
         }
 
-        if (forward) {
-            final int startCoins = index == 0 ? atLeastCoinsPerBag : bags[index - 1] + 1;
-            final int bestIndex = best.length-1;
-            final int bestLeft = best.length-index+1;
-            for (int coins = startCoins ; coins < best[bestIndex]-bestLeft ; coins++) {
-                if (index == 0) {
-                    System.out.print(coins + ": ");
-                }
-                bags[index] = coins;
-                if (permutateAndCheck(bags, best, existing, index + 1, atMostBadBags, print, true, solutionCount,
-                                      atLeastCoinsPerBag, atMostCoinsPerBag)) {
-//                    if (index > 0) {
-//                        return true;
-//                    }
-                    if (index == bags.length-1 && (print || solutionCount.getAndAdd(1) % 100 == 0)) {
-                        System.out.println(Arrays.toString(bags));
-                    }
-                    System.arraycopy(bags, 0, best, 0, bags.length);
-                }
+        final int startCoins = index == 0 ? atLeastCoinsPerBag : bags[index - 1] + 1;
+        final int lastIndex = best.length-1;
+        final int bestLeft = best.length-index+1;
+        for (int coins = startCoins ; coins < best[lastIndex]-bestLeft ; coins++) {
+            if (index == 0) {
+                System.out.print(coins + ": ");
             }
-        } else {
-            final int startCoins = index == 0 ? bags[0] : bags[index - 1] - 1;
-            final int endCoins = Math.max(atLeastCoinsPerBag, best.length - index);
-            for (int coins = startCoins; coins >= endCoins; coins--) {
-                if (index == 0) {
-                    System.out.print(coins + ": ");
+            bags[index] = coins;
+            if (permutateAndCheckForward(bags, best, existing, index+1, atMostBadBags, print, solutionCount,
+                                  atLeastCoinsPerBag)) {
+                solutionCount.addAndGet(1);
+                if (index == lastIndex && print) {
+                    System.out.println(Arrays.toString(bags));
                 }
-                bags[index] = coins;
-                if (permutateAndCheck(bags, best, existing, index + 1, atMostBadBags, print, false, solutionCount,
-                                      atLeastCoinsPerBag, atMostCoinsPerBag)) {
-                    if (index > 0) {
-                        return true;
-                    }
-                    if (print || solutionCount.getAndAdd(1) % 100 == 0) {
-                        System.out.println(Arrays.toString(bags));
-                    }
-                    System.arraycopy(bags, 0, best, 0, bags.length);
+                System.arraycopy(bags, 0, best, 0, bags.length);
+            }
+        }
+        return false;
+    }
+
+
+    private static boolean permutateAndCheckBackwards(
+            int[] bags, int[] best, boolean[] existing, int index, int atMostBadBags, boolean print,
+            AtomicLong solutionCount, int atLeastCoinsPerBag) {
+        if (index > 0) {
+            if (!validates(bags, index, existing, atMostBadBags)) {
+                return false;
+            }
+            if (index == bags.length) {
+                return true;
+            }
+        }
+
+        final int startCoins = index == 0 ? bags[0] : bags[index - 1] - 1;
+        final int endCoins = Math.max(atLeastCoinsPerBag, best.length - index);
+        for (int coins = startCoins; coins >= endCoins; coins--) {
+            if (index == 0) {
+                System.out.print(coins + ": ");
+            }
+            bags[index] = coins;
+            if (permutateAndCheckBackwards(bags, best, existing, index + 1, atMostBadBags, print, solutionCount,
+                                           atLeastCoinsPerBag)) {
+                if (index > 0) {
+                    return true;
                 }
+                if (print || solutionCount.getAndAdd(1) % 100 == 0) {
+                    System.out.println(Arrays.toString(bags));
+                }
+                System.arraycopy(bags, 0, best, 0, bags.length);
             }
         }
         return false;
@@ -251,5 +358,6 @@ atMostBadBags=3, bagCount=8, atMostCoinsPerBag=174, time=70554.31ms, solution=[6
 Just about forever: permutateRun(3, 8, 174, true, false); // validate2
 
 atMostBadBags=3, bagCount=9, atMostCoinsPerBag=174, time=12826982.70ms, solution=[8, 16, 32, 36, 64, 77, 118, 119, 120]
+9 bags: [1, 2, 30, 56, 68, 91, 106, 110, 114] (not finished)
 
  */
