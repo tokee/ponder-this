@@ -60,13 +60,13 @@ public class Aug2016 {
         //permutateRun(3, 8, 6, 174, true, true);
         //permutateRun(3, 10, 1, 174, true, true);
 
-  //      onlyValid(6, 100);
+        onlyValid(9, 100, 1);
 
 
-        for (int bags = 1 ; bags < 10 ; bags++) {
-            onlyValid(bags, 174);
+/*        for (int bags = 1 ; bags < 10 ; bags++) {
+            onlyValid(bags, 174, 1);
         }
-
+  */
         /*
         final int BAGS = 10;
         final int MAX = 174;
@@ -77,11 +77,11 @@ public class Aug2016 {
         */
     }
 
-    public static void onlyValid(int bagCount, int atMostCoinsPerBag) {
+    public static void onlyValid(int bagCount, int atMostCoinsPerBag, int startCoins) {
         int[] bags = new int[bagCount+1];
-        bags[0] = 2; // Starting value-1
+        bags[0] = startCoins-1;
         int[] best = new int[bagCount+1];
-        boolean[][] used = new boolean[bagCount+1][(int) Math.pow(atMostCoinsPerBag, 3)];
+        boolean[][] used = new boolean[bagCount+1][atMostCoinsPerBag*3+1];
         AtomicInteger atMost = new AtomicInteger(atMostCoinsPerBag);
         long startTime = System.nanoTime();
         boolean ok = onlyValid(1, bags, best, used, atMost, new AtomicInteger(used[0].length));
@@ -97,7 +97,7 @@ public class Aug2016 {
             System.arraycopy(bags, 0, best, 0, bags.length);
             atMost.set(Math.min(atMost.get(), bags[bags.length-1]));
             atMost.decrementAndGet();
-            highestCache.set(atMost.get()*atMost.get()*atMost.get()); // Math.pow uses floating point and is slower
+            highestCache.set(atMost.get()*3);
             return true;
         }
 
@@ -112,7 +112,7 @@ public class Aug2016 {
                 continue;
             }
             bags[bag] = coins;
-            System.arraycopy(usedStack[bag-1], 0, cache, 0, highestCache.get());
+            System.arraycopy(previousCache, 0, cache, 0, highestCache.get());
             if (!markAndCheckAllPermutations(bags, bag, cache, atMost.get())) {
                 continue;
             }
@@ -182,7 +182,7 @@ public class Aug2016 {
     }
 
     private static void checkValidate3() {
-        int[] bags = new int[]{3, 6, 11, 12, 13};
+        int[] bags = new int[]{1, 2, 30, 56, 68, 91, 106, 110, 114};
         boolean[] existing = new boolean[bags.length*20*Math.max(GOOD, BAD)];
         if (!validates(bags, bags.length, existing, 3)) {
             System.out.println("Problem: " + Arrays.toString(bags) + " did not validate, but it should");
@@ -375,5 +375,16 @@ Just about forever: permutateRun(3, 8, 174, true, false); // validate2
 
 atMostBadBags=3, bagCount=9, atMostCoinsPerBag=174, time=12826982.70ms, solution=[8, 16, 32, 36, 64, 77, 118, 119, 120]
 9 bags: [1, 2, 30, 56, 68, 91, 106, 110, 114] (not finished)
+
+onlyValid:
+bags=1, atMost=174, time=0.04ms, pass=true, result=[1]
+bags=2, atMost=174, time=0.01ms, pass=true, result=[1, 2]
+bags=3, atMost=174, time=0.01ms, pass=true, result=[1, 2, 4]
+bags=4, atMost=174, time=0.05ms, pass=true, result=[3, 5, 6, 7]
+bags=5, atMost=174, time=0.37ms, pass=true, result=[3, 6, 11, 12, 13]
+bags=6, atMost=174, time=2.25ms, pass=true, result=[3, 6, 12, 22, 23, 24]
+bags=7, atMost=174, time=73.97ms, pass=true, result=[3, 6, 12, 22, 41, 42, 43]
+bags=8, atMost=174, time=7811.37ms, pass=true, result=[6, 12, 23, 40, 68, 70, 71, 72]
+bags=9, atMost=174, time=697007.36ms, pass=true, result=[1, 2, 30, 56, 68, 91, 106, 110, 114]
 
  */
