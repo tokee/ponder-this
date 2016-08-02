@@ -60,13 +60,13 @@ public class Aug2016 {
         //permutateRun(3, 8, 6, 174, true, true);
         //permutateRun(3, 10, 1, 174, true, true);
 
-        onlyValid(9, 100, 1);
+//        onlyValid(9, 100, 1);
 
 
-/*        for (int bags = 1 ; bags < 10 ; bags++) {
+        for (int bags = 1 ; bags < 9 ; bags++) {
             onlyValid(bags, 174, 1);
         }
-  */
+
         /*
         final int BAGS = 10;
         final int MAX = 174;
@@ -93,11 +93,11 @@ public class Aug2016 {
     private static boolean onlyValid(int bag, int[] bags, int[] best, boolean[][] usedStack, AtomicInteger atMost,
                                      AtomicInteger highestCache) {
         if (bag == usedStack.length) {
-            System.out.println(toString(bags, 1, bags.length));
+//            System.out.println(toString(bags, 1, bags.length));
             System.arraycopy(bags, 0, best, 0, bags.length);
-            atMost.set(Math.min(atMost.get(), bags[bags.length-1]));
+            atMost.set(Math.min(atMost.get(), bags[bags.length - 1]));
             atMost.decrementAndGet();
-            highestCache.set(atMost.get()*3);
+            highestCache.set(atMost.get() * 3);
             return true;
         }
 
@@ -112,8 +112,7 @@ public class Aug2016 {
                 continue;
             }
             bags[bag] = coins;
-            System.arraycopy(previousCache, 0, cache, 0, highestCache.get());
-            if (!markAndCheckAllPermutations(bags, bag, cache, atMost.get())) {
+            if (!markAndCheckAllPermutations(bags, bag, previousCache, cache, atMost.get())) {
                 continue;
             }
             if (onlyValid(bag+1, bags, best, usedStack, atMost, highestCache)) {
@@ -123,15 +122,25 @@ public class Aug2016 {
         return someFound;
     }
 
-    private static boolean markAndCheckAllPermutations(int[] bags, int bagIndex, boolean[] cache, int maxBagSize) {
+    // If true is returned, cache will have been updated. If false, cache state is undetermined
+    private static boolean markAndCheckAllPermutations(
+            int[] bags, int bagIndex, boolean[] previousCache, boolean[] cache, int maxBagSize) {
         final int coins = bags[bagIndex];
+
+        // Pre-check to avoid array copy (only shaves 10% off execution time)
+        for (int i2 = 1 ; i2 < bagIndex ; i2++) { // Iterate previous bags to populate cache
+            final int c2 = bags[i2];
+            final int sum2 = coins + c2;
+            if (previousCache[sum2] || sum2 == coins) { // 2 bad bags: a+b=c
+                return false;
+            }
+        }
+
+        System.arraycopy(previousCache, 0, cache, 0, maxBagSize*3);
         cache[coins] = true;
         for (int i2 = 1 ; i2 < bagIndex ; i2++) { // Iterate previous bags to populate cache
             final int c2 = bags[i2];
             final int sum2 = coins+c2;
-            if (cache[sum2]) { // 2 bad bags: a+b=c
-                return false;
-            }
             cache[sum2] = true;
 
             for (int i3 = 1 ; i3 < i2 ; i3++) { // 3 bad bags: a*b*c=d
