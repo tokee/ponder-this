@@ -43,21 +43,24 @@ public class Aug2016 {
 
     public static void main(String[] args) {
 
-//        checkValidate();
+//        checkValidate1();
+//        checkValidate2();
 
-//        permutateRun(3, 7, 174, true, true);
-//        permutateRun(3, 10, 174, true, true);
+        //permutateRun(3, 7, 174, false, true);
+        permutateRun(3, 8, 6, 174, true, true);
+//        permutateRun(3, 10, 150, true, false);
 
-
+                /*
         final int BAGS = 10;
         final int MAX = 174;
         //permutateRun(Math.min(BAGS, 3), BAGS, 100, true, true);
         for (int bags = 1 ; bags <= BAGS ; bags++) {
             permutateRun(Math.min(bags, 3), bags, MAX, true, true);
         }
+        */
     }
 
-    private static void checkValidate() {
+    private static void checkValidate1() {
         int[] bags = new int[]{1, 2, 3};
         boolean[] existing = new boolean[bags.length*3*Math.max(GOOD, BAD)];
         for (int checks = 1 ; checks <= 3 ; checks++) {
@@ -69,33 +72,40 @@ public class Aug2016 {
         }
         System.out.println("Problem: " + Arrays.toString(bags) + " validated but should not");
     }
+    private static void checkValidate2() {
+        int[] bags = new int[]{174, 173, 172, 170, 117, 88, 48, 24, 12, 6};
+        boolean[] existing = new boolean[bags.length*174*Math.max(GOOD, BAD)];
+        if (!validates(bags, bags.length, existing, 3)) {
+            System.out.println("Problem: " + Arrays.toString(bags) + " did not validate, but it should");
+            return;
+        }
+        System.out.println("All OK: " + Arrays.toString(bags) + " did validate");
+    }
 
-    private static void permutateRun(
-            int atMostBadBags, int bagCount, int atMostCoinsPerBag, boolean print, boolean forward) {
+    private static void permutateRun(int atMostBadBags, int bagCount, int atLeastCoinsPerBag, int atMostCoinsPerBag,
+                                     boolean print, boolean forward) {
         final int[] best = new int[bagCount];
         Arrays.fill(best, atMostCoinsPerBag);
         final int[] bags = new int[bagCount];
         Arrays.fill(bags, atMostCoinsPerBag);
         final boolean[] existing = new boolean[bagCount*atMostCoinsPerBag*Math.max(GOOD, BAD)];
         AtomicLong solutionCount = new AtomicLong(0);
+
         long startTime = System.nanoTime();
-        permutateAndCheck(bags, best, existing, 0, atMostBadBags, print, forward, solutionCount, atMostCoinsPerBag);
+        permutateAndCheck(bags, best, existing, 0, atMostBadBags, print, forward, solutionCount,
+                          atLeastCoinsPerBag, atMostCoinsPerBag);
         System.out.println(String.format(
-                "atMostBadBags=%d, bagCount=%d, atMostCoinsPerBag=%d, time=%.2fms, solution=%s",
+                "\natMostBadBags=%d, bagCount=%d, atMostCoinsPerBag=%d, time=%.2fms, solution=%s",
                 atMostBadBags, bagCount, atMostCoinsPerBag, (System.nanoTime()-startTime)/1000000.0,
                 Arrays.toString(best)));
     }
 
     private static boolean permutateAndCheck(
             int[] bags, int[] best, boolean[] existing, int index, int atMostBadBags, boolean print, boolean forward,
-            AtomicLong solutionCount, int atMostCoinsPerBag) {
+            AtomicLong solutionCount, int atLeastCoinsPerBag, int atMostCoinsPerBag) {
         if (index > 0) {
-            Arrays.fill(existing, false);
-            for (int badBags = 1 ; badBags <= atMostBadBags ; badBags++) { // a+b+c == d+e == f
-//                Arrays.fill(existing, false);
-                if (!validates(bags, index, existing, badBags)) {
-                    return false;
-                }
+            if (!validates(bags, index, existing, atMostBadBags)) {
+                return false;
             }
             if (index == bags.length) {
                 return true;
@@ -105,7 +115,7 @@ public class Aug2016 {
         }
 
         if (forward) {
-            final int startCoins = index == 0 ? 1 : bags[index - 1] + 1;
+            final int startCoins = index == 0 ? atLeastCoinsPerBag : bags[index - 1] + 1;
             final int bestIndex = best.length-1;
             final int bestLeft = best.length-index+1;
             for (int coins = startCoins ; coins < best[bestIndex]-bestLeft ; coins++) {
@@ -114,11 +124,11 @@ public class Aug2016 {
                 }
                 bags[index] = coins;
                 if (permutateAndCheck(bags, best, existing, index + 1, atMostBadBags, print, true, solutionCount,
-                                      atMostCoinsPerBag)) {
-                    if (index > 0) {
-                        return true;
-                    }
-                    if (print || solutionCount.getAndAdd(1) % 100 == 0) {
+                                      atLeastCoinsPerBag, atMostCoinsPerBag)) {
+//                    if (index > 0) {
+//                        return true;
+//                    }
+                    if (index == bags.length-1 && (print || solutionCount.getAndAdd(1) % 100 == 0)) {
                         System.out.println(Arrays.toString(bags));
                     }
                     System.arraycopy(bags, 0, best, 0, bags.length);
@@ -126,14 +136,14 @@ public class Aug2016 {
             }
         } else {
             final int startCoins = index == 0 ? bags[0] : bags[index - 1] - 1;
-            final int endCoins = best.length - index;
+            final int endCoins = Math.max(atLeastCoinsPerBag, best.length - index);
             for (int coins = startCoins; coins >= endCoins; coins--) {
                 if (index == 0) {
                     System.out.print(coins + ": ");
                 }
                 bags[index] = coins;
                 if (permutateAndCheck(bags, best, existing, index + 1, atMostBadBags, print, false, solutionCount,
-                                      atMostCoinsPerBag)) {
+                                      atLeastCoinsPerBag, atMostCoinsPerBag)) {
                     if (index > 0) {
                         return true;
                     }
@@ -146,17 +156,64 @@ public class Aug2016 {
         }
         return false;
     }
-
     private static boolean validates(int[] bags, int bagCount, boolean[] existing, int atMostBadBags) {
-        int idealSum = 0;
-        for (int val: bags) {
-            idealSum += val*GOOD;
-        }
-        return validates(bags, bagCount, existing, 0, atMostBadBags, idealSum);
+        //return validatesV1(bags, bagCount, existing, atMostBadBags);
+        return validatesV2(bags, bagCount, existing);
     }
 
-    private static boolean validates(int[] bags, int bagCount,
-                                     boolean[] existing, int nextFreeBad, int missingBad, int sum) {
+    @SuppressWarnings("ForLoopReplaceableByForEach")
+    private static boolean validatesV2(final int[] bags, int bagCount, boolean[] existing) {
+        Arrays.fill(existing, false);
+        for (int i1 = 0 ; i1 <  bagCount ; i1++) {
+            final int i1v = bags[i1];
+            if (existing[i1v]) {
+//                System.out.println("Problem: Existing value for i1v=" + i1v);
+                return false;
+            }
+            existing[i1v] = true;
+            for (int i2 = i1+1 ; i2 <  bagCount ; i2++) {
+                final int i2v = bags[i2];
+                if (existing[i1v + i2v]) {
+//                    System.out.println("Problem: Existing value for i1v=" + i1v + "+ i2v=" + i2v
+//                                       + " => " + (i1v + i2v));
+                    return false;
+                }
+                existing[i1v + i2v] = true;
+                for (int i3 = i2 + 1; i3 < bagCount; i3++) {
+                    final int i3v = bags[i3];
+                    if (existing[i1v + i2v + i3v]) {
+//                        System.out.println("Problem: Existing value for i1v=" + i1v + " + i2v=" + i2v+ " + i3v=" + i3v
+//                                           + " => " + (i1v + i2v + i3v));
+                        return false;
+                    }
+                    existing[i1v + i2v + i3v] = true;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean validatesV1(int[] bags, int bagCount, boolean[] existing, int atMostBadBags) {
+        if (bagCount < 2) {
+            return true;
+        }
+        int idealSum = 0;
+        for (int i = 0; i < bagCount; i++) {
+            int val = bags[i];
+            idealSum += val * GOOD;
+        }
+        Arrays.fill(existing, false);
+        for (int badBags = 1 ; badBags <= atMostBadBags ; badBags++) { // a+b+c == d+e == f
+//                Arrays.fill(existing, false);
+            if (!validatesV1(bags, bagCount, existing, 0, badBags, idealSum)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean validatesV1(
+            int[] bags, int bagCount, boolean[] existing, int nextFreeBad, int missingBad, int sum) {
         if (nextFreeBad == bagCount || missingBad == 0) {
             return true;
         }
@@ -169,7 +226,7 @@ public class Aug2016 {
                 }
                 existing[sum] = true;
             }
-            if (!validates(bags, bagCount, existing, bag+1, missingBad-1, sum)) {
+            if (!validatesV1(bags, bagCount, existing, bag + 1, missingBad - 1, sum)) {
                 return false;
             }
             sum -= diff;
@@ -180,45 +237,19 @@ public class Aug2016 {
 
 /*
 
-1: [1]
 atMostBadBags=1, bagCount=1, atMostCoinsPerBag=174, time=0.62ms, solution=[1]
-1: [1, 2]
 atMostBadBags=2, bagCount=2, atMostCoinsPerBag=174, time=0.14ms, solution=[1, 2]
-1: [1, 2, 4]
 atMostBadBags=3, bagCount=3, atMostCoinsPerBag=174, time=0.32ms, solution=[1, 2, 4]
-1: [1, 2, 4, 8]
-2:
 atMostBadBags=3, bagCount=4, atMostCoinsPerBag=174, time=0.84ms, solution=[1, 2, 4, 8]
-1: [1, 2, 4, 8, 15]
-2: 3: 4: 5: 6: 7: 8:
 atMostBadBags=3, bagCount=5, atMostCoinsPerBag=174, time=4.21ms, solution=[1, 2, 4, 8, 15]
-1: [1, 2, 4, 8, 15, 28]
-2: 3: [3, 6, 12, 20, 24, 25]
-4: 5: 6: 7: 8: 9: 10: 11: 12: 13: 14: 15: 16: 17:
 atMostBadBags=3, bagCount=6, atMostCoinsPerBag=174, time=12.20ms, solution=[3, 6, 12, 20, 24, 25]
-1: [1, 2, 4, 8, 15, 28, 52]
-2: [2, 3, 12, 24, 41, 45, 49]
-3: [3, 6, 12, 22, 41, 42, 43]
-4: 5: 6: 7: 8: 9: 10: 11: 12: 13: 14: 15: 16: 17: 18: 19: 20: 21: 22: 23: 24: 25: 26: 27: 28: 29: 30: 31: 32: 33: 34:
 atMostBadBags=3, bagCount=7, atMostCoinsPerBag=174, time=506.75ms, solution=[3, 6, 12, 22, 41, 42, 43]
-1: [1, 2, 4, 8, 15, 28, 52, 96]
-2: [2, 3, 4, 8, 16, 29, 52, 88]
-3: [3, 4, 6, 8, 39, 59, 72, 85]
-4: [4, 5, 40, 55, 58, 70, 76, 82]
-5: [5, 6, 12, 24, 39, 72, 74, 76]
-6: [6, 12, 23, 40, 68, 70, 71, 72]
-7: 8: 9: 10: 11: 12: 13: 14: 15: 16: 17: 18: 19: 20: 21: 22: 23: 24: 25: 26: 27: 28: 29: 30: 31: 32: 33: 34: 35: 36: 37: 38: 39: 40: 41: 42: 43: 44: 45: 46: 47: 48: 49: 50: 51: 52: 53: 54: 55: 56: 57: 58: 59: 60: 61: 62:
-atMostBadBags=3, bagCount=8, atMostCoinsPerBag=174, time=39683.78ms, solution=[6, 12, 23, 40, 68, 70, 71, 72]
-1: [1, 2, 4, 8, 15, 28, 52, 96, 165]
-2: [2, 3, 4, 8, 16, 29, 52, 88, 147]
-3: [3, 4, 6, 8, 20, 44, 82, 113, 144]
-4: [4, 5, 8, 16, 56, 78, 109, 111, 140]
-5: [5, 6, 10, 26, 38, 52, 66, 132, 135]
-6: [6, 7, 12, 24, 39, 66, 124, 126, 128]
-7: [7, 9, 18, 36, 48, 60, 116, 120, 124]
-8: [8, 16, 32, 36, 64, 77, 118, 119, 120]
-9: 10: 11: 12: 13: 14: 15: 16: 17: 18: 19: 20: 21: 22: 23: 24: 25: 26: 27: 28: 29: 30: 31: 32: 33: 34: 35: 36: 37: 38: 39: 40: 41: 42: 43: 44: 45: 46: 47: 48: 49: 50: 51: 52: 53: 54: 55: 56: 57: 58: 59: 60: 61: 62: 63: 64: 65: 66: 67: 68: 69: 70: 71: 72: 73: 74: 75: 76: 77: 78: 79: 80: 81: 82: 83: 84: 85: 86: 87: 88: 89: 90: 91: 92: 93: 94: 95: 96: 97: 98: 99: 100: 101: 102: 103: 104: 105: 106: 107: 108: 109:
+
+atMostBadBags=3, bagCount=8, atMostCoinsPerBag=174, time=219946.00ms, solution=[72, 71, 70, 68, 40, 23, 12, 6] // permutateRun(3, 8, 174, true, false); validate1
+atMostBadBags=3, bagCount=8, atMostCoinsPerBag=174, time=60396.82ms, solution=[6, 12, 23, 40, 68, 70, 71, 72] //  permutateRun(3, 8, 174, true, true); validate1
+atMostBadBags=3, bagCount=8, atMostCoinsPerBag=174, time=70554.31ms, solution=[6, 12, 23, 40, 68, 70, 71, 72] // permutateRun(3, 8, 174, true, true); validate2
+Just about forever: permutateRun(3, 8, 174, true, false); // validate2
+
 atMostBadBags=3, bagCount=9, atMostCoinsPerBag=174, time=12826982.70ms, solution=[8, 16, 32, 36, 64, 77, 118, 119, 120]
-1:
 
  */
