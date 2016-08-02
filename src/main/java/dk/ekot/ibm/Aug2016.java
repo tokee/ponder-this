@@ -62,8 +62,9 @@ public class Aug2016 {
 
   //      onlyValid(6, 100);
 
-        for (int bags = 1 ; bags < 20 ; bags++) {
-            onlyValid(bags, 200);
+
+        for (int bags = 1 ; bags < 10 ; bags++) {
+            onlyValid(bags, 174);
         }
 
         /*
@@ -78,22 +79,25 @@ public class Aug2016 {
 
     public static void onlyValid(int bagCount, int atMostCoinsPerBag) {
         int[] bags = new int[bagCount+1];
+        bags[0] = 2; // Starting value-1
         int[] best = new int[bagCount+1];
         boolean[][] used = new boolean[bagCount+1][(int) Math.pow(atMostCoinsPerBag, 3)];
         AtomicInteger atMost = new AtomicInteger(atMostCoinsPerBag);
         long startTime = System.nanoTime();
-        boolean ok = onlyValid(1, bags, best, used, atMost);
+        boolean ok = onlyValid(1, bags, best, used, atMost, new AtomicInteger(used[0].length));
         System.out.println(String.format("bags=%d, atMost=%d, time=%.2fms, pass=%b, result=%s",
                                          bagCount, atMostCoinsPerBag, (System.nanoTime()-startTime)/1000000.0, ok,
                                          ok ? toString(best, 1, best.length) : "N/A"));
     }
 
-    private static boolean onlyValid(int bag, int[] bags, int[] best, boolean[][] usedStack, AtomicInteger atMost) {
+    private static boolean onlyValid(int bag, int[] bags, int[] best, boolean[][] usedStack, AtomicInteger atMost,
+                                     AtomicInteger highestCache) {
         if (bag == usedStack.length) {
-//            System.out.println(toString(bags, 1, bags.length));
+            System.out.println(toString(bags, 1, bags.length));
             System.arraycopy(bags, 0, best, 0, bags.length);
             atMost.set(Math.min(atMost.get(), bags[bags.length-1]));
             atMost.decrementAndGet();
+            highestCache.set(atMost.get()*atMost.get()*atMost.get()); // Math.pow uses floating point and is slower
             return true;
         }
 
@@ -108,11 +112,11 @@ public class Aug2016 {
                 continue;
             }
             bags[bag] = coins;
-            System.arraycopy(usedStack[bag-1], 0, cache, 0, cache.length);
+            System.arraycopy(usedStack[bag-1], 0, cache, 0, highestCache.get());
             if (!markAndCheckAllPermutations(bags, bag, cache, atMost.get())) {
                 continue;
             }
-            if (onlyValid(bag+1, bags, best, usedStack, atMost)) {
+            if (onlyValid(bag+1, bags, best, usedStack, atMost, highestCache)) {
                 someFound = true;
             }
         }
@@ -178,7 +182,7 @@ public class Aug2016 {
     }
 
     private static void checkValidate3() {
-        int[] bags = new int[]{3, 6, 12, 22, 23, 24};
+        int[] bags = new int[]{3, 6, 11, 12, 13};
         boolean[] existing = new boolean[bags.length*20*Math.max(GOOD, BAD)];
         if (!validates(bags, bags.length, existing, 3)) {
             System.out.println("Problem: " + Arrays.toString(bags) + " did not validate, but it should");
