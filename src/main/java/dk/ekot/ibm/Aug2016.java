@@ -54,13 +54,16 @@ public class Aug2016 {
 
 //        checkValidate1();
 //        checkValidate2();
+//        checkValidate3();
 
         //permutateRun(3, 7, 174, false, true);
         //permutateRun(3, 8, 6, 174, true, true);
         //permutateRun(3, 10, 1, 174, true, true);
 
+  //      onlyValid(6, 100);
+
         for (int bags = 1 ; bags < 20 ; bags++) {
-            onlyValid(bags, 100);
+            onlyValid(bags, 200);
         }
 
         /*
@@ -76,7 +79,7 @@ public class Aug2016 {
     public static void onlyValid(int bagCount, int atMostCoinsPerBag) {
         int[] bags = new int[bagCount+1];
         int[] best = new int[bagCount+1];
-        boolean[][] used = new boolean[bagCount+1][atMostCoinsPerBag+1];
+        boolean[][] used = new boolean[bagCount+1][(int) Math.pow(atMostCoinsPerBag, 3)];
         AtomicInteger atMost = new AtomicInteger(atMostCoinsPerBag);
         long startTime = System.nanoTime();
         boolean ok = onlyValid(1, bags, best, used, atMost);
@@ -97,12 +100,15 @@ public class Aug2016 {
         final boolean[] previousCache = usedStack[bag-1];
         boolean[] cache = usedStack[bag];
         boolean someFound = false;
+/*        if (bag == 3 && toString(bags, 1, bags.length).startsWith("[3, 6, ")) { // [3, 6, 12, 20, 24, 25]
+            System.out.println("Nearly there: " + toString(bags, 1, bag));
+        }*/
         for (int coins = bags[bag-1]+1 ; coins <= atMost.get() ; coins++) {
             if (previousCache[coins]) {
                 continue;
             }
             bags[bag] = coins;
-            System.arraycopy(usedStack[bag-1], 0, cache, 0, atMost.get());
+            System.arraycopy(usedStack[bag-1], 0, cache, 0, cache.length);
             if (!markAndCheckAllPermutations(bags, bag, cache, atMost.get())) {
                 continue;
             }
@@ -119,22 +125,18 @@ public class Aug2016 {
         for (int i2 = 1 ; i2 < bagIndex ; i2++) { // Iterate previous bags to populate cache
             final int c2 = bags[i2];
             final int sum2 = coins+c2;
-            if (sum2 <= maxBagSize && cache[sum2]) { // 2 bad bags: a+b=c
+            if (cache[sum2]) { // 2 bad bags: a+b=c
                 return false;
             }
-            if (sum2 <= maxBagSize) {
-                cache[sum2] = true;
-            }
+            cache[sum2] = true;
 
             for (int i3 = 1 ; i3 < i2 ; i3++) { // 3 bad bags: a*b*c=d
                 final int c3 = bags[i3];
                 final int sum3a = c3+coins+c2;
-                if ((sum3a <= maxBagSize && cache[sum3a])) { // 2 bad bags: a+c=d
+                if (cache[sum3a]) { // 2 bad bags: a+c=d
                     return false;
                 }
-                if (sum3a <= maxBagSize) {
-                    cache[sum3a] = true;
-                }
+                cache[sum3a] = true;
             }
         }
         return true; // No collisions
@@ -168,6 +170,16 @@ public class Aug2016 {
     private static void checkValidate2() {
         int[] bags = new int[]{174, 173, 172, 170, 117, 88, 48, 24, 12, 6};
         boolean[] existing = new boolean[bags.length*174*Math.max(GOOD, BAD)];
+        if (!validates(bags, bags.length, existing, 3)) {
+            System.out.println("Problem: " + Arrays.toString(bags) + " did not validate, but it should");
+            return;
+        }
+        System.out.println("All OK: " + Arrays.toString(bags) + " did validate");
+    }
+
+    private static void checkValidate3() {
+        int[] bags = new int[]{3, 6, 12, 22, 23, 24};
+        boolean[] existing = new boolean[bags.length*20*Math.max(GOOD, BAD)];
         if (!validates(bags, bags.length, existing, 3)) {
             System.out.println("Problem: " + Arrays.toString(bags) + " did not validate, but it should");
             return;
@@ -281,8 +293,8 @@ public class Aug2016 {
             for (int i2 = i1+1 ; i2 <  bagCount ; i2++) {
                 final int i2v = bags[i2];
                 if (existing[i1v + i2v]) {
-//                    System.out.println("Problem: Existing value for i1v=" + i1v + "+ i2v=" + i2v
-//                                       + " => " + (i1v + i2v));
+                    System.out.println("Problem: Existing value for i1v=" + i1v + " + i2v=" + i2v
+                                       + " => " + (i1v + i2v));
                     return false;
                 }
                 existing[i1v + i2v] = true;
