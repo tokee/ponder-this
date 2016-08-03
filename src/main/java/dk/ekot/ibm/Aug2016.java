@@ -54,18 +54,18 @@ public class Aug2016 {
 
 //        checkValidate1();
 //        checkValidate2();
-//        checkValidate3();
+        checkValidate3();
 
         //permutateRun(3, 7, 174, false, true);
         //permutateRun(3, 8, 6, 174, true, true);
         //permutateRun(3, 10, 1, 174, true, true);
 
-//        onlyValid(9, 100, 1);
+       // onlyValid(10, 174, 1);
 
 
-        for (int bags = 1 ; bags < 9 ; bags++) {
+/*        for (int bags = 1 ; bags < 9 ; bags++) {
             onlyValid(bags, 174, 1);
-        }
+        }*/
 
         /*
         final int BAGS = 10;
@@ -93,7 +93,7 @@ public class Aug2016 {
     private static boolean onlyValid(int bag, int[] bags, int[] best, boolean[][] usedStack, AtomicInteger atMost,
                                      AtomicInteger highestCache) {
         if (bag == usedStack.length) {
-//            System.out.println(toString(bags, 1, bags.length));
+            System.out.println(toString(bags, 1, bags.length));
             System.arraycopy(bags, 0, best, 0, bags.length);
             atMost.set(Math.min(atMost.get(), bags[bags.length - 1]));
             atMost.decrementAndGet();
@@ -191,7 +191,7 @@ public class Aug2016 {
     }
 
     private static void checkValidate3() {
-        int[] bags = new int[]{1, 2, 30, 56, 68, 91, 106, 110, 114};
+        int[] bags = new int[]{5, 10, 20, 40, 75, 106, 138, 144, 150, 157};
         boolean[] existing = new boolean[bags.length*20*Math.max(GOOD, BAD)];
         if (!validates(bags, bags.length, existing, 3)) {
             System.out.println("Problem: " + Arrays.toString(bags) + " did not validate, but it should");
@@ -395,5 +395,12 @@ bags=6, atMost=174, time=2.25ms, pass=true, result=[3, 6, 12, 22, 23, 24]
 bags=7, atMost=174, time=73.97ms, pass=true, result=[3, 6, 12, 22, 41, 42, 43]
 bags=8, atMost=174, time=7811.37ms, pass=true, result=[6, 12, 23, 40, 68, 70, 71, 72]
 bags=9, atMost=174, time=697007.36ms, pass=true, result=[1, 2, 30, 56, 68, 91, 106, 110, 114]
+
+[1, 2, 4, 8, 84, 103, 122, 146, 160, 174]
+[3, 6, 12, 24, 82, 92, 127, 132, 152, 172]
+[5, 10, 20, 40, 75, 102, 145, 164, 166, 168]
+[5, 10, 20, 40, 75, 103, 144, 147, 150, 166]
+[5, 10, 20, 40, 75, 106, 138, 144, 150, 157]
+bags=10, atMost=174, time=27164200.78ms, pass=true, result=[5, 10, 20, 40, 75, 106, 138, 144, 150, 157]
 
  */
