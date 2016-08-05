@@ -54,13 +54,13 @@ public class Aug2016 {
 
 //        checkValidate1();
 //        checkValidate2();
-        checkValidate3();
+//        checkValidate3();
 
         //permutateRun(3, 7, 174, false, true);
         //permutateRun(3, 8, 6, 174, true, true);
         //permutateRun(3, 10, 1, 174, true, true);
 
-       // onlyValid(10, 174, 1);
+        onlyValid(9, 174, 1);
 
 
 /*        for (int bags = 1 ; bags < 9 ; bags++) {
