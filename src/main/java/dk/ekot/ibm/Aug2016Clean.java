@@ -36,8 +36,8 @@ public class Aug2016Clean {
     private static Log log = LogFactory.getLog(Aug2016Clean.class);
 
     public static void main(String[] args) {
-        for (int bags = 1 ; bags < 13 ; bags++) {
-            onlyValid(bags, 500, 1);
+        for (int bags = 10 ; bags < 13 ; bags++) {
+            onlyValid(bags, 174, 1);
         }
     }
 
@@ -48,16 +48,17 @@ public class Aug2016Clean {
         RandomAccessStack used = new RandomAccessStack(atMostCoinsPerBag*3);
         AtomicInteger atMost = new AtomicInteger(atMostCoinsPerBag);
         long startTime = System.nanoTime();
-        boolean ok = onlyValid(1, bags, best, used, atMost);
+        boolean ok = onlyValid(startTime, 1, bags, best, used, atMost);
         System.out.println(String.format("bags=%d, atMost=%d, time=%.2fms, pass=%b, result=%s",
                                          bagCount, atMostCoinsPerBag, (System.nanoTime()-startTime)/1000000.0, ok,
                                          ok ? toString(best, 1, best.length) : "N/A"));
     }
 
-    private static boolean onlyValid(final int bag, final int[] bags, final int[] best,
+    private static boolean onlyValid(final long startTime, final int bag, final int[] bags, final int[] best,
                                      final RandomAccessStack used, final AtomicInteger atMost) {
         if (bag == bags.length) {
-            System.out.println(toString(bags, 1, bags.length));
+            System.out.println(String.format("%s: %dms since start",
+                                             toString(bags, 1, bags.length), (System.nanoTime()-startTime)/1000000));
             System.arraycopy(bags, 0, best, 0, bags.length);
             atMost.set(Math.min(atMost.get(), bags[bags.length - 1]));
             atMost.decrementAndGet();
@@ -78,7 +79,7 @@ public class Aug2016Clean {
             if (!checkAndMarkAllPermutations(bags, bag, used, atMost.get())) {
                 continue;
             }
-            if (onlyValid(bag+1, bags, best, used, atMost)) {
+            if (onlyValid(startTime, bag+1, bags, best, used, atMost)) {
                 someFound = true;
             }
             used.popTo(usedMark);
