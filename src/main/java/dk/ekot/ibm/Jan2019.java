@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 
 /**
  * http://www.research.ibm.com/haifa/ponderthis/challenges/January2019.html
@@ -44,14 +45,104 @@ public class Jan2019 {
     }
 
     private void run() {
-        final int[] validProducts = generateValidProducts(1000, 3);
+        final boolean[] validProducts = toBool(generateValidProducts(100, 2));
         System.out.println("Got " + validProducts.length + " candidates");
+        findGroups3(validProducts);
+    }
+
+    // Simple brute
+    private void findGroups2(boolean[] validProducts) {
+        final int max = 200;
+        int[] A = new int[2];
+        int[] B = new int[2];
+        
+        for (A[0] = 1 ; A[0] <= max ; A[0]++) {
+            for (A[1] = A[0]+1 ; A[1] <= max ; A[1]++) {
+                for (B[0] = 1; B[0] <= max; B[0]++) {
+                    for (B[1] = B[0]+1 ; B[1] <= max; B[1]++) {
+                        if (check(validProducts, A, B)) {
+                            System.out.println(toString(A) +  " " + toString(B));
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+
+    // Simple brute
+    private void findGroups3(boolean[] validProducts) {
+        final int max = 200;
+        int[] A = new int[3];
+        int[] B = new int[3];
+
+        for (A[0] = 1 ; A[0] <= max ; A[0]++) {
+            System.out.print("\n/");
+            for (A[1] = A[0]+1 ; A[1] <= max ; A[1]++) {
+                System.out.print(".");
+                for (A[2] = A[1]+1 ; A[2] <= max ; A[2]++) {
+                    for (B[0] = 1; B[0] <= max; B[0]++) {
+                        for (B[1] = B[0]+1 ; B[1] <= max; B[1]++) {
+                            for (B[2] = B[1]+1 ; B[2] <= max; B[2]++) {
+                                if (check(validProducts, A, B)) {
+                                    System.out.println(toString(A) +  " " + toString(B));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    private String toString(int[] ints) {
+        StringBuilder sb = new StringBuilder(ints.length*4);
+        sb.append("[");
+        for (int i: ints) {
+            if (sb.length() != 1) {
+                sb.append(", ");
+            }
+            sb.append(Integer.toString(i));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private boolean check(int[] validProducts, int[] A, int[] B) {
+        for (int ai = 0 ; ai < A.length ; ai++) {
+            for (int bi = 0 ; bi < B.length ; bi++) {
+                if (Arrays.binarySearch(validProducts, A[ai] + B[bi]) < 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean check(boolean[] validProducts, int[] A, int[] B) {
+        for (int ai = 0 ; ai < A.length ; ai++) {
+            for (int bi = 0 ; bi < B.length ; bi++) {
+                if (!validProducts[A[ai] + B[bi]]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean[] toBool(int[] ints) {
+        boolean[] result = new boolean[ints[ints.length-1]+1];
+        for (int i: ints) {
+            result[i] = true;
+        }
+        return result;
     }
 
     private int[] generateValidProducts(int maxPrime, int primePairs) {
         // All prime-pairs up to at most maxPrime^2
         GrowableInts result = new GrowableInts();
-        result.add(2);
+        result.add(2*2);
         for (int i = 3 ; i <= maxPrime ; i+=2) {
             if (isPrime(i)) {
                 result.add(i*i);
