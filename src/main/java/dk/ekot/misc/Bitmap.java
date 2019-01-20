@@ -8,13 +8,13 @@
  */
 package dk.ekot.misc;
 
-import dk.ekot.ibm.Jan2019;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
 
 import java.util.Arrays;
 
-public class Bitmap {
+/**
+ * Specialized Bitmap (the specialized part is the whole-bitmap shift).
+ */
+public class Bitmap implements Cloneable {
     private final long[] backing;
     private final int size;
 
@@ -36,12 +36,43 @@ public class Bitmap {
         return size;
     }
 
+    @SuppressWarnings("ForLoopReplaceableByForEach")
+    public int cardinality() {
+        int cardinality = 0;
+        for (int i = 0 ; i <backing.length ; i++) {
+            cardinality += Long.bitCount(backing[i]);
+        }
+        return cardinality;
+    }
+
     public static Bitmap or(Bitmap map1, Bitmap map2, Bitmap reuse) {
-        throw new UnsupportedOperationException("Not imp+lemented yet");
+        if (reuse == null) {
+            reuse = new Bitmap(map1.size);
+        }
+        for (int i = 0 ; i < map1.backing.length ; i++) {
+            reuse.backing[i] = map1.backing[i] | map2.backing[i];
+        }
+        return reuse;
     }
 
     public static Bitmap and(Bitmap map1, Bitmap map2, Bitmap reuse) {
-        throw new UnsupportedOperationException("Not imp+lemented yet");
+        if (reuse == null) {
+            reuse = new Bitmap(map1.size);
+        }
+        for (int i = 0 ; i < map1.backing.length ; i++) {
+            reuse.backing[i] = map1.backing[i] & map2.backing[i];
+        }
+        return reuse;
+    }
+
+    public static Bitmap xor(Bitmap map1, Bitmap map2, Bitmap reuse) {
+        if (reuse == null) {
+            reuse = new Bitmap(map1.size);
+        }
+        for (int i = 0 ; i < map1.backing.length ; i++) {
+            reuse.backing[i] = map1.backing[i] ^ map2.backing[i];
+        }
+        return reuse;
     }
 
     /**
@@ -58,7 +89,7 @@ public class Bitmap {
             final int bOffset = offset & 63;
             if ((bOffset) == 0) { // Whole block shift left
                 System.arraycopy(backing, lOffset, backing, 0, backing.length-lOffset);
-                Arrays.fill(backing, backing.length-lOffset, backing.length, 0L);
+                Arrays.fill(backing, backing.length - lOffset, backing.length, 0L);
             } else {
                 for (int i = 0; i < backing.length; i++) {
                     final long source1 = i+lOffset >= backing.length ? 0L : backing[i+lOffset];
@@ -82,4 +113,8 @@ public class Bitmap {
         }
     }
 
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();    // TODO: Implement this
+    }
 }

@@ -8,6 +8,7 @@
  */
 package dk.ekot.ibm;
 
+import dk.ekot.misc.Bitmap;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
@@ -45,9 +46,13 @@ public class Jan2019 {
     }
 
     private void run() {
-        final boolean[] validProducts = toBool(generateValidProducts(100, 2));
-        System.out.println("Got " + validProducts.length + " candidates");
-        findGroups3(validProducts);
+        final int maxElement = 1000;
+
+        final Bitmap validProducts = toBitmap(generateValidProducts(100, 2)); // sqrt(2*maxElement)?
+        final GrowableInts deltas = new GrowableInts();
+
+        final Bitmap reuse = new Bitmap(validProducts.size());
+
 
         // V = prime^2[+prime^2]...
         // D = all i where V & shift(V, i) has cardinality >= n (n == 4 to fulfill)
@@ -135,6 +140,12 @@ public class Jan2019 {
             }
         }
         return true;
+    }
+
+    private Bitmap toBitmap(int[] ints) {
+        Bitmap b = new Bitmap(ints[ints.length-1]+1);
+        Arrays.stream(ints).forEach(b::set);
+        return b;
     }
 
     private boolean[] toBool(int[] ints) {

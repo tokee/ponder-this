@@ -20,7 +20,7 @@ import java.util.*;
 public class July2018 {
     private static Log log = LogFactory.getLog(July2018.class);
 
-    public static final int MAX_NUMBER = 400;
+    public static final int MAX_NUMBER = 600;
     public static final int MIN_LEVEL = 5;
 
     public static void main(String[] args) {
@@ -99,6 +99,7 @@ public class July2018 {
                 System.arraycopy(buckets[bucketIndex], 0, newBucket, 0, buckets[bucketIndex].length);
                 buckets[bucketIndex] = newBucket;
             }
+            return false; // TODO: Implement this
         }
 
         @Override
@@ -112,6 +113,7 @@ public class July2018 {
                     return true;
                 }
             }
+            return false; // TODO: Implement this
         }
 
         @Override

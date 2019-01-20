@@ -46,7 +46,7 @@ import java.util.*;
 
 // daghøjskole_quiz_vært_bmx_fyn_på_wc
 // våbenhjælp_quiz_tysk_fax_god_mør_wc -> god mør tysk våbenhjælp wc quiz fax
-// håndvask_boxer_fløjt_pygmæ_quiz_wc ->
+// håndvask_boxer_fløjt_pygmæ_quiz_wc -> pygmæ_boxer_fløjt_quiz_wc_håndvask
 
 // quizshows_nykåret_bælg_mjød_fax_pvc
 // patchwork_bjæf_quiz_lyn_møg_sex_våd
@@ -59,7 +59,7 @@ import java.util.*;
 // knæler_pvcfax_quizdj_møgby_show_tå
 // dragshow_jævnmål_quiz_bøf_tyk_ex_pc
 
-/* åbenhjælp_modtryk_quiz_fax_gøs_wc
+/* våbenhjælp_modtryk_quiz_fax_gøs_wc
 våbenhjælp_trykfod_quiz_møg_sax_wc
 mordvåben_højtysk_pægl_quiz_fax_wc
 bådværft_hjamsk_oxygen_quiz_pøl_wc
@@ -79,7 +79,7 @@ public class ShortWordWithAllLetters {
     private static Log log = LogFactory.getLog(ShortWordWithAllLetters.class);
 
     public static final String[] SOURCES = new String[]{
-//            "RO2012.cleaned.txt", "stednavne.txt", "pigenavne_utf8.txt", "drengenavne_utf8.txt"};
+            //"RO2012.cleaned.txt", "stednavne.txt", "pigenavne_utf8.txt", "drengenavne_utf8.txt",
             "RO2012.navneord.txt"};
 
     public static final String VALID_CHARS = "abcdefghijklmnopqrstuvwxyzæøå";
@@ -102,14 +102,14 @@ public class ShortWordWithAllLetters {
              // Only disabled temporarily to find better sentence candidates
              "wc,brynjeklædt,højbrynet,højspændt,dybgrøn,bælgmørk,gråklædt,hjælpsom,hårdkogt," +
              "lysegrøn,go,klejn,bleg,nej,bælgmørke,håndgjort,mørkeblå,opskræmt,jysk,lom,ør," +
-             "ly,mør,løj,blå,hygsom,håbløs,grå,mødj,få"
+             "ly,mør,løj,blå,hygsom,håbløs,grå,mødj,få,blødkogt,grådkvalt,"
             ).split(" *, *")));
     public static final Set<String> CUSTOM_WORDS = new HashSet<>(Arrays.asList(
             ("iglesø,croquis,s,en,er,quizshow,quizshow,quizshowvært,e,pcen,pcs,cvs,djmix,cvfax," +
              "pvcfax,pvcmås,våbenhjælpsquiz,møgby,møgbydj,jeg,quizshowværten,hævnlyster," +
              "quizbowle,mødj,quizdj,boghjemlån,pchjemlån,mjødbowle,ex,exgæst,exdj,eksdj," +
              "exquizshowvært,exquizshowværtklan,exquizshowværtpc,,exquizshowværtklanpc," +
-             "møgbydjfan,exquizshowværtcamp"
+             "møgbydjfan,exquizshowværtcamp,faq,iq,quartz,squash,laviq,højiq,megaiq,topiq"
             ).split(" *, *")));
 
 
