@@ -48,6 +48,12 @@ public class Jan2019 {
         final boolean[] validProducts = toBool(generateValidProducts(100, 2));
         System.out.println("Got " + validProducts.length + " candidates");
         findGroups3(validProducts);
+
+        // V = prime^2[+prime^2]...
+        // D = all i where V & shift(V, i) has cardinality >= n (n == 4 to fulfill)
+        // for (a1: D)
+        // for a2: D[a1.next .. an]
+        // for a3: D[a2.next .. an] & 
     }
 
     // Simple brute
