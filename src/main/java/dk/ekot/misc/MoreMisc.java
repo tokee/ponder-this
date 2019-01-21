@@ -18,5 +18,19 @@ package dk.ekot.misc;
  *
  */
 public class MoreMisc {
+    public static void main(String[] args) {
+        down(0, 5);
+    }
 
+    private static void down(int low, int high) {
+        if (low == high) {
+            return;
+        }
+        int middle = (high + low) >>> 1;
+        System.out.println(middle + ": [" + low + " " + high + "]");
+        down(low, middle);
+        if (middle < high-1) {
+            down(middle+1, high);
+        }
+    }
 }

@@ -90,12 +90,12 @@ public class ShortWordWithAllLetters {
         int every = words.size()/100;
         int next = every;
         for (int i = index ; i < words.size(); i++) {
-            if (depth == 0) {
+            /*if (depth == 0) {
                 System.out.println("\n- " + words.get(i));
             } else if (depth == 1 && next == i) {
                 System.out.print(".");
                 next += every;
-            }
+            } */
             final long candidateCode = wordCodes.get(i);
             if ((wordCode & candidateCode) != 0) {
                 continue;
