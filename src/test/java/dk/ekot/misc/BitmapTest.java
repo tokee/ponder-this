@@ -17,6 +17,24 @@ public class BitmapTest {
     }
 
     @Test
+    public void testNext() {
+        Bitmap b = new Bitmap(128);
+        Arrays.stream(new int[]{0, 1, 63, 64, 127}).forEach(b::set);
+        final int[][] TESTS = new int[][] {
+                {0, 0},
+                {1, 1},
+                {2, 63},
+                {63, 63},
+                {64, 64},
+                {65, 127},
+                {128, Integer.MAX_VALUE}
+        };
+        for (int[] test: TESTS) {
+            assertEquals("Next for " + test[0] + " should be as expected", test[1], b.thisOrNext(test[0]));
+        }
+    }
+
+    @Test
     public void testRandomSetGet() {
         Bitmap b = new Bitmap(1000);
 

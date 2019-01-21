@@ -14,6 +14,8 @@ import org.apache.commons.logging.Log;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * http://www.research.ibm.com/haifa/ponderthis/challenges/January2019.html
@@ -46,19 +48,136 @@ public class Jan2019 {
     }
 
     private void run() {
-        final int maxElement = 1000;
+        final int maxElement = 100000;
+        final int minALength = 4;
+        final int minBLength = 4;
+        final int maxResults = 5;
+        //fixedA2(maxElement, minBLength);
+        long startNS = System.nanoTime();
+        earlyElimination(maxElement, minALength, minBLength, maxResults);
+    }
 
-        final Bitmap validProducts = toBitmap(generateValidProducts(100, 2)); // sqrt(2*maxElement)?
-        final GrowableInts deltas = new GrowableInts();
+    private void earlyElimination(int maxElement, int minALength, int minBLength, int maxResults) {
+        System.out.println("Early eliminationwith maxElement=" + 100000 + ", min-A-size=" + minALength +
+                           ", min-B-size=" + minBLength);
+        final Bitmap validProducts = generateValidProducts(maxElement*2);
+        Bitmap validDeltas = getValidDeltas(validProducts, maxElement, minBLength);
 
+        final int[] as = new int[minALength];
+        final Bitmap[] candidateBs = new Bitmap[minALength];
+        final Bitmap[] validBs = new Bitmap[minALength];
+        for (int i = 0 ; i < minALength ; i++) {
+            candidateBs[i] = new Bitmap(validProducts.size());
+            validBs[i] = new Bitmap(validProducts.size());
+        }
+
+        earlyElimination(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validBs, 0,
+                         new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
+                         System.nanoTime());
+    }
+
+    private void earlyElimination(
+            Bitmap validProducts, Bitmap validDeltas, int maxElement, int minALength, int minBLength,
+            int[] as, Bitmap[] candidateBs, Bitmap[] validBs, final int level,
+            AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, long startTime) {
+        if (level == minALength) {
+            System.out.print(toString(as) + " " + toString(validBs[level-1].getIntegers()));
+            System.out.println(" " + (System.nanoTime() - startTime)/1000000/1000 + " seconds");
+            resultsLeft.decrementAndGet();
+            return;
+        }
+        int startIndex = level == 0 ? 1 : as[level-1]+1;
+        for (as[level] = startIndex ; as[level] <= maxElement ; as[level]++) {
+//             as[level] = level == 0 ? as[level]+1 : validDeltas.thisOrNext(as[level]-as[level-1]+1)-as[level-1]) {
+            if (level == 0) {
+                System.out.print(as[level] + " ");
+                if ((as[level] & 31) == 0) {
+                    System.out.println();
+                }
+            }
+            if (level > 0) {
+//                int next= validDeltas.thisOrNext(as[level]-as[level-1]+1)-as[level-1];
+//                if (next < as[level]) {
+//                    System.out.println("Current candidate: " + as[level] + ". Next:" + next);
+//                }
+                if (!validDeltas.get(as[level]-as[level-1])) { // TODO: Check all previous, not just immediate
+                    continue;
+                }
+            }
+            validProducts.shift(-as[level], candidateBs[level]);
+            if (level == 0) {
+                candidateBs[level].copy(validBs[level]);
+            } else {
+                Bitmap.and(validBs[level-1], candidateBs[level], validBs[level]);
+            }
+            if (validBs[level].cardinality() < minBLength) {
+                continue;
+            }
+            if (level > printedA.get()) {
+                System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                System.out.println(" " + (System.nanoTime() - startTime)/1000000/1000 + " seconds");
+                printedA.set(level);
+                printedB.set(1);
+            } else if (level == printedA.get() && validBs[level].cardinality() > printedB.get()) {
+                System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                System.out.println(" " + (System.nanoTime() - startTime)/1000000/1000 + " seconds");
+                printedB.set(validBs[level].cardinality());
+            }
+            earlyElimination(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validBs, level+1,
+                             resultsLeft, printedA, printedB, startTime);
+            if (resultsLeft.get() <= 0) {
+                break;
+            }
+        }
+        as[level] = 0;
+    }
+    // Calculate deltas from 1 that has >= minBLength valids
+
+    private Bitmap getValidDeltas(Bitmap validProducts, int maxElement, int minBLength) {
+        final Bitmap validDeltas = new Bitmap(maxElement+1);
         final Bitmap reuse = new Bitmap(validProducts.size());
 
+        for (int delta = 1 ; delta < maxElement ; delta++) {
+            validProducts.shift(-delta, reuse);
+            Bitmap.and(validProducts, reuse, reuse);
+            if (reuse.cardinality() >= minBLength) {
+                validDeltas.set(delta);
+            }
+        }
+        System.out.println("Calculated valid deltas: " + validDeltas.cardinality() + "/" + maxElement);
+        return validDeltas;
+    }
 
-        // V = prime^2[+prime^2]...
-        // D = all i where V & shift(V, i) has cardinality >= n (n == 4 to fulfill)
-        // for (a1: D)
-        // for a2: D[a1.next .. an]
-        // for a3: D[a2.next .. an] & 
+
+    private void fixedA2(int maxElement, int minBLength) {
+        final int minALength = 2;
+
+        final Bitmap validProducts = generateValidProducts(maxElement*2);
+
+        final long[] as = new long[minALength];
+        final Bitmap validB1s = new Bitmap(validProducts.size());
+        final Bitmap candidateB2s = new Bitmap(validProducts.size());
+        final Bitmap validB2s = new Bitmap(validProducts.size());
+
+        int results = 0;
+        for (as[0] = 1 ; as[0] <= maxElement ; as[0]++) {
+            validProducts.shift((int) -as[0], validB1s);
+
+            for (as[1] = as[0]+1; as[1] <= maxElement; as[1]++) {
+                validProducts.shift((int) -as[1], candidateB2s);
+                Bitmap.and(validB1s, candidateB2s, validB2s);
+                if (validB2s.cardinality() < minBLength) {
+                    continue;
+                }
+
+
+                System.out.println(toString(as) + " " + toString(validB2s.getIntegers()));
+                results++;
+                if (results >= 10) {
+                    return;
+                }
+            }
+        }
     }
 
     // Simple brute
@@ -107,6 +226,12 @@ public class Jan2019 {
 
     }
 
+    private String toString(Bitmap b) {
+        return toString(b.getIntegers());
+    }
+    private String toString(Bitmap as, Bitmap bs) {
+        return toString(as.getBacking()) + " " + toString(bs.getBacking());
+    }
     private String toString(int[] ints) {
         StringBuilder sb = new StringBuilder(ints.length*4);
         sb.append("[");
@@ -115,6 +240,19 @@ public class Jan2019 {
                 sb.append(", ");
             }
             sb.append(Integer.toString(i));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private String toString(long[] longs) {
+        StringBuilder sb = new StringBuilder(longs.length*4);
+        sb.append("[");
+        for (long l: longs) {
+            if (sb.length() != 1) {
+                sb.append(", ");
+            }
+            sb.append(Long.toString(l));
         }
         sb.append("]");
         return sb.toString();
@@ -156,13 +294,20 @@ public class Jan2019 {
         return result;
     }
 
-    private int[] generateValidProducts(int maxPrime, int primePairs) {
+    private Bitmap generateValidProducts(final int maxValid) {
+        int primePairs = 0;
+        while (Math.pow(4, primePairs) < maxValid) { // 4 is smallest possible valid
+            primePairs++;
+        }
+
         // All prime-pairs up to at most maxPrime^2
-        GrowableInts result = new GrowableInts();
-        result.add(2*2);
-        for (int i = 3 ; i <= maxPrime ; i+=2) {
+        final Bitmap bResult = new Bitmap(maxValid+1);
+        final GrowableInts result = new GrowableInts(); // For efficient iteration
+        result.add(2*2); bResult.set(2*2);
+        for (int i = 3 ; i*i <= maxValid ; i+=2) {
             if (isPrime(i)) {
-                result.add(i*i);
+                int pow = i*i;
+                result.add(pow); bResult.set(pow);
             }
         }
 
@@ -170,11 +315,15 @@ public class Jan2019 {
             final int prevPos = result.size();
             for (int startPos = 0 ; startPos < prevPos ; startPos++) {
                 for (int multiplierPos = startPos ; multiplierPos < prevPos ; multiplierPos++) {
-                    result.add(result.get(startPos)*result.get(multiplierPos));
+                    final long newValid = 1L*result.get(startPos)*result.get(multiplierPos);
+                    if (newValid <= maxValid && !bResult.get((int) newValid)) {
+                        result.add((int) newValid); bResult.set((int) newValid);
+                    }
                 }
             }
         }
-        return result.getInts();
+        System.out.println("Valid prime pair sums up to maxValid: " + bResult.cardinality());
+        return bResult;
     }
 
     private class GrowableInts {
