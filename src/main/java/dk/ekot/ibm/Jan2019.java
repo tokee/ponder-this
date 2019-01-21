@@ -48,7 +48,7 @@ public class Jan2019 {
     }
 
     private void run() {
-        final int maxElement = 100000;
+        final int maxElement = 100_000;
         final int minALength = 4;
         final int minBLength = 4;
         final int maxResults = 5;
@@ -58,7 +58,7 @@ public class Jan2019 {
     }
 
     private void earlyElimination(int maxElement, int minALength, int minBLength, int maxResults) {
-        System.out.println("Early eliminationwith maxElement=" + 100000 + ", min-A-size=" + minALength +
+        System.out.println("Early eliminationwith maxElement=" + maxElement + ", min-A-size=" + minALength +
                            ", min-B-size=" + minBLength);
         final Bitmap validProducts = generateValidProducts(maxElement*2);
         Bitmap validDeltas = getValidDeltas(validProducts, maxElement, minBLength);
@@ -86,48 +86,47 @@ public class Jan2019 {
             resultsLeft.decrementAndGet();
             return;
         }
-        int startIndex = level == 0 ? 1 : as[level-1]+1;
-        for (as[level] = startIndex ; as[level] <= maxElement ; as[level]++) {
-//             as[level] = level == 0 ? as[level]+1 : validDeltas.thisOrNext(as[level]-as[level-1]+1)-as[level-1]) {
+        final int previousIndex = level == 0 ? 0 : as[level-1];
+        int delta = level == 0 ? 1 : validDeltas.thisOrNext(1);
+        as[level] = previousIndex+delta;
+        while (as[level] <= maxElement) {
             if (level == 0) {
                 System.out.print(as[level] + " ");
                 if ((as[level] & 31) == 0) {
                     System.out.println();
                 }
             }
-            if (level > 0) {
-//                int next= validDeltas.thisOrNext(as[level]-as[level-1]+1)-as[level-1];
-//                if (next < as[level]) {
-//                    System.out.println("Current candidate: " + as[level] + ". Next:" + next);
-//                }
-                if (!validDeltas.get(as[level]-as[level-1])) { // TODO: Check all previous, not just immediate
-                    continue;
-                }
-            }
+
             validProducts.shift(-as[level], candidateBs[level]);
             if (level == 0) {
                 candidateBs[level].copy(validBs[level]);
             } else {
                 Bitmap.and(validBs[level-1], candidateBs[level], validBs[level]);
             }
-            if (validBs[level].cardinality() < minBLength) {
-                continue;
+
+            if (validBs[level].cardinality() >= minBLength) {
+                if (level > printedA.get()) {
+                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                    System.out.println(" " + (System.nanoTime() - startTime) / 1000000 / 1000 + " seconds");
+                    printedA.set(level);
+                    printedB.set(1);
+                } else if (level == printedA.get() && validBs[level].cardinality() > printedB.get()) {
+                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                    System.out.println(" " + (System.nanoTime() - startTime) / 1000000 / 1000 + " seconds");
+                    printedB.set(validBs[level].cardinality());
+                }
+                earlyElimination(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validBs, level + 1,
+                                 resultsLeft, printedA, printedB, startTime);
+                if (resultsLeft.get() <= 0) {
+                    break;
+                }
             }
-            if (level > printedA.get()) {
-                System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
-                System.out.println(" " + (System.nanoTime() - startTime)/1000000/1000 + " seconds");
-                printedA.set(level);
-                printedB.set(1);
-            } else if (level == printedA.get() && validBs[level].cardinality() > printedB.get()) {
-                System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
-                System.out.println(" " + (System.nanoTime() - startTime)/1000000/1000 + " seconds");
-                printedB.set(validBs[level].cardinality());
-            }
-            earlyElimination(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validBs, level+1,
-                             resultsLeft, printedA, printedB, startTime);
-            if (resultsLeft.get() <= 0) {
+
+            delta = level == 0 ? delta+1 : validDeltas.thisOrNext(delta+1);
+            if (delta == Integer.MAX_VALUE) {
                 break;
             }
+            as[level] = previousIndex+delta;
         }
         as[level] = 0;
     }
