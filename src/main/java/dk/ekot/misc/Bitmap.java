@@ -103,6 +103,12 @@ public class Bitmap {
         return reuse;
     }
 
+    public void invert() {
+        for (int i = 0 ; i < backing.length ; i++) {
+            backing[i] = ~backing[i];
+        }
+    }
+
     public void shift(int offset) {
         shift(offset, this);
     }

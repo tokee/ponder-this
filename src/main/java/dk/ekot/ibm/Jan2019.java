@@ -9,13 +9,10 @@
 package dk.ekot.ibm;
 
 import dk.ekot.misc.Bitmap;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
 
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * http://www.research.ibm.com/haifa/ponderthis/challenges/January2019.html
@@ -41,27 +38,102 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  */
 public class Jan2019 {
-    private static Log log = LogFactory.getLog(Jan2019.class);
-
     public static void main(String[] args) {
         new Jan2019().run();
     }
 
     private void run() {
-        final int maxElement = 100_000;
-        final int minALength = 4;
-        final int minBLength = 4;
-        final int maxResults = 5;
+        final int maxElement = 20_000;
+        final int minALength = 3;
+        final int minBLength = 3;
+        final int maxResults = 10;
         //fixedA2(maxElement, minBLength);
         long startNS = System.nanoTime();
-        earlyElimination(maxElement, minALength, minBLength, maxResults);
+        //earlyEliminationAFirst(maxElement, minALength, minBLength, maxResults);
+        //earlyEliminationB(maxElement, minALength, minBLength, maxResults);
+        System.out.println(earlyEliminationMix(maxElement, minALength, minBLength, maxResults));
     }
 
-    private void earlyElimination(int maxElement, int minALength, int minBLength, int maxResults) {
-        System.out.println("Early eliminationwith maxElement=" + maxElement + ", min-A-size=" + minALength +
+    // *****************************************************************************************************************
+
+    private void earlyEliminationAFirst(int maxElement, int minALength, int minBLength, int maxResults) {
+        System.out.println("Early eliminationAFirst maxElement=" + maxElement + ", min-A-size=" + minALength +
                            ", min-B-size=" + minBLength);
-        final Bitmap validProducts = generateValidProducts(maxElement*2);
+        final Bitmap validProducts = generateValidValues(maxElement * 2);
         Bitmap validDeltas = getValidDeltas(validProducts, maxElement, minBLength);
+
+        final int[] as = new int[minALength];
+        final Bitmap[] candidateBs = new Bitmap[minALength];
+        final Bitmap[] validBs = new Bitmap[minALength];
+        final Bitmap[] validAs = new Bitmap[minALength];
+        for (int i = 0 ; i < minALength ; i++) {
+            candidateBs[i] = new Bitmap(validProducts.size());
+            validBs[i] = new Bitmap(validProducts.size());
+            validAs[i] = new Bitmap(validProducts.size());
+            if (i == 0) {
+                validAs[i].invert(); // All level 0 are valid, except 0
+            }
+        }
+
+        earlyEliminationAFirst(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validAs, validBs, 0,
+                            new AtomicInteger(maxResults),
+                            System.nanoTime());
+    }
+
+    private void earlyEliminationAFirst(
+            Bitmap validProducts, Bitmap validDeltas, int maxElement, int minALength, int minBLength,
+            int[] as, Bitmap[] candidateBs, Bitmap[] validAs, Bitmap[] validBs, final int level,
+            AtomicInteger resultsLeft, long startTime) {
+        if (level == minALength) {
+
+            for (int i = 0 ; i < level ; i++) {
+                validProducts.shift(-as[i], candidateBs[i]);
+                if (i == 0) {
+                    candidateBs[i].copy(validBs[i]);
+                } else {
+                    Bitmap.and(validBs[i - 1], candidateBs[i], validBs[i]);
+                }
+            }
+            if (validBs[level-1].cardinality() < minBLength) {
+                return;
+            }
+
+            System.out.print(toString(as) + " " + toString(validBs[level-1].getIntegers()));
+            System.out.println(" " + (System.nanoTime() - startTime)/1000000/1000 + " seconds");
+            resultsLeft.decrementAndGet();
+            return;
+        }
+        final int previousIndex = level == 0 ? 0 : as[level-1];
+        as[level] = validAs[level].thisOrNext(previousIndex+1);
+        while (as[level] <= maxElement) {
+            if (level == 0) {
+                System.out.print(as[level] + " ");
+                if ((as[level] & 31) == 0) {
+                    System.out.println();
+                }
+            }
+            if (level < validAs.length-1) {
+                validDeltas.shift(as[level], validAs[level + 1]);
+                Bitmap.and(validAs[level], validAs[level + 1], validAs[level + 1]);
+            }
+            earlyEliminationAFirst(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs,
+                                   validAs, validBs, level + 1,
+                                   resultsLeft, startTime);
+            if (resultsLeft.get() == 0) {
+                return;
+            }
+            as[level] = validAs[level].thisOrNext(as[level]+1);
+        }
+        as[level] = 0;
+    }
+
+    // *****************************************************************************************************************
+
+    private String earlyEliminationB(int maxElement, int minALength, int minBLength, int maxResults) {
+        System.out.println("Early eliminationB maxElement=" + maxElement + ", min-A-size=" + minALength +
+                           ", min-B-size=" + minBLength);
+        StringBuilder result = new StringBuilder();
+        final Bitmap validProducts = generateValidValues(maxElement * 2);
 
         final int[] as = new int[minALength];
         final Bitmap[] candidateBs = new Bitmap[minALength];
@@ -71,24 +143,104 @@ public class Jan2019 {
             validBs[i] = new Bitmap(validProducts.size());
         }
 
-        earlyElimination(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validBs, 0,
-                         new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
-                         System.nanoTime());
+        earlyEliminationB(validProducts, maxElement, minALength, minBLength, as, candidateBs, validBs, 0,
+                            new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
+                            System.nanoTime(), result);
+        return result.toString();
     }
 
-    private void earlyElimination(
-            Bitmap validProducts, Bitmap validDeltas, int maxElement, int minALength, int minBLength,
+    private void earlyEliminationB(
+            Bitmap validProducts, int maxElement, int minALength, int minBLength,
             int[] as, Bitmap[] candidateBs, Bitmap[] validBs, final int level,
-            AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, long startTime) {
+            AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, long startTime, StringBuilder result) {
         if (level == minALength) {
-            System.out.print(toString(as) + " " + toString(validBs[level-1].getIntegers()));
-            System.out.println(" " + (System.nanoTime() - startTime)/1000000/1000 + " seconds");
+            String res = toString(as) + " " + toString(validBs[level-1].getIntegers()) + " " +
+                         (System.nanoTime() - startTime)/1000000/1000 + " seconds";
+            result.append(res).append("\n");
+            System.out.println(res);
+            resultsLeft.decrementAndGet();
+            return;
+        }
+        int startIndex = level == 0 ? 1 : as[level-1]+1;
+        for (as[level] = startIndex ; as[level] <= maxElement ; as[level]++) {
+            if (level == 0) {
+                System.out.print(as[level] + " ");
+                if ((as[level] & 31) == 0) {
+                    System.out.println();
+                }
+            }
+
+            validProducts.shift(-as[level], candidateBs[level]);
+            if (level == 0) {
+                candidateBs[level].copy(validBs[level]);
+            } else {
+                Bitmap.and(validBs[level-1], candidateBs[level], validBs[level]);
+            }
+
+            if (validBs[level].cardinality() >= minBLength) {
+                if (level > printedA.get()) {
+                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                    System.out.println(" " + (System.nanoTime() - startTime) / 1000000 / 1000 + " seconds");
+                    printedA.set(level);
+                    printedB.set(1);
+                } else if (level == printedA.get() && validBs[level].cardinality() > printedB.get()) {
+                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                    System.out.println(" " + (System.nanoTime() - startTime) / 1000000 / 1000 + " seconds");
+                    printedB.set(validBs[level].cardinality());
+                }
+                earlyEliminationB(validProducts, maxElement, minALength, minBLength, as, candidateBs,
+                                    validBs, level + 1,
+                                    resultsLeft, printedA, printedB, startTime, result);
+                if (resultsLeft.get() <= 0) {
+                    break;
+                }
+            }
+        }
+        as[level] = 0;
+    }
+
+    // *****************************************************************************************************************
+
+    private String earlyEliminationMix(int maxElement, int minALength, int minBLength, int maxResults) {
+        System.out.println("Early elimination maxElement=" + maxElement + ", min-A-size=" + minALength +
+                           ", min-B-size=" + minBLength);
+        StringBuilder result = new StringBuilder();
+        final Bitmap validProducts = generateValidValues(maxElement * 2);
+        Bitmap validDeltas = getValidDeltas(validProducts, maxElement, minBLength);
+
+        final int[] as = new int[minALength];
+        final Bitmap[] candidateBs = new Bitmap[minALength];
+        final Bitmap[] validBs = new Bitmap[minALength];
+        final Bitmap[] validAs = new Bitmap[minALength];
+        for (int i = 0 ; i < minALength ; i++) {
+            candidateBs[i] = new Bitmap(validProducts.size());
+            validBs[i] = new Bitmap(validProducts.size());
+            validAs[i] = new Bitmap(validProducts.size());
+            if (i == 0) {
+                validAs[i].invert(); // All first are valid, except 0
+            }
+        }
+
+        earlyEliminationMix(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validAs, validBs, 0,
+                            new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
+                            System.nanoTime(), result);
+        return result.toString();
+    }
+
+    private void earlyEliminationMix(
+            Bitmap validProducts, Bitmap validDeltas, int maxElement, int minALength, int minBLength,
+            int[] as, Bitmap[] candidateBs, Bitmap[] validAs, Bitmap[] validBs, final int level,
+            AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, long startTime, StringBuilder result) {
+        if (level == minALength) {
+            String res = toString(as) + " " + toString(validBs[level-1].getIntegers()) + " " +
+                         (System.nanoTime() - startTime)/1000000/1000 + " seconds";
+            System.out.println(res);
+            result.append(res).append("\n");
             resultsLeft.decrementAndGet();
             return;
         }
         final int previousIndex = level == 0 ? 0 : as[level-1];
-        int delta = level == 0 ? 1 : validDeltas.thisOrNext(1);
-        as[level] = previousIndex+delta;
+        as[level] = validAs[level].thisOrNext(previousIndex+1);
         while (as[level] <= maxElement) {
             if (level == 0) {
                 System.out.print(as[level] + " ");
@@ -115,24 +267,30 @@ public class Jan2019 {
                     System.out.println(" " + (System.nanoTime() - startTime) / 1000000 / 1000 + " seconds");
                     printedB.set(validBs[level].cardinality());
                 }
-                earlyElimination(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs, validBs, level + 1,
-                                 resultsLeft, printedA, printedB, startTime);
+                if (level < validAs.length-1) {
+                    validDeltas.shift(as[level], validAs[level + 1]);
+                    Bitmap.and(validAs[level], validAs[level + 1], validAs[level + 1]);
+                }
+                earlyEliminationMix(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs,
+                                    validAs, validBs, level + 1,
+                                    resultsLeft, printedA, printedB, startTime, result);
                 if (resultsLeft.get() <= 0) {
                     break;
                 }
             }
 
-            delta = level == 0 ? delta+1 : validDeltas.thisOrNext(delta+1);
-            if (delta == Integer.MAX_VALUE) {
-                break;
-            }
-            as[level] = previousIndex+delta;
+            as[level] = validAs[level].thisOrNext(as[level]+1);
         }
         as[level] = 0;
     }
+
+    // *****************************************************************************************************************
+
+
     // Calculate deltas from 1 that has >= minBLength valids
 
     private Bitmap getValidDeltas(Bitmap validProducts, int maxElement, int minBLength) {
+        System.out.print("Calculating valid deltas... ");
         final Bitmap validDeltas = new Bitmap(maxElement+1);
         final Bitmap reuse = new Bitmap(validProducts.size());
 
@@ -147,11 +305,10 @@ public class Jan2019 {
         return validDeltas;
     }
 
-
     private void fixedA2(int maxElement, int minBLength) {
         final int minALength = 2;
 
-        final Bitmap validProducts = generateValidProducts(maxElement*2);
+        final Bitmap validProducts = generateValidValues(maxElement * 2);
 
         final long[] as = new long[minALength];
         final Bitmap validB1s = new Bitmap(validProducts.size());
@@ -293,7 +450,8 @@ public class Jan2019 {
         return result;
     }
 
-    private Bitmap generateValidProducts(final int maxValid) {
+    private Bitmap generateValidValues(final int maxValid) {
+        System.out.print("Generating valid prime pair sums... ");
         int primePairs = 0;
         while (Math.pow(4, primePairs) < maxValid) { // 4 is smallest possible valid
             primePairs++;
