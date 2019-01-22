@@ -1,5 +1,6 @@
 package dk.ekot.misc;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -14,6 +15,29 @@ public class BitmapTest {
         Bitmap b = new Bitmap(128);
         Arrays.stream(new int[]{0, 1, 63, 64, 127}).peek(b::set).forEach(
                 bit -> assertTrue("The bit " + bit + " should be set", b.get(bit)));
+    }
+
+    @Test
+    public void testShiftCache() {
+        Random r = new Random(87);
+        Bitmap con = new Bitmap(256, true);
+        for (int i = 0 ; i < 100 ; i++) {
+            con.set(r.nextInt(con.size()));
+        }
+        Bitmap sans = con.makeCopy(false);
+
+        Bitmap conDest = new Bitmap(con.size(), false);
+        Bitmap sansDest = new Bitmap(sans.size(), false);
+
+        con.shift(-62, conDest);
+        sans.shift(-62, sansDest);
+        assertTrue("Specific shifting by -62 should give equal results", conDest.equalBits(sansDest));
+
+        for (int i = -200 ; i <= 200 ; i++) {
+            con.shift(i, conDest);
+            sans.shift(i, sansDest);
+            assertTrue("Shifting by " + i + " should give equal results", conDest.equalBits(sansDest));
+        }
     }
 
     @Test
