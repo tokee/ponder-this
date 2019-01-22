@@ -1,11 +1,3 @@
-/* $Id:$
- *
- * WordWar.
- * Copyright (C) 2012 Toke Eskildsen, te@ekot.dk
- *
- * This is confidential source code. Unless an explicit written permit has been obtained,
- * distribution, compiling and all other use of this code is prohibited.
- */
 package dk.ekot.ibm;
 
 import dk.ekot.misc.Bitmap;
@@ -43,9 +35,9 @@ public class Jan2019 {
     }
 
     private void run() {
-        final int maxElement = 20_000;
-        final int minALength = 3;
-        final int minBLength = 3;
+        final int maxElement = 1_000_000;
+        final int minALength = 4;
+        final int minBLength = 4;
         final int maxResults = 10;
         //fixedA2(maxElement, minBLength);
         long startNS = System.nanoTime();

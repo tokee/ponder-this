@@ -1,11 +1,3 @@
-/* $Id:$
- *
- * WordWar.
- * Copyright (C) 2012 Toke Eskildsen, te@ekot.dk
- *
- * This is confidential source code. Unless an explicit written permit has been obtained,
- * distribution, compiling and all other use of this code is prohibited.
- */
 package dk.ekot.misc;
 
 
@@ -107,6 +99,7 @@ public class Bitmap {
         for (int i = 0 ; i < backing.length ; i++) {
             backing[i] = ~backing[i];
         }
+        cardinality = -1;
     }
 
     public void shift(int offset) {
