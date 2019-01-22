@@ -48,9 +48,9 @@ public class Jan2019 {
     long startNS = System.nanoTime();
 
     void run() {
-        final int maxElement = 112338;
-        final int minALength = 3;
-        final int minBLength = 5;
+        final int maxElement = 1000000;
+        final int minALength = 4;
+        final int minBLength = 4;
         final int maxResults = 5;
 
         // 1 [1, 241, 0] [15, 48, 120, 288, 783, 3480] 9 seconds

@@ -192,10 +192,20 @@ public class Bitmap {
                 System.arraycopy(backing, 0, destination.backing, lOffset, backing.length-lOffset);
                 Arrays.fill(destination.backing, 0, lOffset, 0L);
             } else {
-                for (int i = backing.length-1; i >= 0; i--) {
-                    final long source1 = i-lOffset < 0 ? 0L : backing[i-lOffset];
-                    final long source2 = i-lOffset-1 < 0 ? 0L : backing[i-lOffset-1];
-                    destination.backing[i] = source1 >> bOffset | source2 << (64 - bOffset);
+                if (shiftCache != null) { // Cache mode
+                    Bitmap bShifted = shiftCache.get(bOffset);
+                    if (bShifted == null) {
+                        bShifted = this.makeCopy(false);
+                        bShifted.shift(bOffset);
+                        shiftCache.put(bOffset, bShifted);
+                    }
+                    bShifted.shift(lOffset << 6, destination);
+                } else {
+                    for (int i = backing.length - 1; i >= 0; i--) {
+                        final long source1 = i - lOffset < 0 ? 0L : backing[i - lOffset];
+                        final long source2 = i - lOffset - 1 < 0 ? 0L : backing[i - lOffset - 1];
+                        destination.backing[i] = source1 >> bOffset | source2 << (64 - bOffset);
+                    }
                 }
             }
         }
