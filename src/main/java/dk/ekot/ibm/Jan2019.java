@@ -69,7 +69,7 @@ public class Jan2019 {
         final int minALength = args.length > 1 ? Integer.parseInt(args[1]) : 4;
         final int minBLength = args.length > 2 ? Integer.parseInt(args[2]) : 4;
         final int maxResults = args.length > 3 ? Integer.parseInt(args[3]) : 1;
-        final int minValidDeltaCardinality = args.length > 4 ? Integer.parseInt(args[4]) : minBLength*2;
+        final int minValidDeltaCardinality = args.length > 4 ? Integer.parseInt(args[4]) : minBLength;
 
         // 1 [1, 241, 0] [15, 48, 120, 288, 783, 3480] 9 seconds
         // [1, 481, 0] [3, 48, 195, 360, 675, 1368, 3363, 14160] 10 seconds
@@ -162,7 +162,7 @@ public class Jan2019 {
                     validAs[level + 1] = and(validAs[level], shift(validDeltas, as[level]));
                 }
                 IS validSums = shift(validBs[level], as[level]);
-                IS reducedAs = extractValidAs(validAs[level+1], validBs[level], validSums); // FIXME: Too strict
+                validAs[level+1] = extractValidAs(validAs[level+1], validBs[level], validSums);
                 
                 isi.set(level+1, validAs[level+1].iterator());
             }
@@ -452,7 +452,7 @@ public class Jan2019 {
             if (cardinality >= minValidDeltaCardinality) {
                 validDeltas.add(delta);
             }
-            maxCardinality = maxCardinality < cardinality ? cardinality : maxCardinality;
+            maxCardinality = maxCardinality < cardinality ? maxCardinality : cardinality;
         }
         System.out.println(String.format(
                 "Calculated %d/%d valid deltas in %d seconds with " +
