@@ -1,9 +1,11 @@
 package dk.ekot.ibm;
 
 import dk.ekot.misc.Bitmap;
+import dk.ekot.misc.Collation;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
@@ -83,13 +85,112 @@ public class Jan2019 {
         //earlyEliminationB(maxElement, minALength, minBLength, maxResults); // Dog slow
         //earlyEliminationAFirst(maxElement, minALength, minBLength, maxResults); // Fair
         //String results = earlyEliminationMix(maxElement, minALength, minBLength, maxResults); // Somewhat fast
-        String results = earlyEliminationSet(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+
+        //heuristicCandidates(maxElement, minValidDeltaCardinality);
+        //String results = earlyEliminationSet(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+        String results = alternate(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
         System.out.println("*************************");
         System.out.println(results);
         System.out.println("Total time: " + time());
     }
 
     // *****************************************************************************************************************
+
+    String alternate(int maxElement, int minALength, int minBLength, int maxResults, int minValidDeltaCardinality) {
+        System.out.println("Alternate maxElement=" + maxElement + ", min-A-size=" + minALength +
+                           ", min-B-size=" + minBLength + ", minValidDeltaCardinality=" + minValidDeltaCardinality);
+        StringBuilder result = new StringBuilder();
+        final IS validDeltas = getValidDeltas(maxElement, minBLength, minValidDeltaCardinality);
+
+        final List<Iterator<Integer>> isi = new ArrayList<>(minALength);
+        isi.add(new IntSequence(1, maxElement+1));
+        for (int i = 1 ; i < minALength ; i++) {
+            isi.add(null);;
+        }
+        final int[] as = new int[minALength];
+        final IS[] validBs = new IS[minALength];
+        final IS[] validAs = new IS[minALength];
+        alternate(validDeltas, maxElement, minALength, minBLength, isi, as, validAs, validBs, 0,
+                  new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
+                  result);
+        return result.toString();
+    }
+    void alternate(
+            IS validDeltas, int maxElement, int minALength, int minBLength,
+            List<Iterator<Integer>> isi, int[] as, IS[] validAs, IS[] validBs, final int level,
+            AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, StringBuilder result) {
+
+        // At bottom?
+        if (level == minALength) {
+            printValidResult(as, validBs[level - 1], resultsLeft, result);
+            return;
+        }
+
+        // Iterate a-candidates
+        while (isi.get(level).hasNext()) {
+            as[level] = isi.get(level).next();
+
+            // log
+            if (level == 0) {
+                System.out.print(as[level] + " " + ((as[level] & 31) != 0 ? "" : "- " + time()));
+            }
+
+            // Calculate B
+            validBs[level] = getSquareNumbers(-as[level], maxElement, level == 0 ? null : validBs[level-1]);
+
+            // Move to next a if B is not big enough
+            final int cardinality = validBs[level].size();
+            if (cardinality < minBLength) {
+                continue;
+            }
+
+            // log
+            if (level > printedA.get()) {
+                System.out.println(toString(as) + " " + validBs[level] + " " + time());
+                printedA.set(level);
+                printedB.set(1);
+            } else if (level == printedA.get() && (cardinality > printedB.get())) {
+                System.out.println(toString(as) + " " + validBs[level] + " " + time());
+                printedB.set(cardinality);
+            }
+
+            // Calculate a[level+1] candidates
+            if (level < validAs.length-1) {
+                if (level == 0) {
+                    validAs[level + 1] = shift(validDeltas, as[level]);
+                } else {
+                    validAs[level + 1] = and(validAs[level], shift(validDeltas, as[level]));
+                }
+                IS validSums = shift(validBs[level], as[level]);
+                IS reducedAs = extractValidAs(validAs[level+1], validBs[level], validSums); // FIXME: Too strict
+                
+                isi.set(level+1, validAs[level+1].iterator());
+            }
+
+            earlyEliminationSet(validDeltas, maxElement, minALength, minBLength, isi, as,
+                                validAs, validBs, level + 1,
+                                resultsLeft, printedA, printedB, result);
+
+            if (resultsLeft.get() <= 0) {
+                break;
+            }
+        }
+        as[level] = 0;
+
+    }
+
+    private IS extractValidAs(IS as, IS bs, IS validSums) {
+        IS result = new IS(as.size());
+        for (int a: as) {
+            for (int b: bs) {
+                if (validSums.contains(a+b)) {
+                    result.add(a);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
 
     String earlyEliminationSet(
             int maxElement, int minALength, int minBLength, int maxResults, int minValidDeltaCardinality) {
@@ -118,52 +219,62 @@ public class Jan2019 {
             List<Iterator<Integer>> isi, int[] as, IS[] validAs, IS[] validBs, final int level,
             AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, StringBuilder result) {
         if (level == minALength) {
-            String res = toString(as) + " " + validBs[level-1] + " " + time() + " ***";
-            System.out.println(res);
-            result.append(res).append("\n");
-            resultsLeft.decrementAndGet();
+            printValidResult(as, validBs[level - 1], resultsLeft, result);
             return;
         }
 
         while (isi.get(level).hasNext()) {
             as[level] = isi.get(level).next();
             if (level == 0) {
-                System.out.print(as[level] + " ");
-                if ((as[level] & 31) == 0) {
-                    System.out.println("- " + time());
-                }
+                System.out.print(as[level] + " " + ((as[level] & 31) != 0 ? "" : "- " + time()));
             }
 
             validBs[level] = getSquareNumbers(-as[level], maxElement, level == 0 ? null : validBs[level-1]);
             final int cardinality = validBs[level].size();
-            if (cardinality >= minBLength) {
-                if (level > printedA.get()) {
-                    System.out.println(toString(as) + " " + validBs[level] + " " + time());
-                    printedA.set(level);
-                    printedB.set(1);
-                } else if (level == printedA.get() && (cardinality > printedB.get())) {
-                    System.out.println(toString(as) + " " + validBs[level] + " " + time());
-                    printedB.set(cardinality);
+            if (cardinality < minBLength) {
+                continue;
+            }
+            if (level > printedA.get()) {
+                System.out.println(toString(as) + " " + validBs[level] + " " + time());
+                printedA.set(level);
+                printedB.set(1);
+            } else if (level == printedA.get() && (cardinality > printedB.get())) {
+                System.out.println(toString(as) + " " + validBs[level] + " " + time());
+                printedB.set(cardinality);
+            }
+            if (level < validAs.length-1) {
+                if (level ==0) {
+                    validAs[level + 1] = shift(validDeltas, as[level]);
+                } else {
+                    validAs[level + 1] = and(validAs[level], shift(validDeltas, as[level]));
                 }
-                if (level < validAs.length-1) {
-                    if (level ==0) {
-                        validAs[level + 1] = shift(validDeltas, as[level]);
-                    } else {
-                        validAs[level + 1] = and(validAs[level], shift(validDeltas, as[level]));
-                    }
-                    isi.set(level+1, validAs[level+1].iterator());
-                }
+                isi.set(level+1, validAs[level+1].iterator());
+            }
 
-                earlyEliminationSet(validDeltas, maxElement, minALength, minBLength, isi, as,
-                                    validAs, validBs, level + 1,
-                                    resultsLeft, printedA, printedB, result);
+            earlyEliminationSet(validDeltas, maxElement, minALength, minBLength, isi, as,
+                                validAs, validBs, level + 1,
+                                resultsLeft, printedA, printedB, result);
 
-                if (resultsLeft.get() <= 0) {
-                    break;
-                }
+            if (resultsLeft.get() <= 0) {
+                break;
             }
         }
         as[level] = 0;
+    }
+
+    private void printValidResult(int[] as, IS validB, AtomicInteger resultsLeft, StringBuilder result) {
+        String res = toString(as) + " " + validB + " " + time() + " *** ";
+        List<Integer> sums = new ArrayList<>();
+        for (int a: as) {
+            for (int b: validB) {
+                sums.add(a+b);
+            }
+        }
+        Collections.sort(sums);
+        res += sums;
+        System.out.println(res);
+        result.append(res).append("\n");
+        resultsLeft.decrementAndGet();
     }
 
     class IS extends LinkedHashSet<Integer>{
@@ -241,12 +352,11 @@ public class Jan2019 {
         }
         return set;
     }
-    private int countSquareNumbers(int offset, int max, final IS andSet) {
+
+    private static int countSquareNumbers(int offset, int max, final IS andSet) {
         int count = 0;
         int start = offset < 0 ? (int) Math.sqrt(offset) : 2;
         int end = (int) (Math.sqrt(max) - offset);
-        StreamSupport.stream(Spliterators.spliterator(new IntSequence(start, end+1), (end+1-start), Spliterator.CONCURRENT))
-        .
         for (int i = start ; i < end+1; i++) {
             int val = i*i+offset;
             if (val < 1) {
@@ -262,15 +372,80 @@ public class Jan2019 {
         }
         return count;
     }
+    class SquareCounter implements Callable<Integer> {
+        private int offset;
+        private final int max;
+        private final IS andSet;
+
+        public SquareCounter(int max, IS andSet) {
+            this.max = max;
+            this.andSet = andSet;
+        }
+
+        public void setOffset(int offset) {
+            this.offset = offset;
+        }
+
+        @Override
+        public Integer call() throws Exception {
+            return countSquareNumbers(offset, max, andSet);
+        }
+    }
 
 
     IS getValidDeltas(int max, int minCardinality, int minValidDeltaCardinality) {
+//        return getValidDeltasSingle(max, minCardinality, minValidDeltaCardinality);
+        return getValidDeltasThreaded(max, minCardinality, minValidDeltaCardinality);
+    }
+
+    void heuristicCandidates(int max, int minValidDeltaCardinality) {
+        System.out.print("Guessing candidates... ");
+        max *= 2;
+        final int[] bs = new int[max+1];
+        final IS validBase = getSquareNumbers(0, max, null);
+
+        for (int delta = 1 ; delta < max ; delta++) {
+            IS valid = getSquareNumbers(-delta, max, validBase);
+            if (valid.size() < minValidDeltaCardinality) {
+                continue;
+            }
+            for (int i: valid) {
+                bs[i]++;
+            }
+        }
+        int[] sizes = new int[max+1];
+        int largest = -1;
+        int smallest = Integer.MAX_VALUE;
+        for (int rowCount: bs) {
+            sizes[rowCount]++;
+            if (largest < rowCount) {
+                largest = rowCount;
+            }
+            if (smallest > rowCount) {
+                smallest = rowCount;
+            }
+        }
+        System.out.println("Non-0 rowCounts=" + (max-sizes[0]));
+        System.out.print("Largest vertical count=" + largest + ", smallest=" + smallest + ", quads=[");
+        for (int i = 0 ; i < bs.length ; i++) {
+            if (bs[i] != 0) {
+                System.out.print(i + "(" + bs[i] + ") ");
+            }
+        }
+        System.out.println("]");
+//        for (int i = 0 ; i <= largest ; i++) {
+//            System.out.println(String.format("rowCount=%2d, instances=%d", i, sizes[i]));
+//        }
+    }
+
+    IS getValidDeltasSingle(int max, int minCardinality, int minValidDeltaCardinality) {
         System.out.print("Calculating valid deltas... ");
         final long deltaStart = System.nanoTime();
         int maxCardinality = -1;
         int maxCardinalityDelta = -1;
         IS validDeltas = new IS();
         IS validBase = getSquareNumbers(0, max, null);
+
         for (int delta = 1 ; delta < max-minCardinality ; delta++) {
             //IS both = getSquareNumbers(-delta, max, validBase);
             int cardinality = countSquareNumbers(-delta, max, validBase);
@@ -279,6 +454,53 @@ public class Jan2019 {
             }
             maxCardinality = maxCardinality < cardinality ? cardinality : maxCardinality;
         }
+        System.out.println(String.format(
+                "Calculated %d/%d valid deltas in %d seconds with " +
+                "minCardinality=%d, maxCardinality=%d (first: delta=%d)",
+                validDeltas.size(), max, (System.nanoTime()-deltaStart)/1000000/1000,
+                minCardinality, maxCardinality, maxCardinalityDelta));
+
+        return validDeltas;
+    }
+
+    IS getValidDeltasThreaded(int max, int minCardinality, int minValidDeltaCardinality) {
+        System.out.print("Calculating valid deltas... ");
+        final long deltaStart = System.nanoTime();
+        int maxCardinality = -1;
+        int maxCardinalityDelta = -1;
+        IS validDeltas = new IS();
+        IS validBase = getSquareNumbers(0, max, null);
+        final int threads = Runtime.getRuntime().availableProcessors()*2;
+
+        List<SquareCounter> counters = new ArrayList<>();
+        for (int i = 0 ; i < threads ; i++) {
+            counters.add(new SquareCounter(max, validBase));
+        }
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        List<Future<Integer>> futures = new ArrayList<>(threads);
+        for (int delta = 1 ; delta < max-minCardinality ; delta += threads) {
+            futures.clear();
+            for (int i = 0; i < threads && delta+i < max-minCardinality; i++) {
+                counters.get(i).setOffset(-(delta + i));
+                futures.add(executor.submit(counters.get(i)));
+            }
+            for (int i = 0; i < threads && delta+i < max-minCardinality; i++) {
+                int cardinality;
+                try {
+                    cardinality = futures.get(i).get();
+                } catch (Exception e) {
+                    throw new RuntimeException("Exception during valid delta calculation", e);
+                }
+                if (cardinality >= minValidDeltaCardinality) {
+                    validDeltas.add(delta+i);
+                }
+                if (maxCardinalityDelta < cardinality) {
+                    maxCardinality = cardinality;
+                    maxCardinalityDelta = -(delta+1);
+                }
+            }
+        }
+        executor.shutdown();
         System.out.println(String.format(
                 "Calculated %d/%d valid deltas in %d seconds with " +
                 "minCardinality=%d, maxCardinality=%d (first: delta=%d)",
