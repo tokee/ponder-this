@@ -3,10 +3,9 @@ package dk.ekot.ibm;
 import dk.ekot.misc.Bitmap;
 
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.StreamSupport;
 
 /**
  * http://www.research.ibm.com/haifa/ponderthis/challenges/January2019.html
@@ -33,27 +32,42 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 /*
-  2,2: maxElements=      41: [1, 33] [3, 48]
-  2,3: maxElements=      98: [1, 97] [3, 24, 99]
-  3,3: maxElements=     578: [1, 166, 481] [3, 195, 675]
-  3,4: maxElements=   10658: [1, 1366, 3361] [3, 483, 2115, 17955]
-  3,5: maxElements=  112338: [1, 2913, 93633] [3, 1848, 9408, 31683, 131043] 2 seconds
-  4,5: maxElements= 1000000: (912601): [1, 13393, 179713, 586433] [28223, 71288, 304703, 1238768] 2638 seconds
+   java -cp ./target/ponder-this-0.1-SNAPSHOT.jar dk.ekot.ibm.Jan2019 2000000 4 4 1
+
+earlyEliminationSet
+  4,4: maxElements=     5M: [1, 2608, 87088, 2334256] [528, 12768, 187488, 1697808] 225 seconds ***
+  4,4: maxElements=    10M: [1, 2608, 87088, 2334256] [528, 12768, 187488, 1697808] 778 seconds ***
+
+earlyEliminationMix
+  2,2: maxElements=     41: [1, 33] [3, 48]
+  2,3: maxElements=     98: [1, 97] [3, 24, 99]
+  3,3: maxElements=    578: [1, 166, 481] [3, 195, 675]
+  3,4: maxElements=  10658: [1, 1366, 3361] [3, 483, 2115, 17955]
+  3,5: maxElements= 112338: [1, 2913, 93633] [3, 1848, 9408, 31683, 131043] 2 seconds
+  4,5: maxElements=     1M: (912601): [1, 13393, 179713, 586433] [28223, 71288, 304703, 1238768] 2638 seconds
+
  */
 
 // Note: Is it all n^2 and not all prime-pair-sums?
 public class Jan2019 {
     public static void main(String[] args) {
-        new Jan2019().run();
+        new Jan2019().run(args);
     }
 
     long startNS = System.nanoTime();
 
-    void run() {
-        final int maxElement = 5000000;
-        final int minALength = 4;
-        final int minBLength = 5;
-        final int maxResults = 1;
+    private static final String USAGE =
+            "Jan2019 [maxElement [minALength [minBLength [maxResults [minValidDeltaCardinality]]]]]";
+    void run(String[] args) {
+        if (args.length == 1 && "".equals(args[0])) {
+            System.out.println(USAGE);
+            return;
+        }
+        final int maxElement = args.length > 0 ? Integer.parseInt(args[0]) : 2_000_000;
+        final int minALength = args.length > 1 ? Integer.parseInt(args[1]) : 4;
+        final int minBLength = args.length > 2 ? Integer.parseInt(args[2]) : 4;
+        final int maxResults = args.length > 3 ? Integer.parseInt(args[3]) : 1;
+        final int minValidDeltaCardinality = args.length > 4 ? Integer.parseInt(args[4]) : minBLength*2;
 
         // 1 [1, 241, 0] [15, 48, 120, 288, 783, 3480] 9 seconds
         // [1, 481, 0] [3, 48, 195, 360, 675, 1368, 3363, 14160] 10 seconds
@@ -68,34 +82,40 @@ public class Jan2019 {
 
         //earlyEliminationB(maxElement, minALength, minBLength, maxResults); // Dog slow
         //earlyEliminationAFirst(maxElement, minALength, minBLength, maxResults); // Fair
-        System.out.println(earlyEliminationMix(maxElement, minALength, minBLength, maxResults)); // Somewhat fast
+        //String results = earlyEliminationMix(maxElement, minALength, minBLength, maxResults); // Somewhat fast
+        String results = earlyEliminationSet(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+        System.out.println("*************************");
+        System.out.println(results);
         System.out.println("Total time: " + time());
     }
 
     // *****************************************************************************************************************
 
-    String earlyEliminationSet(int maxElement, int minALength, int minBLength, int maxResults) {
+    String earlyEliminationSet(
+            int maxElement, int minALength, int minBLength, int maxResults, int minValidDeltaCardinality) {
         System.out.println("Early elimination set maxElement=" + maxElement + ", min-A-size=" + minALength +
-                           ", min-B-size=" + minBLength);
+                           ", min-B-size=" + minBLength + ", minValidDeltaCardinality=" + minValidDeltaCardinality);
         StringBuilder result = new StringBuilder();
-        final IS validDeltas = getValidDeltas(maxElement, minBLength);
+        final IS validDeltas = getValidDeltas(maxElement, minBLength, minValidDeltaCardinality);
 
+        final List<Iterator<Integer>> isi = new ArrayList<>(minALength);
+        isi.add(new IntSequence(1, maxElement+1));
+        for (int i = 1 ; i < minALength ; i++) {
+            isi.add(null);;
+        }
         final int[] as = new int[minALength];
-        final IS[] candidateBs = new IS[minALength];
         final IS[] validBs = new IS[minALength];
         final IS[] validAs = new IS[minALength];
 
-        earlyEliminationSet(validDeltas, maxElement, minALength, minBLength, as, candidateBs, validAs, validBs, 0,
+        earlyEliminationSet(validDeltas, maxElement, minALength, minBLength, isi, as, validAs, validBs, 0,
                             new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
                             result);
         return result.toString();
     }
 
-    class IS extends LinkedHashSet<Integer>{};
-
     void earlyEliminationSet(
             IS validDeltas, int maxElement, int minALength, int minBLength,
-            int[] as, IS[] candidateBs, IS[] validAs, IS[] validBs, final int level,
+            List<Iterator<Integer>> isi, int[] as, IS[] validAs, IS[] validBs, final int level,
             AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, StringBuilder result) {
         if (level == minALength) {
             String res = toString(as) + " " + validBs[level-1] + " " + time() + " ***";
@@ -104,12 +124,9 @@ public class Jan2019 {
             resultsLeft.decrementAndGet();
             return;
         }
-        return;
-        // TODO: Implement this
-        /*
-        final int previousIndex = level == 0 ? 0 : as[level-1];
-        as[level] = validAs[level].thisOrNext(previousIndex+1);
-        while (as[level] <= maxElement) {
+
+        while (isi.get(level).hasNext()) {
+            as[level] = isi.get(level).next();
             if (level == 0) {
                 System.out.print(as[level] + " ");
                 if ((as[level] & 31) == 0) {
@@ -117,31 +134,27 @@ public class Jan2019 {
                 }
             }
 
-            validProducts.shift(-as[level], candidateBs[level]);
-            if (level == 0) {
-                candidateBs[level].copy(validBs[level]);
-            } else {
-                Bitmap.and(validBs[level-1], candidateBs[level], validBs[level], true);
-            }
-            final int cardinality =
-                    validBs[level].cardinalityStopAt(minBLength < (printedB.get()+1) ? printedB.get()+1 : minBLength);
+            validBs[level] = getSquareNumbers(-as[level], maxElement, level == 0 ? null : validBs[level-1]);
+            final int cardinality = validBs[level].size();
             if (cardinality >= minBLength) {
                 if (level > printedA.get()) {
-                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
-                    System.out.println(" " + time());
+                    System.out.println(toString(as) + " " + validBs[level] + " " + time());
                     printedA.set(level);
                     printedB.set(1);
                 } else if (level == printedA.get() && (cardinality > printedB.get())) {
-                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
-                    System.out.println(" " + time());
-                    printedB.set(validBs[level].cardinality());
+                    System.out.println(toString(as) + " " + validBs[level] + " " + time());
+                    printedB.set(cardinality);
                 }
                 if (level < validAs.length-1) {
-                    validDeltas.shift(as[level], validAs[level + 1]);
-                    Bitmap.and(validAs[level], validAs[level + 1], validAs[level + 1], false);
+                    if (level ==0) {
+                        validAs[level + 1] = shift(validDeltas, as[level]);
+                    } else {
+                        validAs[level + 1] = and(validAs[level], shift(validDeltas, as[level]));
+                    }
+                    isi.set(level+1, validAs[level+1].iterator());
                 }
 
-                earlyEliminationMix(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs,
+                earlyEliminationSet(validDeltas, maxElement, minALength, minBLength, isi, as,
                                     validAs, validBs, level + 1,
                                     resultsLeft, printedA, printedB, result);
 
@@ -149,15 +162,67 @@ public class Jan2019 {
                     break;
                 }
             }
-
-            as[level] = validAs[level].thisOrNext(as[level]+1);
         }
-        as[level] = 0;                                         */
+        as[level] = 0;
+    }
+
+    class IS extends LinkedHashSet<Integer>{
+        public IS(int initialCapacity) {
+            super(initialCapacity);
+        }
+
+        public IS() {
+        }
+    };
+    class IntSequence implements Iterator<Integer> {
+        private int current;
+        private final int end;
+        public IntSequence(int start, int end) { // End is non-inclusive
+            current = start;
+            this.end = end;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return current < end;
+        }
+
+        @Override
+        public Integer next() {
+            return current++;
+        }
+    }
+
+    private IS shift(IS source, int offset) {
+        IS result = new IS(source.size());
+        for (Integer i: source) {
+            int val = i+offset;
+            if (val > 0) {
+                result.add(val);
+            }
+        }
+        return result;
+    }
+
+    private IS and(IS set1, IS set2) {
+        if (set1.size() > set2.size()) {
+            IS temp = set1;
+            set1 = set2;
+            set2 = temp;
+        }
+        IS result = new IS(set1.size());
+        for (Integer i: set1) {
+            if (set2.contains(i)) {
+                result.add(i);
+            }
+        }
+        return result;
     }
 
     private IS getSquareNumbers(int offset, int max) {
         return getSquareNumbers(offset, max, null);
     }
+    private Map<Integer, IS> sqCache = new HashMap<>();
     private IS getSquareNumbers(int offset, int max, final IS andSet) {
         IS set = new IS();
         int start = offset < 0 ? (int) Math.sqrt(offset) : 2;
@@ -176,18 +241,50 @@ public class Jan2019 {
         }
         return set;
     }
+    private int countSquareNumbers(int offset, int max, final IS andSet) {
+        int count = 0;
+        int start = offset < 0 ? (int) Math.sqrt(offset) : 2;
+        int end = (int) (Math.sqrt(max) - offset);
+        StreamSupport.stream(Spliterators.spliterator(new IntSequence(start, end+1), (end+1-start), Spliterator.CONCURRENT))
+        .
+        for (int i = start ; i < end+1; i++) {
+            int val = i*i+offset;
+            if (val < 1) {
+                continue;
+            }
+            if (val > max) {
+                break;
+            }
+            if (andSet == null || andSet.contains(val)) {
+                count++;
+            }
+            if (i == start+100) break;
+        }
+        return count;
+    }
 
-    IS getValidDeltas(int max, int minCardinality) {
+
+    IS getValidDeltas(int max, int minCardinality, int minValidDeltaCardinality) {
         System.out.print("Calculating valid deltas... ");
+        final long deltaStart = System.nanoTime();
+        int maxCardinality = -1;
+        int maxCardinalityDelta = -1;
         IS validDeltas = new IS();
-        IS validBase = getSquareNumbers(0, max);
+        IS validBase = getSquareNumbers(0, max, null);
         for (int delta = 1 ; delta < max-minCardinality ; delta++) {
-            Set<Integer> both = getSquareNumbers(-delta, max, validBase);
-            if (both.size() >= minCardinality) {
+            //IS both = getSquareNumbers(-delta, max, validBase);
+            int cardinality = countSquareNumbers(-delta, max, validBase);
+            if (cardinality >= minValidDeltaCardinality) {
                 validDeltas.add(delta);
             }
+            maxCardinality = maxCardinality < cardinality ? cardinality : maxCardinality;
         }
-        System.out.println("Calculated valid deltas: " + validDeltas.size() + "/" + max);
+        System.out.println(String.format(
+                "Calculated %d/%d valid deltas in %d seconds with " +
+                "minCardinality=%d, maxCardinality=%d (first: delta=%d)",
+                validDeltas.size(), max, (System.nanoTime()-deltaStart)/1000000/1000,
+                minCardinality, maxCardinality, maxCardinalityDelta));
+
         return validDeltas;
     }
 
@@ -251,10 +348,10 @@ public class Jan2019 {
                 }
             }
 
-            validProducts.shift(-as[level], candidateBs[level]);
             if (level == 0) {
-                candidateBs[level].copy(validBs[level]);
+                validProducts.shift(-as[level], validBs[level]);
             } else {
+                validProducts.shift(-as[level], candidateBs[level]);
                 Bitmap.and(validBs[level-1], candidateBs[level], validBs[level], true);
             }
             final int cardinality =
@@ -272,7 +369,9 @@ public class Jan2019 {
                 }
                 if (level < validAs.length-1) {
                     validDeltas.shift(as[level], validAs[level + 1]);
-                    Bitmap.and(validAs[level], validAs[level + 1], validAs[level + 1], false);
+                    if (level > 0) {
+                        Bitmap.and(validAs[level], validAs[level + 1], validAs[level + 1], false);
+                    }
                 }
 
                 earlyEliminationMix(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs,
