@@ -4,6 +4,8 @@ import dk.ekot.misc.Bitmap;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -48,10 +50,10 @@ public class Jan2019 {
     long startNS = System.nanoTime();
 
     void run() {
-        final int maxElement = 1000000;
+        final int maxElement = 5000000;
         final int minALength = 4;
-        final int minBLength = 4;
-        final int maxResults = 5;
+        final int minBLength = 5;
+        final int maxResults = 1;
 
         // 1 [1, 241, 0] [15, 48, 120, 288, 783, 3480] 9 seconds
         // [1, 481, 0] [3, 48, 195, 360, 675, 1368, 3363, 14160] 10 seconds
@@ -71,6 +73,136 @@ public class Jan2019 {
     }
 
     // *****************************************************************************************************************
+
+    String earlyEliminationSet(int maxElement, int minALength, int minBLength, int maxResults) {
+        System.out.println("Early elimination set maxElement=" + maxElement + ", min-A-size=" + minALength +
+                           ", min-B-size=" + minBLength);
+        StringBuilder result = new StringBuilder();
+        final IS validDeltas = getValidDeltas(maxElement, minBLength);
+
+        final int[] as = new int[minALength];
+        final IS[] candidateBs = new IS[minALength];
+        final IS[] validBs = new IS[minALength];
+        final IS[] validAs = new IS[minALength];
+
+        earlyEliminationSet(validDeltas, maxElement, minALength, minBLength, as, candidateBs, validAs, validBs, 0,
+                            new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
+                            result);
+        return result.toString();
+    }
+
+    class IS extends LinkedHashSet<Integer>{};
+
+    void earlyEliminationSet(
+            IS validDeltas, int maxElement, int minALength, int minBLength,
+            int[] as, IS[] candidateBs, IS[] validAs, IS[] validBs, final int level,
+            AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, StringBuilder result) {
+        if (level == minALength) {
+            String res = toString(as) + " " + validBs[level-1] + " " + time() + " ***";
+            System.out.println(res);
+            result.append(res).append("\n");
+            resultsLeft.decrementAndGet();
+            return;
+        }
+        return;
+        // TODO: Implement this
+        /*
+        final int previousIndex = level == 0 ? 0 : as[level-1];
+        as[level] = validAs[level].thisOrNext(previousIndex+1);
+        while (as[level] <= maxElement) {
+            if (level == 0) {
+                System.out.print(as[level] + " ");
+                if ((as[level] & 31) == 0) {
+                    System.out.println("- " + time());
+                }
+            }
+
+            validProducts.shift(-as[level], candidateBs[level]);
+            if (level == 0) {
+                candidateBs[level].copy(validBs[level]);
+            } else {
+                Bitmap.and(validBs[level-1], candidateBs[level], validBs[level], true);
+            }
+            final int cardinality =
+                    validBs[level].cardinalityStopAt(minBLength < (printedB.get()+1) ? printedB.get()+1 : minBLength);
+            if (cardinality >= minBLength) {
+                if (level > printedA.get()) {
+                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                    System.out.println(" " + time());
+                    printedA.set(level);
+                    printedB.set(1);
+                } else if (level == printedA.get() && (cardinality > printedB.get())) {
+                    System.out.print(toString(as) + " " + toString(validBs[level].getIntegers()));
+                    System.out.println(" " + time());
+                    printedB.set(validBs[level].cardinality());
+                }
+                if (level < validAs.length-1) {
+                    validDeltas.shift(as[level], validAs[level + 1]);
+                    Bitmap.and(validAs[level], validAs[level + 1], validAs[level + 1], false);
+                }
+
+                earlyEliminationMix(validProducts, validDeltas, maxElement, minALength, minBLength, as, candidateBs,
+                                    validAs, validBs, level + 1,
+                                    resultsLeft, printedA, printedB, result);
+
+                if (resultsLeft.get() <= 0) {
+                    break;
+                }
+            }
+
+            as[level] = validAs[level].thisOrNext(as[level]+1);
+        }
+        as[level] = 0;                                         */
+    }
+
+    private IS getSquareNumbers(int offset, int max) {
+        return getSquareNumbers(offset, max, null);
+    }
+    private IS getSquareNumbers(int offset, int max, final IS andSet) {
+        IS set = new IS();
+        int start = offset < 0 ? (int) Math.sqrt(offset) : 2;
+        int end = (int) (Math.sqrt(max) - offset);
+        for (int i = start ; i < end+1; i++) {
+            int val = i*i+offset;
+            if (val < 1) {
+                continue;
+            }
+            if (val > max) {
+                break;
+            }
+            if (andSet == null || andSet.contains(val)) {
+                set.add(val);
+            }
+        }
+        return set;
+    }
+
+    IS getValidDeltas(int max, int minCardinality) {
+        System.out.print("Calculating valid deltas... ");
+        IS validDeltas = new IS();
+        IS validBase = getSquareNumbers(0, max);
+        for (int delta = 1 ; delta < max-minCardinality ; delta++) {
+            Set<Integer> both = getSquareNumbers(-delta, max, validBase);
+            if (both.size() >= minCardinality) {
+                validDeltas.add(delta);
+            }
+        }
+        System.out.println("Calculated valid deltas: " + validDeltas.size() + "/" + max);
+        return validDeltas;
+    }
+
+
+    private IS bitmapToSet(Bitmap bits) {
+        IS set = new IS();
+        int index = 0;
+        while (index < bits.size()) {
+            index = bits.thisOrNext(index);
+            if (index < bits.size()) {
+                set.add(index);
+            }
+        }
+        return set;
+    }
 
     String earlyEliminationMix(int maxElement, int minALength, int minBLength, int maxResults) {
         System.out.println("Early elimination maxElement=" + maxElement + ", min-A-size=" + minALength +
@@ -139,7 +271,6 @@ public class Jan2019 {
                     printedB.set(validBs[level].cardinality());
                 }
                 if (level < validAs.length-1) {
-
                     validDeltas.shift(as[level], validAs[level + 1]);
                     Bitmap.and(validAs[level], validAs[level + 1], validAs[level + 1], false);
                 }
