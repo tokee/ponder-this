@@ -433,6 +433,26 @@ public class Jan2019 {
             }
         }
         System.out.println("]");
+
+        System.out.println("Suspicious deltas: [");
+        for (int delta = 1 ; delta < max ; delta++) {
+            IS directSquares = getSquareNumbers(-delta, max, validBase);
+            int directSize = directSquares.size();
+            if (directSize < minValidDeltaCardinality) {
+                continue;
+            }
+            IS pruned = new IS(directSquares.size());
+            for (int ds: directSquares) {
+                if (bs[ds] != 0) {
+                    pruned.add(ds);
+                }
+            }
+            if (pruned.size() < minValidDeltaCardinality) {
+                System.out.println(delta + " ");
+            }
+        }
+        System.out.println("]");
+
 //        for (int i = 0 ; i <= largest ; i++) {
 //            System.out.println(String.format("rowCount=%2d, instances=%d", i, sizes[i]));
 //        }
