@@ -45,7 +45,7 @@ earlyEliminationMix
   3,3: maxElements=    578: [1, 166, 481] [3, 195, 675]
   3,4: maxElements=  10658: [1, 1366, 3361] [3, 483, 2115, 17955]
   3,5: maxElements= 112338: [1, 2913, 93633] [3, 1848, 9408, 31683, 131043] 2 seconds
-  4,5: maxElements=     1M: (912601): [1, 13393, 179713, 586433] [28223, 71288, 304703, 1238768] 2638 seconds
+  4,4: maxElements=     1M: (912601): [1, 13393, 179713, 586433] [28223, 71288, 304703, 1238768] 2638 seconds
 
  */
 
@@ -88,9 +88,11 @@ public class Jan2019 {
 
         //heuristicCandidates(maxElement, minValidDeltaCardinality);
         //String results = earlyEliminationSet(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
-        
-        String results = early(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+
+//        String results = "" + getValidAsBase(50000, minBLength, minBLength).size();
+
         //String results = alternate(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+        String results = early(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
         System.out.println("*************************");
         System.out.println(results);
         System.out.println("Total time: " + time());
@@ -104,26 +106,28 @@ public class Jan2019 {
                            ", min-B-size=" + minBLength + ", minValidDeltaCardinality=" + minValidDeltaCardinality);
         StringBuilder result = new StringBuilder();
 
-        final IS[] validBs = new IS[minALength];
+        IS validAsBase = getValidAsBase(maxElement, minBLength, minValidDeltaCardinality);
+        IS squares = getSquareNumbers(0, maxElement*2);
+        IS[] validBs = new IS[minALength];
 
-        final IS[] validAs = new IS[minALength];
+        IS[] validAs = new IS[minALength];
         validAs[0] = new IS();
         validAs[0].add(0);
-        final int[] as = new int[minALength];
+        int[] as = new int[minALength];
 
-        final List<Iterator<Integer>> isi = new ArrayList<>(minALength);
+        List<Iterator<Integer>> isi = new ArrayList<>(minALength);
         for (int i = 0 ; i < minALength ; i++) {
             isi.add(null);;
         }
         isi.set(0, validAs[0].iterator());
 
-        early(maxElement, minALength, minBLength, isi, as, validAs, validBs, 0,
+        early(validAsBase, squares, maxElement, minALength, minBLength, isi, as, validAs, validBs, 0,
                   new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
                   result);
         return result.toString();
     }
     void early(
-            int maxElement, int minALength, int minBLength,
+            IS validAsBase, IS squares, int maxElement, int minALength, int minBLength,
             List<Iterator<Integer>> isi, int[] as, IS[] validAs, IS[] validBs, final int level,
             AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, StringBuilder result) {
 
@@ -143,7 +147,7 @@ public class Jan2019 {
             }
 
             // Calculate B
-            validBs[level] = level == 0 ? getSquareNumbers(0, maxElement) : getMatches(validBs[level-1], as[level]);
+            validBs[level] = level == 0 ? squares : getMatches(validBs[level-1], as[level]);
 
             // Move to next a if B is not big enough
             final int cardinality = validBs[level].size();
@@ -163,15 +167,15 @@ public class Jan2019 {
 
             // Calculate a[level+1] candidates
             if (level < validAs.length-1) {
-                //validAs[level+1] = getValidAs(validBs[level], as[level], minBLength);
-                validAs[level+1] = getFullSet(as[level]+1, maxElement);
+                validAs[level+1] = getValidAs(validAsBase, squares, validBs[level], as[level], minBLength);
+                //validAs[level+1] = getFullSet(as[level]+1, maxElement);
                 if (validAs[level+1].size() < minALength) {
                     continue;
                 }
                 isi.set(level+1, validAs[level+1].iterator());
             }
 
-            early(maxElement, minALength, minBLength, isi, as,
+            early(validAsBase, squares, maxElement, minALength, minBLength, isi, as,
                   validAs, validBs, level + 1,
                   resultsLeft, printedA, printedB, result);
 
@@ -183,9 +187,55 @@ public class Jan2019 {
 
     }
 
-    private IS getValidAs(IS validBs, int currentA, int minBLength) {
-        return null;  // TODO: Implement this
+    private IS getValidAs(IS validAsBase, IS squares, IS validBs, int currentA, int minBLength) {
+        IS valids = new IS(validBs.size());
+        valids.add(0); // 0 is always valid
+        for (int a: validAsBase) {
+            //if (a == 32) {
+            //    System.out.println("32");
+            //}
+            if (a < currentA) {
+                continue;
+            }
+            // TODO: Early termination on too large jump
+            int pairs = 0;
+            for (int b: validBs) {
+                if (squares.contains(b+a)) {
+                    pairs++;
+                    if (pairs >= minBLength) {
+                        break;
+                    }
+                }
+            }
+            if (pairs >= minBLength) {
+                valids.add(a);
+            }
+        }
+        return valids;
     }
+
+    IS getValidAsBase(int max, int minCardinality, int minValidDeltaCardinality) {
+        System.out.print("Calculating valid as... ");
+        final long deltaStart = System.nanoTime();
+        IS validAs = new IS();
+        IS validBase = getSquareNumbers(0, max*2, null);
+
+        for (int delta = 0 ; delta < max-minCardinality ; delta++) {
+            //IS both = getSquareNumbers(-delta, max, validBase);
+            if (atLeastMatches(validBase, delta, minValidDeltaCardinality, max)) {
+                validAs.add(delta);
+            }
+        }
+        System.out.println(String.format(
+                "Calculated %d/%d valid deltas in %d seconds with " +
+                "minCardinality=%d",
+                validAs.size(), max, (System.nanoTime()-deltaStart)/1000000/1000,
+                minCardinality));
+
+        return validAs;
+    }
+
+
 
     final static IS IS_EMPTY = new IS(0);
     IS getMatches(IS validSquares, int offset) {
@@ -206,6 +256,24 @@ public class Jan2019 {
             square = base*base;
         }
         return result == null ? IS_EMPTY : result;
+    }
+    boolean atLeastMatches(IS validSquares, int offset, int atLeast, int maxSum) {
+        int count = 0;
+        int lastSquare = 0; // offset*offset?
+        int base = 1; // offset+1?
+
+        int square = base*base;
+        while (square-lastSquare <= offset && lastSquare < maxSum) {
+            if (validSquares == null || validSquares.contains(square-offset)) {
+                if (++count >= atLeast) {
+                    return true;
+                }
+            }
+            base++;
+            lastSquare = square;
+            square = base*base;
+        }
+        return false;
     }
 
     int testMinimumSeek(IS validSquares, int offset) {
