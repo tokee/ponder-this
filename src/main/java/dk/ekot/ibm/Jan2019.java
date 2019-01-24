@@ -1,13 +1,11 @@
 package dk.ekot.ibm;
 
 import dk.ekot.misc.Bitmap;
-import dk.ekot.misc.Collation;
 
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.StreamSupport;
 
 /**
  * http://www.research.ibm.com/haifa/ponderthis/challenges/January2019.html
@@ -32,7 +30,7 @@ import java.util.stream.StreamSupport;
  * Solution: 1) Generate a list of guaranteed-win products and 2) Create sets A and B so that a+b is in the list.
  *
  */
-
+// Hint: [0, ...]. Jess: 7½ minut for 4+5
 /*
    java -cp ./target/ponder-this-0.1-SNAPSHOT.jar dk.ekot.ibm.Jan2019 2000000 4 4 1
 
@@ -88,13 +86,37 @@ public class Jan2019 {
 
         //heuristicCandidates(maxElement, minValidDeltaCardinality);
         //String results = earlyEliminationSet(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
-        String results = alternate(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+        /*String results = alternate(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
         System.out.println("*************************");
         System.out.println(results);
-        System.out.println("Total time: " + time());
+        System.out.println("Total time: " + time());*/
+        for (int offset = 1; offset < 40 ; offset++) {
+            minimumSeek(offset);
+        }
     }
 
     // *****************************************************************************************************************
+
+    void minimumSeek(int offset) {
+        IS allSquares = getSquareNumbers(0, 100);
+
+        int lastSquare = 0; // offset*offset?
+        int base = 1; // offset+1?
+        int count = 0;
+
+        int square = base*base;
+        while (square-lastSquare < offset) {
+            if (allSquares.contains(square-offset)) {
+                count+= 1;
+            }
+            base++;
+            lastSquare = square;
+            square = base*base;
+        }
+        if (count != 0) {
+            System.out.println("Offset=" + offset + ", and=" + count);
+        }
+    }
 
     String alternate(int maxElement, int minALength, int minBLength, int maxResults, int minValidDeltaCardinality) {
         System.out.println("Alternate maxElement=" + maxElement + ", min-A-size=" + minALength +
