@@ -24,7 +24,7 @@ public class CuttablePrime {
     public static final int CERTAINITY = 15;
 
     public static void main(String[] args) {
-        for (int radix = 2 ; radix <= 32 ; radix++) {
+        for (int radix = 10 ; radix <= 10 ; radix++) {
             //System.out.println("Counting cuttable primes for radix " + radix);
             if (radix == 18) { // Takes ½ hour
                 //System.out.println("43: af93e41a586he75a7hhaab7he12fg79992ga7741b3d (10024849 total truncable primes)");

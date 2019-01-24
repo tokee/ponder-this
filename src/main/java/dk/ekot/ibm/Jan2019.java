@@ -1,5 +1,6 @@
 package dk.ekot.ibm;
 
+import com.google.common.collect.Sets;
 import dk.ekot.misc.Bitmap;
 
 import java.math.BigInteger;
@@ -80,33 +81,144 @@ public class Jan2019 {
         //fixedA2(maxElement, minBLength);
         //fixedA3(maxElement, minBLength);
 
+
         //earlyEliminationB(maxElement, minALength, minBLength, maxResults); // Dog slow
         //earlyEliminationAFirst(maxElement, minALength, minBLength, maxResults); // Fair
         //String results = earlyEliminationMix(maxElement, minALength, minBLength, maxResults); // Somewhat fast
 
         //heuristicCandidates(maxElement, minValidDeltaCardinality);
         //String results = earlyEliminationSet(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
-        /*String results = alternate(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+        
+        String results = early(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
+        //String results = alternate(maxElement, minALength, minBLength, maxResults, minValidDeltaCardinality);
         System.out.println("*************************");
         System.out.println(results);
-        System.out.println("Total time: " + time());*/
-        for (int offset = 1; offset < 40 ; offset++) {
-            minimumSeek(offset);
-        }
+        System.out.println("Total time: " + time());
+
+
+        //speedTestShift();
     }
 
-    // *****************************************************************************************************************
+    String early(int maxElement, int minALength, int minBLength, int maxResults, int minValidDeltaCardinality) {
+        System.out.println("Early maxElement=" + maxElement + ", min-A-size=" + minALength +
+                           ", min-B-size=" + minBLength + ", minValidDeltaCardinality=" + minValidDeltaCardinality);
+        StringBuilder result = new StringBuilder();
 
-    void minimumSeek(int offset) {
-        IS allSquares = getSquareNumbers(0, 100);
+        final IS[] validBs = new IS[minALength];
 
+        final IS[] validAs = new IS[minALength];
+        validAs[0] = new IS();
+        validAs[0].add(0);
+        final int[] as = new int[minALength];
+
+        final List<Iterator<Integer>> isi = new ArrayList<>(minALength);
+        for (int i = 0 ; i < minALength ; i++) {
+            isi.add(null);;
+        }
+        isi.set(0, validAs[0].iterator());
+
+        early(maxElement, minALength, minBLength, isi, as, validAs, validBs, 0,
+                  new AtomicInteger(maxResults), new AtomicInteger(1), new AtomicInteger(1),
+                  result);
+        return result.toString();
+    }
+    void early(
+            int maxElement, int minALength, int minBLength,
+            List<Iterator<Integer>> isi, int[] as, IS[] validAs, IS[] validBs, final int level,
+            AtomicInteger resultsLeft, AtomicInteger printedA, AtomicInteger printedB, StringBuilder result) {
+
+        // At bottom?
+        if (level == minALength) {
+            printValidResult(as, validBs[level - 1], resultsLeft, result, 1);
+            return;
+        }
+
+        // Iterate a-candidates
+        while (isi.get(level).hasNext()) {
+            as[level] = isi.get(level).next();
+
+            // log
+            if (level == 0) {
+                System.out.print(as[level] + " " + ((as[level] & 31) != 0 ? "" : "- " + time()));
+            }
+
+            // Calculate B
+            validBs[level] = level == 0 ? getSquareNumbers(0, maxElement) : getMatches(validBs[level-1], as[level]);
+
+            // Move to next a if B is not big enough
+            final int cardinality = validBs[level].size();
+            if (cardinality < minBLength) {
+                continue;
+            }
+
+            // log
+            if (level > printedA.get()) {
+                System.out.println(toString(as) + " " + validBs[level] + " " + time());
+                printedA.set(level);
+                printedB.set(1);
+            } else if (level == printedA.get() && (cardinality > printedB.get())) {
+                System.out.println(toString(as) + " " + validBs[level] + " " + time());
+                printedB.set(cardinality);
+            }
+
+            // Calculate a[level+1] candidates
+            if (level < validAs.length-1) {
+                //validAs[level+1] = getValidAs(validBs[level], as[level], minBLength);
+                validAs[level+1] = getFullSet(as[level]+1, maxElement);
+                if (validAs[level+1].size() < minALength) {
+                    continue;
+                }
+                isi.set(level+1, validAs[level+1].iterator());
+            }
+
+            early(maxElement, minALength, minBLength, isi, as,
+                  validAs, validBs, level + 1,
+                  resultsLeft, printedA, printedB, result);
+
+            if (resultsLeft.get() <= 0) {
+                break;
+            }
+        }
+        as[level] = 0;
+
+    }
+
+    private IS getValidAs(IS validBs, int currentA, int minBLength) {
+        return null;  // TODO: Implement this
+    }
+
+    final static IS IS_EMPTY = new IS(0);
+    IS getMatches(IS validSquares, int offset) {
+        IS result = null;
+        int lastSquare = 0; // offset*offset?
+        int base = 1; // offset+1?
+
+        int square = base*base;
+        while (square-lastSquare <= offset) {
+            if (validSquares == null || validSquares.contains(square-offset)) {
+                if (result == null) {
+                    result = new IS();
+                }
+                result.add(square-offset);
+            }
+            base++;
+            lastSquare = square;
+            square = base*base;
+        }
+        return result == null ? IS_EMPTY : result;
+    }
+
+    int testMinimumSeek(IS validSquares, int offset) {
         int lastSquare = 0; // offset*offset?
         int base = 1; // offset+1?
         int count = 0;
+        StringBuilder sb = new StringBuilder();
 
+        sb.append("Offset=").append(offset).append(" [");
         int square = base*base;
-        while (square-lastSquare < offset) {
-            if (allSquares.contains(square-offset)) {
+        while (square-lastSquare <= offset) {
+            if (validSquares.contains(square-offset)) {
+                sb.append(square - offset).append("+").append(offset).append("=").append(square).append(" ");
                 count+= 1;
             }
             base++;
@@ -114,9 +226,34 @@ public class Jan2019 {
             square = base*base;
         }
         if (count != 0) {
-            System.out.println("Offset=" + offset + ", and=" + count);
+            sb.append("] matches=").append(count);
+            System.out.println(sb.toString());
         }
+        return count;
     }
+
+    void speedTestShift() {
+        final int SIZE = 10000;
+        final IS allSquares = getSquareNumbers(0, SIZE);
+
+        long start = System.nanoTime();
+        int oldCount = 0;
+        for (int offset = 0 ; offset < SIZE ; offset++) {
+            oldCount += shift(allSquares, offset).size();
+        }
+        long oldMS = (System.nanoTime()-start)/1000000;
+        
+        start = System.nanoTime();
+        int newCount = 0;
+        for (int offset = 0 ; offset < SIZE ; offset++) {
+            newCount += testMinimumSeek(allSquares, offset);
+        }
+        long newMS = (System.nanoTime()-start)/1000000;
+
+        System.out.println(String.format("old=%d/%dms, new=%d/%dms,", oldCount, oldMS, newCount, newMS));
+    }
+
+    // *****************************************************************************************************************
 
     String alternate(int maxElement, int minALength, int minBLength, int maxResults, int minValidDeltaCardinality) {
         System.out.println("Alternate maxElement=" + maxElement + ", min-A-size=" + minALength +
@@ -285,6 +422,10 @@ public class Jan2019 {
     }
 
     private void printValidResult(int[] as, IS validB, AtomicInteger resultsLeft, StringBuilder result) {
+        printValidResult(as, validB, resultsLeft, result, 0);
+    }
+    private void printValidResult(int[] as, IS validB, AtomicInteger resultsLeft, StringBuilder result, int delta) {
+        // TODO: Add delta
         String res = toString(as) + " " + validB + " " + time() + " *** ";
         List<Integer> sums = new ArrayList<>();
         for (int a: as) {
@@ -299,7 +440,7 @@ public class Jan2019 {
         resultsLeft.decrementAndGet();
     }
 
-    class IS extends LinkedHashSet<Integer>{
+    static final class IS extends LinkedHashSet<Integer>{
         public IS(int initialCapacity) {
             super(initialCapacity);
         }
@@ -307,6 +448,13 @@ public class Jan2019 {
         public IS() {
         }
     };
+    static IS getFullSet(int start, int end) {
+        IS full = new IS(end-start+1);
+        for (int i = start ; i < end ; i++) {
+            full.add(i);
+        }
+        return full;
+    }
     class IntSequence implements Iterator<Integer> {
         private int current;
         private final int end;
