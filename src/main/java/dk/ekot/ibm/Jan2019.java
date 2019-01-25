@@ -140,6 +140,9 @@ public class Jan2019 {
         // Iterate a-candidates
         while (isi.get(level).hasNext()) {
             as[level] = isi.get(level).next();
+            if (level > 0 && as[level] <= as[level-1]) {
+                continue;
+            }
 
             // log
             if (level == 0) {
@@ -147,7 +150,7 @@ public class Jan2019 {
             }
 
             // Calculate B
-            validBs[level] = level == 0 ? squares : getMatches(validBs[level-1], as[level]);
+            validBs[level] = level == 0 ? squares : getMatches(validBs[level-1], as[level], maxElement*2);
 
             // Move to next a if B is not big enough
             final int cardinality = validBs[level].size();
@@ -173,6 +176,9 @@ public class Jan2019 {
                     continue;
                 }
                 isi.set(level+1, validAs[level+1].iterator());
+                if (!isi.get(level+1).hasNext()) {
+                    continue;
+                }
             }
 
             early(validAsBase, squares, maxElement, minALength, minBLength, isi, as,
@@ -238,13 +244,13 @@ public class Jan2019 {
 
 
     final static IS IS_EMPTY = new IS(0);
-    IS getMatches(IS validSquares, int offset) {
+    IS getMatches(IS validSquares, int offset, int maxSum) {
         IS result = null;
         int lastSquare = 0; // offset*offset?
         int base = 1; // offset+1?
 
         int square = base*base;
-        while (square-lastSquare <= offset) {
+        while (square-lastSquare <= offset && lastSquare < maxSum) {
             if (validSquares == null || validSquares.contains(square-offset)) {
                 if (result == null) {
                     result = new IS();
