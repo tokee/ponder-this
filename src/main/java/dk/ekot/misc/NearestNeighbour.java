@@ -40,9 +40,9 @@ public class NearestNeighbour {
 
     public static void main(String[] args) {
         final int RUNS = 10;
-        NearestNeighbour nn = new NearestNeighbour(2048, 10000, DISTRIBUTION.thack2);
+        NearestNeighbour nn = new NearestNeighbour(2048, 100000, DISTRIBUTION.linear);
         nn.measureWorstCase(RUNS);
-        nn.measureEarlyTemrination(RUNS);
+        nn.measureEarlyTermination(RUNS);
     }
 
     public void measureWorstCase(int runs) {
@@ -55,7 +55,7 @@ public class NearestNeighbour {
         }
     }
 
-    public void measureEarlyTemrination(int runs) {
+    public void measureEarlyTermination(int runs) {
         Random random = new Random(87);
         for (int i = 0; i < runs ; i++) {
             long ns = -System.nanoTime();
@@ -105,8 +105,8 @@ public class NearestNeighbour {
 
     private double slowDistanceSquared(DoubleArray array, int point1, int point2) {
         double distance = 0;
-        for (int x = 0 ; x < array.getCols() ; x++) {
-            final double diff = array.get(x, point1) - array.get(x, point2);
+        for (int dimIndex = 0 ; dimIndex < array.getCols() ; dimIndex++) {
+            final double diff = array.get(dimIndex, point1) - array.get(dimIndex, point2);
             distance += (diff*diff);
         }
         return distance;
