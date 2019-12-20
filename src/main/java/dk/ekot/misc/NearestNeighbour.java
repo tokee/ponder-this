@@ -17,10 +17,9 @@ package dk.ekot.misc;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Testing performance of brute force nearest neighbour on high-dimensional vector spaces.
@@ -43,9 +42,8 @@ public class NearestNeighbour {
 
     public static void main(String[] args) {
         final int RUNS = 3;
-        NearestNeighbour nn = new NearestNeighbour(2048, 10000, DISTRIBUTION.thack2);
+        NearestNeighbour nn = new NearestNeighbour(2048, 50000, DISTRIBUTION.thack2);
         nn.measureEarlyTermination(RUNS);
-        nn.measureEarlyTerminationInts(RUNS);
     }
 
     public void measureEarlyTermination(int runs) {
@@ -56,63 +54,13 @@ public class NearestNeighbour {
         log.debug("Array initialization finished");
         for (NearestFinder finder: new NearestFinder[] {
                 new DumbNearestFinder(multiDimPoints),
-                new EarlyNearestFinder(multiDimPoints)
+                new EarlyNearestFinder(multiDimPoints),
+                new LengthNearestFinder(multiDimPoints)
         }) {
             Random random = new Random(87);
             for (int i = 0; i < runs; i++) {
                 long ns = -System.nanoTime();
                 Nearest nearest = finder.findNearest(random.nextInt(multiDimPoints.getPoints()));
-                ns += System.nanoTime();
-                long pointsPerSec = (long)(points/(ns/1000000000.0));
-                System.out.println(String.format(
-                        "%s: %s in %dms (%d points/s)",
-                        finder.getClass().getSimpleName(), nearest, (ns / 1000000), pointsPerSec));
-            }
-            System.out.println();
-        }
-    }
-
-    public void measureEarlyTerminationInts(int runs) {
-        log.debug("Creating int array");
-        MultiDimPointsInt multiDimPoints = new MultiDimPointsInt(dimensions, points);
-        log.debug("Filling array");
-        multiDimPoints.fill(distribution, true);
-        log.debug("Array initialization finished");
-        for (NearestFinderInt finder: new NearestFinderInt[] {
-                new DumbNearestFinderInt(multiDimPoints),
-                new EarlyNearestFinderInt(multiDimPoints)
-        }) {
-            Random random = new Random(87);
-            for (int i = 0; i < runs; i++) {
-                long ns = -System.nanoTime();
-                Nearest nearest = finder.findNearest(random.nextInt(multiDimPoints.getPoints()));
-                ns += System.nanoTime();
-                long pointsPerSec = (long)(points/(ns/1000000000.0));
-                System.out.println(String.format(
-                        "%s: %s in %dms (%d points/s)",
-                        finder.getClass().getSimpleName(), nearest, (ns / 1000000), pointsPerSec));
-            }
-            System.out.println();
-        }
-    }
-
-    public void measureEarlyTerminationIntsThreaded(int runs, int threads) {
-        log.debug("Creating int array");
-        MultiDimPointsInt multiDimPoints = new MultiDimPointsInt(dimensions, points);
-        log.debug("Filling array");
-        multiDimPoints.fill(distribution, true);
-        log.debug("Array initialization finished");
-        ExecutorService executor = Executors.newCachedThreadPool();
-
-        for (NearestFinderInt finder: new NearestFinderInt[] {
-                new DumbNearestFinderInt(multiDimPoints),
-                new EarlyNearestFinderInt(multiDimPoints)
-        }) {
-            Random random = new Random(87);
-            for (int i = 0; i < runs; i++) {
-                final int basePoint = random.nextInt(multiDimPoints.getPoints();
-                long ns = -System.nanoTime();
-                Nearest nearest = finder.findNearest(basePoint));
                 ns += System.nanoTime();
                 long pointsPerSec = (long)(points/(ns/1000000000.0));
                 System.out.println(String.format(
@@ -155,19 +103,84 @@ public class NearestNeighbour {
         }
     }
 
-    private static class EarlyNearestFinderInt extends NearestFinderInt {
-        public EarlyNearestFinderInt(MultiDimPointsInt multiDimPoints) {
+    private static class LengthNearestFinder extends NearestFinder {
+        private final Length[] lengths;
+        public LengthNearestFinder(MultiDimPoints multiDimPoints) {
             super(multiDimPoints);
+            lengths = multiDimPoints.getLengths(); // Calculate up front
         }
 
         @Override
-        protected long getDistance(long shortest, int basePoint, int point) {
+        public Nearest findNearest(int basePoint) {
+            double shortestLength = Double.MAX_VALUE;
+            int basePointIndex = -1;
+            for (int i = 0 ; i < lengths.length ; i++) {
+                if (basePoint == lengths[i].getPointIndex()) {
+                    basePointIndex = i;
+                    break;
+                }
+            }
+
+            int backIndex = basePointIndex-1;
+            int bestPointIndex = -1;
+            int forwardIndex = basePointIndex+1;
+            double shortestDistanceSqr = Double.MAX_VALUE;
+
+            int checks = 0;
+            while (backIndex >= 0 || forwardIndex < lengths.length) {
+                checks++;
+                if (backIndex >= 0) {
+                    Length current = lengths[backIndex];
+                    double minDist = current.length - lengths[basePointIndex].length;
+                    double minDistSqr = minDist*minDist;
+                    if (minDistSqr < shortestDistanceSqr) {
+//                        System.out.println("Back: checking for shorter min " + minDistSqr + " and shortestExact " + shortestDistanceSqr + " with index " + current.pointIndex);
+                        double exactDistanceSquared = exactDistanceSquared(
+                                multiDimPoints, current.pointIndex, basePoint);
+                        if (exactDistanceSquared < shortestDistanceSqr) {
+//                            System.out.println("Back: New shortest " + exactDistanceSquared + " from " + shortestDistanceSqr + " with index " + current.pointIndex);
+                            shortestDistanceSqr = exactDistanceSquared;
+                            bestPointIndex = current.pointIndex;
+                        }
+                        backIndex--;
+                    } else {
+                        backIndex = -1;
+                    }
+                }
+                if (forwardIndex < lengths.length) {
+                    Length current = lengths[forwardIndex];
+                    double minDist = current.length - lengths[basePointIndex].length;
+                    double minDistSqr = minDist*minDist;
+                    if (minDist < shortestDistanceSqr) {
+                        double exactDistanceSquared = exactDistanceSquared(
+                                multiDimPoints, current.pointIndex, basePoint);
+                        if (exactDistanceSquared < shortestDistanceSqr) {
+                            shortestDistanceSqr = exactDistanceSquared;
+                            bestPointIndex = current.pointIndex;
+                        }
+                        forwardIndex++;
+                    } else {
+                        forwardIndex = lengths.length;
+                    }
+                }
+            }
+//            System.out.println("checks=" + checks);
+            return new Nearest(basePoint,  bestPointIndex, shortestDistanceSqr);
+        }
+
+        @Override
+        public Nearest findNearest(int basePoint, int startPoint, int endPoint) {
+            throw new UnsupportedOperationException("Not supported yet");
+        }
+
+        @Override
+        protected double getDistance(double shortest, int basePoint, int point) {
             final int STEP = 100;
-            long distance = 0;
+            double distance = 0;
             for (int dimMajor = 0; dimMajor < multiDimPoints.getDimensions() ; dimMajor += STEP) {
                 final int dimMax = Math.min(dimMajor + STEP, multiDimPoints.getDimensions());
                 for (int dim = dimMajor; dim < dimMax; dim++) {
-                    final long diff = multiDimPoints.get(dim, basePoint) - multiDimPoints.get(dim, point);
+                    final double diff = multiDimPoints.get(dim, basePoint) - multiDimPoints.get(dim, point);
                     distance += (diff * diff);
                 }
                 if (distance > shortest) {
@@ -186,31 +199,19 @@ public class NearestNeighbour {
 
         @Override
         protected double getDistance(double shortest, int basePoint, int point) {
-            double distance = 0;
-            for (int dimIndex = 0; dimIndex < multiDimPoints.getDimensions() ; dimIndex++) {
-                final double diff = multiDimPoints.get(dimIndex, basePoint) - multiDimPoints.get(dimIndex, point);
-                distance += (diff*diff);
-            }
-            return distance;
+            return exactDistanceSquared(multiDimPoints, basePoint, point);
         }
+
     }
 
-    private static class DumbNearestFinderInt extends NearestFinderInt {
-        public DumbNearestFinderInt(MultiDimPointsInt multiDimPoints) {
-            super(multiDimPoints);
+    private static double exactDistanceSquared(MultiDimPoints multiDimPoints, int basePoint, int point) {
+        double distance = 0;
+        for (int dimIndex = 0; dimIndex < multiDimPoints.getDimensions() ; dimIndex++) {
+            final double diff = multiDimPoints.get(dimIndex, basePoint) - multiDimPoints.get(dimIndex, point);
+            distance += (diff*diff);
         }
-
-        @Override
-        protected long getDistance(long shortest, int basePoint, int point) {
-            long distance = 0;
-            for (int dimIndex = 0; dimIndex < multiDimPoints.getDimensions() ; dimIndex++) {
-                final long diff = multiDimPoints.get(dimIndex, basePoint) - multiDimPoints.get(dimIndex, point);
-                distance += (diff*diff);
-            }
-            return distance;
-        }
+        return distance;
     }
-
     private static class NearestRunner implements Callable<Nearest> {
         final NearestFinder finder;
         final int basePoint;
@@ -266,39 +267,35 @@ public class NearestNeighbour {
         protected abstract double getDistance(double shortest, int basePoint, int point);
     }
 
-    private static abstract class NearestFinderInt implements NearestFinderBase {
-        protected final MultiDimPointsInt multiDimPoints;
+    private static class Length implements Comparable<Length> {
+        private final int pointIndex;
+        private final double length;
 
-        public NearestFinderInt(MultiDimPointsInt multiDimPoints) {
-            this.multiDimPoints = multiDimPoints;
+        public Length(int pointIndex, double length) {
+            this.pointIndex = pointIndex;
+            this.length = length;
         }
 
-        public Nearest findNearest(int basePoint) {
-            return findNearest(basePoint, 0, multiDimPoints.getPoints());
-        }
-        public Nearest findNearest(int basePoint, int startPoint, int endPoint) {
-            int nn = -1;
-            long shortest = Long.MAX_VALUE;
-            for (int point = startPoint; point < endPoint ; point++) {
-                if (point == basePoint) {
-                    continue;
-                }
-                long distance = getDistance(shortest, basePoint, point);
-                if (distance < shortest) {
-                    shortest = distance;
-                    nn = point;
-                }
-            }
-            return new Nearest(basePoint, nn, shortest);
+        public int getPointIndex() {
+            return pointIndex;
         }
 
-        protected abstract long getDistance(long shortest, int basePoint, int point);
+        public double getLength() {
+            return length;
+        }
+
+        @Override
+        public int compareTo(Length o) {
+            return Double.compare(length, o.length);
+        }
     }
 
     private static class MultiDimPoints {
         private final int points;
         private final int dimensions;
         private final double[] inner;
+
+        private Length[] lengths;
 
         public MultiDimPoints(int dimensions, int points) {
             this.points = points;
@@ -315,6 +312,26 @@ public class NearestNeighbour {
 
         public int size() {
             return inner.length;
+        }
+
+        public Length[] getLengths() {
+            if (lengths == null) {
+                lengths = new Length[points];
+                for (int point = 0; point < points; point++) {
+                    double length = 0;
+                    for (int dim = 0; dim < dimensions; dim++) {
+                        try {
+                            final double d = get(dim, point);
+                            length += d * d;
+                        } catch (Exception e) {
+                            throw new RuntimeException("point=" + point + ", dim=" + dim + " with #points=" + points + ", #dims=" + dimensions, e);
+                        }
+                    }
+                    lengths[point] = new Length(point, length);
+                }
+                Arrays.sort(lengths);
+            }
+            return lengths;
         }
 
         public void fill(DISTRIBUTION distribution, boolean randomize) {
@@ -402,112 +419,6 @@ public class NearestNeighbour {
         }
     }
 
-    private static class MultiDimPointsInt {
-        private final int points;
-        private final int dimensions;
-        private final int[] inner;
-
-        public MultiDimPointsInt(int dimensions, int points) {
-            this.points = points;
-            this.dimensions = dimensions;
-            inner = new int[points*dimensions];
-        }
-
-        public final int get(final int dimension, final int point) {
-            return inner[point * dimensions + dimension];
-        }
-        public final void set(final int dimension, final int point, final int value) {
-            inner[point * dimensions + dimension] = value;
-        }
-
-        public int size() {
-            return inner.length;
-        }
-
-        public void fill(DISTRIBUTION distribution, boolean randomize) {
-            switch (distribution) {
-                case random: {
-                    Random random = new Random(87);
-                    for (int i = 0 ; i < inner.length ; i++) {
-                        inner[i] = random.nextInt();
-                    }
-                    return;
-                }
-                case linear: {
-                    int value = 0;
-                    for (int i = 0 ; i < inner.length ; i++) {
-                        inner[i] = (value += 1);
-                    }
-                    break;
-                }
-                case exponential: {
-                    int value = Integer.MAX_VALUE;
-                    for (int i = 0 ; i < inner.length ; i++) {
-                        inner[i] = (value /= 2);
-                    }
-                    break;
-                }
-                case logarithmic: {
-                    double value = 1;
-                    for (int i = 0 ; i < inner.length ; i++) {
-                        inner[i] = (int)Math.log(value);
-                        value += 1;
-                    }
-                    break;
-                }
-                case onlyTen: {
-                    Random random = new Random(87);
-                    for (int point = 0; point < points; point++) {
-                        for (int dimension = 0; dimension < 10; dimension++) {
-                            set(random.nextInt(dimensions), point, random.nextInt());
-                        }
-                    }
-                    return;
-                }
-                case thack2: {
-                    Random random = new Random(87);
-                    int index = 0;
-                    for (; index < 20 && index < inner.length ; index++) {
-                        inner[index] = random.nextInt(2000)+1000;
-                    }
-                    for (; index < 50 && index < inner.length ; index++) {
-                        inner[index] = random.nextInt(1000)+1000;
-                    }
-                    for (; index < 200 && index < inner.length ; index++) {
-                        inner[index] = random.nextInt(500)+500;
-                    }
-                    for (; index < inner.length ; index++) {
-                        inner[index] = random.nextInt(200);
-                    }
-                    break;
-                }
-                default: throw new UnsupportedOperationException(
-                        "The distribution '" + distribution + "' is not supported");
-            }
-            if (randomize) {
-                randomizeOrder();
-            }
-        }
-
-        public void randomizeOrder() {
-            Random random = new Random(87);
-            for (int i = inner.length - 1; i > 0; i--) {
-                int index = random.nextInt(i + 1);
-                int swap = inner[index];
-                inner[index] = inner[i];
-                inner[i] = swap;
-            }
-        }
-
-
-        public int getPoints() {
-            return points;
-        }
-
-        public int getDimensions() {
-            return dimensions;
-        }
-    }
 
     private static class Nearest {
         private final int basePoint;
