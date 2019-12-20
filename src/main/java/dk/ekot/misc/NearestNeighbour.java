@@ -53,7 +53,7 @@ public class NearestNeighbour {
 
     public static void main(String[] args) throws IOException {
         final int RUNS = 10;
-        NearestNeighbour nn = new NearestNeighbour(2048, 10000, DISTRIBUTION.load);
+        NearestNeighbour nn = new NearestNeighbour(2048, 100000, DISTRIBUTION.load);
         nn.measureEarlyTermination(RUNS);
     }
 
@@ -156,17 +156,19 @@ public class NearestNeighbour {
         @Override
         public Nearest findNearest(int basePoint) {
             double shortestLength = Double.MAX_VALUE;
-            int basePointIndex = -1;
+            double basePointLength = -1;
+            int backIndex = -1;
+            int forwardIndex = multiDimPoints.points;
             for (int i = 0 ; i < lengths.length ; i++) {
                 if (basePoint == lengths[i].getPointIndex()) {
-                    basePointIndex = i;
+                    backIndex = i-1;
+                    forwardIndex = i+1;
+                    basePointLength = lengths[i].getLength();
                     break;
                 }
             }
 
-            int backIndex = basePointIndex-1;
             int bestPointIndex = -1;
-            int forwardIndex = basePointIndex+1;
             double shortestDistanceSqr = Double.MAX_VALUE;
 
             int checks = 0;
@@ -174,9 +176,9 @@ public class NearestNeighbour {
                 checks++;
                 if (backIndex >= 0) {
                     Length current = lengths[backIndex];
-                    double minDist = current.length - lengths[basePointIndex].length;
-                    double minDistSqr = minDist*minDist;
-                    if (minDistSqr < shortestDistanceSqr) {
+                    double minDist = current.length - basePointLength;
+                    double minDistAbs = Math.abs(minDist);
+                    if (minDistAbs < shortestDistanceSqr) {
                         double exactDistanceSquared = exactDistanceSquared(
                                 multiDimPoints, current.pointIndex, basePoint);
 //                        System.out.println("Back: checking for shorter min " + minDistSqr + ", exact " + exactDistanceSquared + " and shortestExact " + shortestDistanceSqr + " with index " + current.pointIndex);
@@ -192,9 +194,9 @@ public class NearestNeighbour {
                 }
                 if (forwardIndex < lengths.length) {
                     Length current = lengths[forwardIndex];
-                    double minDist = current.length - lengths[basePointIndex].length;
-                    double minDistSqr = minDist*minDist;
-                    if (minDistSqr < shortestDistanceSqr) {
+                    double minDist = current.length - basePointLength;
+                    double minDistAbs = Math.abs(minDist);
+                    if (minDistAbs < shortestDistanceSqr) {
                         double exactDistanceSquared = exactDistanceSquared(
                                 multiDimPoints, current.pointIndex, basePoint);
                         if (exactDistanceSquared < shortestDistanceSqr) {
