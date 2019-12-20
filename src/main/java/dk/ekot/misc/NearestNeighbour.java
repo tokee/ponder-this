@@ -17,14 +17,25 @@ package dk.ekot.misc;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Testing performance of brute force nearest neighbour on high-dimensional vector spaces.
  */
 public class NearestNeighbour {
+    private static final String VECTOR_SAMPLE = "/home/te/projects/ponder-this/pixplot_vectors_270707.txt.gz";
     private static Log log = LogFactory.getLog(NearestNeighbour.class);
 
     private final int dimensions;
@@ -40,29 +51,35 @@ public class NearestNeighbour {
         this.distribution = distribution;
     }
 
-    public static void main(String[] args) {
-        final int RUNS = 3;
-        NearestNeighbour nn = new NearestNeighbour(2048, 50000, DISTRIBUTION.thack2);
+    public static void main(String[] args) throws IOException {
+        final int RUNS = 10;
+        NearestNeighbour nn = new NearestNeighbour(2048, 10000, DISTRIBUTION.thack2);
         nn.measureEarlyTermination(RUNS);
     }
 
-    public void measureEarlyTermination(int runs) {
+    public void measureEarlyTermination(int runs) throws IOException {
         log.debug("Creating double array");
-        MultiDimPoints multiDimPoints = new MultiDimPoints(dimensions, points);
+        MultiDimPoints multiDimPoints = new MultiDimPoints(
+                Paths.get(VECTOR_SAMPLE), points);
+        //MultiDimPoints multiDimPoints = new MultiDimPoints(dimensions, points);
         log.debug("Filling array");
         multiDimPoints.fill(distribution, true);
         log.debug("Array initialization finished");
-        for (NearestFinder finder: new NearestFinder[] {
-                new DumbNearestFinder(multiDimPoints),
-                new EarlyNearestFinder(multiDimPoints),
-                new LengthNearestFinder(multiDimPoints)
-        }) {
+        List<NearestFinder> finders = new ArrayList<>();
+        finders.add(new DumbNearestFinder(multiDimPoints));
+        finders.add(new EarlyNearestFinder(multiDimPoints));
+        if (Files.exists(Paths.get(VECTOR_SAMPLE))) {
+            finders.add(new LengthNearestFinder(multiDimPoints));
+        } else {
+            System.out.println("Unable to locate '" + VECTOR_SAMPLE + "'");
+        }
+        for (NearestFinder finder: finders) {
             Random random = new Random(87);
             for (int i = 0; i < runs; i++) {
                 long ns = -System.nanoTime();
                 Nearest nearest = finder.findNearest(random.nextInt(multiDimPoints.getPoints()));
                 ns += System.nanoTime();
-                long pointsPerSec = (long)(points/(ns/1000000000.0));
+                long pointsPerSec = (long)(multiDimPoints.points/(ns/1000000000.0));
                 System.out.println(String.format(
                         "%s: %s in %dms (%d points/s)",
                         finder.getClass().getSimpleName(), nearest, (ns / 1000000), pointsPerSec));
@@ -80,8 +97,18 @@ public class NearestNeighbour {
     }
 
     private static class EarlyNearestFinder extends NearestFinder {
+        private int dimChecks = 0;
+
         public EarlyNearestFinder(MultiDimPoints multiDimPoints) {
             super(multiDimPoints);
+        }
+
+        @Override
+        public Nearest findNearest(int basePoint, int startPoint, int endPoint) {
+            dimChecks = 0;
+            Nearest nearest = super.findNearest(basePoint, startPoint, endPoint);
+            return new Nearest(nearest.basePoint, nearest.point, nearest.distance,
+                               " (avg dimChecks=" + dimChecks/(endPoint-startPoint) + ")");
         }
 
         @Override
@@ -96,9 +123,11 @@ public class NearestNeighbour {
                 }
                 if (distance > shortest) {
                     //System.out.print("[" + dimMajor + "]");
+                    dimChecks += dimMajor;
                     return distance;
                 }
             }
+            dimChecks += multiDimPoints.getDimensions();
             return distance;
         }
     }
@@ -165,7 +194,7 @@ public class NearestNeighbour {
                 }
             }
 //            System.out.println("checks=" + checks);
-            return new Nearest(basePoint,  bestPointIndex, shortestDistanceSqr);
+            return new Nearest(basePoint,  bestPointIndex, shortestDistanceSqr, "checked=" + checks);
         }
 
         @Override
@@ -297,6 +326,60 @@ public class NearestNeighbour {
 
         private Length[] lengths;
 
+        public MultiDimPoints(Path inputFile, int maxPoints) throws IOException {
+            BufferedReader input = getReader(inputFile);
+            int totalLines = 0;
+            int dimensions = -1;
+            String line;
+            while ((line = input.readLine()) != null) {
+                if (line.isEmpty() || line.startsWith("#")){
+                    continue;
+                }
+                totalLines++;
+                if (dimensions == -1) {
+                    dimensions = line.split(" ").length;
+                }
+                if (totalLines > maxPoints) {
+                    break;
+                }
+            }
+            input.close();
+            this.points = Math.min(maxPoints, totalLines);
+            if (points < maxPoints) {
+                System.err.println("Warning: Requested a maximum of " + maxPoints + " points, but '" +
+                                   inputFile.getFileName() + " only holds " + points);
+            }
+            this.dimensions = dimensions;
+            inner = new double[points*dimensions];
+
+            input = getReader(inputFile);
+            int point = 0;
+            while ((line = input.readLine()) != null && point < points) {
+                if (line.isEmpty() || line.startsWith("#")){
+                    continue;
+                }
+                String[] tsneDims = line.split(" ");
+                if (tsneDims.length != dimensions) {
+                    throw new IllegalArgumentException(
+                            "The file '" + inputFile.getFileName() + "' was expected to holds points with dimensions " +
+                            dimensions + ", but a line with dimension " + tsneDims.length + " was encountered:\n" +
+                            line);
+                }
+                for (int dim = 0 ; dim < tsneDims.length ; dim++) {
+                    set(dim, point, Double.parseDouble(tsneDims[dim]));
+                }
+                point++;
+            }
+            input.close();
+        }
+        
+        public BufferedReader getReader(Path inputFile) throws IOException {
+            return new BufferedReader(
+                    inputFile.getFileName().toString().endsWith(".gz") ?
+                            new InputStreamReader(new GZIPInputStream(inputFile.toUri().toURL().openStream()), StandardCharsets.UTF_8) :
+                            new InputStreamReader(inputFile.toUri().toURL().openStream(), StandardCharsets.UTF_8));
+        }
+
         public MultiDimPoints(int dimensions, int points) {
             this.points = points;
             this.dimensions = dimensions;
@@ -315,6 +398,8 @@ public class NearestNeighbour {
         }
 
         public Length[] getLengths() {
+            double minLength = Double.MAX_VALUE;
+            double maxLength = Double.MIN_VALUE;
             if (lengths == null) {
                 lengths = new Length[points];
                 for (int point = 0; point < points; point++) {
@@ -328,9 +413,17 @@ public class NearestNeighbour {
                         }
                     }
                     lengths[point] = new Length(point, length);
+                    if (length < minLength) {
+                        minLength = length;
+                    }
+                    if (length > maxLength) {
+                        maxLength = length;
+                    }
                 }
                 Arrays.sort(lengths);
             }
+            System.out.println(String.format("Length calculation for %d points: min=%.2f, max=%.2f",
+                                             points, minLength, maxLength));
             return lengths;
         }
 
@@ -424,16 +517,21 @@ public class NearestNeighbour {
         private final int basePoint;
         private final int point;
         private final double distance;
+        private final String note;
 
         public Nearest(int basePoint, int point, double distance) {
+            this(basePoint, point, distance, null);
+        }
+        public Nearest(int basePoint, int point, double distance, String note) {
             this.basePoint = basePoint;
             this.point = point;
             this.distance = distance;
+            this.note = note;
         }
 
         @Override
         public String toString() {
-            return String.format("%d->%d %.2f", basePoint, point, distance);
+            return String.format("%d->%d %.2f", basePoint, point, distance) + (note == null ? "" : " (" + note + ")");
         }
     }
 }
