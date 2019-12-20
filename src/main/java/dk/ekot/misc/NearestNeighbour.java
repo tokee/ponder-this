@@ -163,9 +163,9 @@ public class NearestNeighbour {
                     double minDist = current.length - lengths[basePointIndex].length;
                     double minDistSqr = minDist*minDist;
                     if (minDistSqr < shortestDistanceSqr) {
-//                        System.out.println("Back: checking for shorter min " + minDistSqr + " and shortestExact " + shortestDistanceSqr + " with index " + current.pointIndex);
                         double exactDistanceSquared = exactDistanceSquared(
                                 multiDimPoints, current.pointIndex, basePoint);
+//                        System.out.println("Back: checking for shorter min " + minDistSqr + ", exact " + exactDistanceSquared + " and shortestExact " + shortestDistanceSqr + " with index " + current.pointIndex);
                         if (exactDistanceSquared < shortestDistanceSqr) {
 //                            System.out.println("Back: New shortest " + exactDistanceSquared + " from " + shortestDistanceSqr + " with index " + current.pointIndex);
                             shortestDistanceSqr = exactDistanceSquared;
@@ -365,7 +365,7 @@ public class NearestNeighbour {
                             dimensions + ", but a line with dimension " + tsneDims.length + " was encountered:\n" +
                             line);
                 }
-                for (int dim = 0 ; dim < tsneDims.length ; dim++) {
+                for (int dim = 0 ; dim < dimensions ; dim++) {
                     set(dim, point, Double.parseDouble(tsneDims[dim]));
                 }
                 point++;
@@ -419,6 +419,7 @@ public class NearestNeighbour {
                     if (length > maxLength) {
                         maxLength = length;
                     }
+                    System.out.println("Length = " + length);
                 }
                 Arrays.sort(lengths);
             }
