@@ -18,10 +18,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
 import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -53,7 +50,7 @@ public class NearestNeighbour {
 
     public static void main(String[] args) throws IOException {
         final int RUNS = 10;
-        NearestNeighbour nn = new NearestNeighbour(2048, 100000, DISTRIBUTION.load);
+        NearestNeighbour nn = new NearestNeighbour(2048, 10000 , DISTRIBUTION.load);
         nn.measureEarlyTermination(RUNS);
     }
 
@@ -69,35 +66,38 @@ public class NearestNeighbour {
         }
         log.debug("Array initialization finished");
         List<NearestFinder> finders = new ArrayList<>();
-        finders.add(new DumbNearestFinder(multiDimPoints));
+//        finders.add(new DumbNearestFinder(multiDimPoints));
         finders.add(new EarlyNearestFinder(multiDimPoints));
         finders.add(new LengthNearestFinder(multiDimPoints));
 
         final int[] nearestPoints = new int[runs];
+        final double[] nearestDist = new double[runs];
         Arrays.fill(nearestPoints, -1);
         for (NearestFinder finder: finders) {
             Random random = new Random(87);
             long totalNS = 0;
             for (int run = 0; run < runs; run++) {
                 long ns = -System.nanoTime();
-                Nearest nearest = finder.findNearest(random.nextInt(multiDimPoints.getPoints()));
+                int basePoint = random.nextInt(multiDimPoints.getPoints());
+                Nearest nearest = finder.findNearest(basePoint);
                 ns += System.nanoTime();
                 long pointsPerSec = (long)(multiDimPoints.points/(ns/1000000000.0));
-                System.out.println(String.format(
+                System.out.print(String.format(
                         "%s: %s in %dms (%d points/s)",
                         finder.getClass().getSimpleName(), nearest, (ns / 1000000), pointsPerSec));
                 totalNS += ns;
                 if (nearestPoints[run] == -1) {
                     nearestPoints[run] = nearest.point;
+                    nearestDist[run] = nearest.distance;
                 } else if (nearestPoints[run] != nearest.point) {
-                    System.err.println(String.format(
-                            "%s: Got nearest point %d for run %d, while it should have matched point %d from previous finder",
-                            finder.getClass().getSimpleName(), nearest.point, run, nearestPoints[run]));
+                    System.out.print(String.format(" (not a perfect match, which was %d->%d dist=%.2f)",
+                                                   basePoint, nearestPoints[run], nearestDist[run]));
                 }
+                System.out.println();
             }
             long totalPointsPerSec = (long)(multiDimPoints.points*runs/(totalNS/1000000000.0));
             System.out.println(String.format(
-                    "Total: %dms (%d points/sec)",
+                    "Total: %dms (%d points/sec)\n",
                     totalNS / 1000000, totalPointsPerSec));
         }
     }
@@ -122,7 +122,7 @@ public class NearestNeighbour {
             dimChecks = 0;
             Nearest nearest = super.findNearest(basePoint, startPoint, endPoint);
             return new Nearest(nearest.basePoint, nearest.point, nearest.distance,
-                               " (avg dimChecks=" + dimChecks/(endPoint-startPoint) + ")");
+                               "avg dimChecks=" + dimChecks/(endPoint-startPoint));
         }
 
         @Override
@@ -147,6 +147,7 @@ public class NearestNeighbour {
     }
 
     private static class LengthNearestFinder extends NearestFinder {
+        private final int MAX_EXTRA_CHECKS = multiDimPoints.points/10; // 10% overall
         private final Length[] lengths;
         public LengthNearestFinder(MultiDimPoints multiDimPoints) {
             super(multiDimPoints);
@@ -155,7 +156,6 @@ public class NearestNeighbour {
 
         @Override
         public Nearest findNearest(int basePoint) {
-            double shortestLength = Double.MAX_VALUE;
             double basePointLength = -1;
             int backIndex = -1;
             int forwardIndex = multiDimPoints.points;
@@ -171,21 +171,27 @@ public class NearestNeighbour {
             int bestPointIndex = -1;
             double shortestDistanceSqr = Double.MAX_VALUE;
 
+            int nonMatchesSinceLastReset = 0;
             int checks = 0;
-            while (backIndex >= 0 || forwardIndex < lengths.length) {
+            while ((backIndex >= 0 || forwardIndex < lengths.length) && nonMatchesSinceLastReset < MAX_EXTRA_CHECKS) {
                 checks++;
                 if (backIndex >= 0) {
+                    nonMatchesSinceLastReset++;
                     Length current = lengths[backIndex];
+//                    double maxDist = current.length + basePointLength;
                     double minDist = current.length - basePointLength;
                     double minDistAbs = Math.abs(minDist);
                     if (minDistAbs < shortestDistanceSqr) {
                         double exactDistanceSquared = exactDistanceSquared(
                                 multiDimPoints, current.pointIndex, basePoint);
+//                        System.out.println(String.format("Backward: min=%.2f, exact=%.2f, max=%.2f, index=%d",
+//                                                         minDistAbs, exactDistanceSquared, maxDist, backIndex));
 //                        System.out.println("Back: checking for shorter min " + minDistSqr + ", exact " + exactDistanceSquared + " and shortestExact " + shortestDistanceSqr + " with index " + current.pointIndex);
                         if (exactDistanceSquared < shortestDistanceSqr) {
 //                            System.out.println("Back: New shortest " + exactDistanceSquared + " from " + shortestDistanceSqr + " with index " + current.pointIndex);
                             shortestDistanceSqr = exactDistanceSquared;
                             bestPointIndex = current.pointIndex;
+                            nonMatchesSinceLastReset = 0;
                         }
                         backIndex--;
                     } else {
@@ -193,15 +199,20 @@ public class NearestNeighbour {
                     }
                 }
                 if (forwardIndex < lengths.length) {
+                    nonMatchesSinceLastReset++;
                     Length current = lengths[forwardIndex];
                     double minDist = current.length - basePointLength;
+//                    double maxDist = current.length + basePointLength;
                     double minDistAbs = Math.abs(minDist);
                     if (minDistAbs < shortestDistanceSqr) {
                         double exactDistanceSquared = exactDistanceSquared(
                                 multiDimPoints, current.pointIndex, basePoint);
+//                        System.out.println(String.format("Forward:  min=%.2f, exact=%.2f, max=%.2f, index=%d",
+//                                                         minDistAbs, exactDistanceSquared, maxDist, forwardIndex));
                         if (exactDistanceSquared < shortestDistanceSqr) {
                             shortestDistanceSqr = exactDistanceSquared;
                             bestPointIndex = current.pointIndex;
+                            nonMatchesSinceLastReset = 0;
                         }
                         forwardIndex++;
                     } else {
@@ -386,7 +397,6 @@ public class NearestNeighbour {
                 }
                 point++;
             }
-            System.out.println("point=" + points + ", dim[0]=" + get(0, 0));
             input.close();
         }
         
@@ -435,9 +445,6 @@ public class NearestNeighbour {
                     }
                     if (length > maxLength) {
                         maxLength = length;
-                    }
-                    if (point == 0) {
-                        System.out.println("Length = " + length);
                     }
                 }
                 Arrays.sort(lengths);
@@ -551,7 +558,8 @@ public class NearestNeighbour {
 
         @Override
         public String toString() {
-            return String.format("%d->%d %.2f", basePoint, point, distance) + (note == null ? "" : " (" + note + ")");
+            return String.format("%d->%d dist=%.2f",
+                                 basePoint, point, distance) + (note == null ? "" : " (" + note + ")");
         }
     }
 }
