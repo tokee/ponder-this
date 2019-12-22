@@ -12,14 +12,12 @@
  *  limitations under the License.
  *
  */
-package dk.ekot.misc;
+package dk.ekot.similar;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.Arrays;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
