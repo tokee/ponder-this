@@ -253,4 +253,13 @@ public class Bitmap {
         System.arraycopy(backing, 0, destination.backing, 0, backing.length);
         destination.cardinality = cardinality;
     }
+
+    public long countIntersectingBits(Bitmap other) {
+        long intersecting = 0;
+        final int max = Math.min(backing.length, other.backing.length);
+        for (int i = 0 ; i < max ; i++) {
+            intersecting += Long.bitCount(backing[i] & other.backing[i]);
+        }
+        return intersecting;
+    }
 }

@@ -46,7 +46,7 @@ public class NearestNeighbour {
 
     public static void main(String[] args) throws IOException {
         final int RUNS = 10;
-        NearestNeighbour nn = new NearestNeighbour(2048, 10000 , DISTRIBUTION.load);
+        NearestNeighbour nn = new NearestNeighbour(2048, 100 , DISTRIBUTION.load);
         nn.measureEarlyTermination(RUNS);
     }
 
@@ -64,7 +64,8 @@ public class NearestNeighbour {
         List<NearestFinder> finders = new ArrayList<>();
 //        finders.add(new DumbNearestFinder(multiDimPoints));
         finders.add(new EarlyNearestFinder(multiDimPoints));
-        finders.add(new LengthNearestFinder(multiDimPoints));
+        finders.add(new DiceNearestFinder(multiDimPoints, 10));
+//        finders.add(new LengthNearestFinder(multiDimPoints));
 
         final int[] nearestPoints = new int[runs];
         final double[] nearestDist = new double[runs];

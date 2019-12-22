@@ -14,20 +14,12 @@
  */
 package dk.ekot.similar;
 
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
-
 /**
  *
  */
 public class DumbNearestFinder extends NearestFinder {
     public DumbNearestFinder(MultiDimPoints multiDimPoints) {
         super(multiDimPoints);
-    }
-
-    @Override
-    protected double getDistance(double shortest, int basePoint, int point) {
-        return exactDistanceSquared(basePoint, point);
     }
 
 }

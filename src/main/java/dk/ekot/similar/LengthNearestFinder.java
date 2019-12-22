@@ -14,9 +14,6 @@
  */
 package dk.ekot.similar;
 
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
-
 /**
  *
  */
@@ -104,19 +101,7 @@ public class LengthNearestFinder extends NearestFinder {
 
     @Override
     protected double getDistance(double shortest, int basePoint, int point) {
-        final int STEP = 100;
-        double distance = 0;
-        for (int dimMajor = 0; dimMajor < multiDimPoints.getDimensions(); dimMajor += STEP) {
-            final int dimMax = Math.min(dimMajor + STEP, multiDimPoints.getDimensions());
-            for (int dim = dimMajor; dim < dimMax; dim++) {
-                final double diff = multiDimPoints.get(dim, basePoint) - multiDimPoints.get(dim, point);
-                distance += (diff * diff);
-            }
-            if (distance > shortest) {
-                //System.out.print("[" + dimMajor + "]");
-                return distance;
-            }
-        }
-        return distance;
+        return atMostDistanceSquared(shortest, basePoint, point);
     }
+
 }

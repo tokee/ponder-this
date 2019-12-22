@@ -47,14 +47,32 @@ public abstract class NearestFinder implements NearestFinderBase {
         return new Nearest(basePoint, nn, shortest);
     }
 
-    protected abstract double getDistance(double shortest, int basePoint, int point);
+    protected double getDistance(double shortest, int basePoint, int point) {
+        return exactDistanceSquared(basePoint, point);
+    }
 
-    
     protected double exactDistanceSquared(int basePoint, int point) {
         double distance = 0;
         for (int dimIndex = 0; dimIndex < multiDimPoints.getDimensions() ; dimIndex++) {
             final double diff = multiDimPoints.get(dimIndex, basePoint) - multiDimPoints.get(dimIndex, point);
             distance += (diff*diff);
+        }
+        return distance;
+    }
+
+    protected double atMostDistanceSquared(double atMost, int basePoint, int point) {
+        final int STEP = 100;
+        double distance = 0;
+        for (int dimMajor = 0; dimMajor < multiDimPoints.getDimensions(); dimMajor += STEP) {
+            final int dimMax = Math.min(dimMajor + STEP, multiDimPoints.getDimensions());
+            for (int dim = dimMajor; dim < dimMax; dim++) {
+                final double diff = multiDimPoints.get(dim, basePoint) - multiDimPoints.get(dim, point);
+                distance += (diff * diff);
+            }
+            if (distance > atMost) {
+                //System.out.print("[" + dimMajor + "]");
+                return distance;
+            }
         }
         return distance;
     }
