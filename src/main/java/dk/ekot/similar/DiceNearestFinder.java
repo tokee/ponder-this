@@ -34,8 +34,13 @@ import java.util.Random;
 public class DiceNearestFinder extends NearestFinder {
     final Divide[] divides;
     final Bitmap[] pointDivides;
-    public static final int CANDIDATES = 90;
 
+    public static final int CANDIDATES = 500;
+    public static final int DEFAULT_DIVIDE_COUNT = 10;
+
+    public DiceNearestFinder(MultiDimPoints multiDimPoints) {
+        this(multiDimPoints, DEFAULT_DIVIDE_COUNT);
+    }
     public DiceNearestFinder(MultiDimPoints multiDimPoints, int divideCount) {
         super(multiDimPoints);
 
@@ -124,32 +129,6 @@ public class DiceNearestFinder extends NearestFinder {
             }
         }
         return new Nearest(basePoint, bestPoint, bestDist);
-    }
-
-    private static class BoundedPriorityQueue<T> extends PriorityQueue<T> {
-        final int maxSize;
-
-        public BoundedPriorityQueue(int maxSize) {
-            this.maxSize = maxSize;
-        }
-
-        @Override
-        public boolean add(T t) {
-            boolean reply = super.add(t);
-            if (size() > maxSize) {
-                poll();
-            }
-            return reply;
-        }
-
-        @Override
-        public boolean offer(T t) {
-            boolean reply = super.offer(t);
-            if (size() > maxSize) {
-                poll();
-            }
-            return reply;
-        }
     }
 
     public static class DivideCandidate implements Comparable<DivideCandidate> {

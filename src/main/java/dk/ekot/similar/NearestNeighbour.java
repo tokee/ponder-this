@@ -46,7 +46,7 @@ public class NearestNeighbour {
 
     public static void main(String[] args) throws IOException {
         final int RUNS = 10;
-        NearestNeighbour nn = new NearestNeighbour(2048, 100 , DISTRIBUTION.load);
+        NearestNeighbour nn = new NearestNeighbour(2048, 10000 , DISTRIBUTION.load);
         nn.measureEarlyTermination(RUNS);
     }
 
@@ -64,7 +64,10 @@ public class NearestNeighbour {
         List<NearestFinder> finders = new ArrayList<>();
 //        finders.add(new DumbNearestFinder(multiDimPoints));
         finders.add(new EarlyNearestFinder(multiDimPoints));
-        finders.add(new DiceNearestFinder(multiDimPoints, 10));
+
+//        finders.add(new RandomFinder(multiDimPoints));
+        finders.add(new StrongestSignalsFinder(multiDimPoints));
+        finders.add(new DiceNearestFinder(multiDimPoints));
 //        finders.add(new LengthNearestFinder(multiDimPoints));
 
         final int[] nearestPoints = new int[runs];
@@ -73,6 +76,7 @@ public class NearestNeighbour {
         for (NearestFinder finder: finders) {
             Random random = new Random(87);
             long totalNS = 0;
+            double totalDist = 0.0;
             for (int run = 0; run < runs; run++) {
                 long ns = -System.nanoTime();
                 int basePoint = random.nextInt(multiDimPoints.getPoints());
@@ -80,9 +84,10 @@ public class NearestNeighbour {
                 ns += System.nanoTime();
                 long pointsPerSec = (long)(multiDimPoints.points/(ns/1000000000.0));
                 System.out.print(String.format(
-                        "%s: %s in %dms (%d points/s)",
+                        "%s: %s in %dms (%,d points/s)",
                         finder.getClass().getSimpleName(), nearest, (ns / 1000000), pointsPerSec));
                 totalNS += ns;
+                totalDist += nearest.distance;
                 if (nearestPoints[run] == -1) {
                     nearestPoints[run] = nearest.point;
                     nearestDist[run] = nearest.distance;
@@ -94,8 +99,8 @@ public class NearestNeighbour {
             }
             long totalPointsPerSec = (long)(multiDimPoints.points*runs/(totalNS/1000000000.0));
             System.out.println(String.format(
-                    "Total: %dms (%d points/sec)\n",
-                    totalNS / 1000000, totalPointsPerSec));
+                    "Total: %dms (%,d points/sec, totalDist=%.1f)\n",
+                    totalNS / 1000000, totalPointsPerSec, totalDist));
         }
     }
 
