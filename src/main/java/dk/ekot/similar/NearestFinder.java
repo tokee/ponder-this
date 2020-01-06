@@ -17,6 +17,8 @@ package dk.ekot.similar;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
+import java.util.PriorityQueue;
+
 /**
  *
  */
