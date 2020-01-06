@@ -33,7 +33,11 @@ public class DiceNearestFinder extends NearestFinder {
     final Divide[] divides;
     final Bitmap[] pointDivides;
     public static final int CANDIDATES = 500;
+    public static final int DEFAULT_DIVIDE_COUNT = 10;
 
+    public DiceNearestFinder(MultiDimPoints multiDimPoints) {
+        this(multiDimPoints, DEFAULT_DIVIDE_COUNT);
+    }
     public DiceNearestFinder(MultiDimPoints multiDimPoints, int divideCount) {
         super(multiDimPoints);
 

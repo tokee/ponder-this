@@ -66,8 +66,8 @@ public class NearestNeighbour {
         finders.add(new EarlyNearestFinder(multiDimPoints));
 
 //        finders.add(new RandomFinder(multiDimPoints));
-        finders.add(new StrongestSignalsFinder(multiDimPoints, 10));
-        finders.add(new DiceNearestFinder(multiDimPoints, 10));
+        finders.add(new StrongestSignalsFinder(multiDimPoints));
+        finders.add(new DiceNearestFinder(multiDimPoints));
 //        finders.add(new LengthNearestFinder(multiDimPoints));
 
         final int[] nearestPoints = new int[runs];
