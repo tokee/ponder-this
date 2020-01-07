@@ -14,10 +14,9 @@
  */
 package dk.ekot.similar;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Random;
@@ -33,24 +32,72 @@ public class MultiDimPoints {
 
     private Length[] lengths;
 
-    public MultiDimPoints(Path inputFile, int maxPoints) throws IOException {
-        BufferedReader input = getReader(inputFile);
-        int totalLines = 0;
-        int dimensions = -1;
-        String line;
-        while ((line = input.readLine()) != null) {
-            if (line.isEmpty() || line.startsWith("#")) {
-                continue;
-            }
-            totalLines++;
-            if (dimensions == -1) {
-                dimensions = line.split(" ").length;
-            }
-            if (totalLines > maxPoints) {
-                break;
+    public static MultiDimPoints load(Path inputFile, int maxPoints, int dimensions) throws IOException {
+        if (inputFile.getFileName().toString().endsWith(".bin")) {
+            return new MultiDimPoints(inputFile, maxPoints, dimensions);
+        }
+        return new MultiDimPoints(inputFile, maxPoints);
+    }
+
+    public static MultiDimPoints load(Path inputFile, int maxPoints) throws IOException {
+        if (inputFile.getFileName().toString().endsWith(".bin")) {
+            throw new IllegalArgumentException(
+                    "The inputFile was binary: Dimensions must be stated! Use other load-method");
+        }
+        return new MultiDimPoints(inputFile, maxPoints);
+    }
+
+    // Binary-based loader
+    private MultiDimPoints(Path inputFile, int maxPoints, int dimensions) throws IOException {
+        final long startTime = System.nanoTime();
+
+        if (!inputFile.getFileName().toString().endsWith(".bin")) {
+            throw new IllegalArgumentException("Binary representation only. Use other constructor");
+        }
+        this.dimensions = dimensions;
+        int filePoints = (int) (Files.size(inputFile) / dimensions);
+        points = Math.min(maxPoints, filePoints);
+        inner = new double[points * dimensions];
+
+        try (InputStream is = getStream(inputFile) ;
+             InputStream bis = new BufferedInputStream(is) ;
+             DataInputStream input = new DataInputStream(bis)) {
+            for (int point = 0; point < points; point++) {
+                for (int dimension = 0; dimension < dimensions; dimension++) {
+                    set(dimension, point, input.readFloat());
+                }
             }
         }
-        input.close();
+        System.out.println(String.format("Loaded %d binary points @ %d dimensions in %d seconds",
+                                         points, dimensions, (System.nanoTime()-startTime)/1000000000L));
+    }
+
+    // Text-based loader
+    private MultiDimPoints(Path inputFile, int maxPoints) throws IOException {
+        final long startTime = System.nanoTime();
+
+        if (inputFile.getFileName().toString().endsWith(".bin")) {
+            throw new IllegalArgumentException(
+                    "Cannot load binary representation without dimensions. Use other constructor");
+        }
+
+        int totalLines = 0;
+        int dimensions = -1;
+        try (BufferedReader input = getReader(inputFile)) {
+            String line;
+            while ((line = input.readLine()) != null) {
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                totalLines++;
+                if (dimensions == -1) {
+                    dimensions = line.split(" ").length;
+                }
+                if (totalLines > maxPoints) {
+                    break;
+                }
+            }
+        }
         this.points = Math.min(maxPoints, totalLines);
         if (points < maxPoints) {
             System.err.println("Warning: Requested a maximum of " + maxPoints + " points, but '" +
@@ -59,32 +106,37 @@ public class MultiDimPoints {
         this.dimensions = dimensions;
         inner = new double[points * dimensions];
 
-        input = getReader(inputFile);
-        int point = 0;
-        while ((line = input.readLine()) != null && point < points) {
-            if (line.isEmpty() || line.startsWith("#")) {
-                continue;
+        try (BufferedReader input = getReader(inputFile)) {
+            String line;
+            int point = 0;
+            while ((line = input.readLine()) != null && point < points) {
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                String[] tsneDims = line.split(" ");
+                if (tsneDims.length != dimensions) {
+                    throw new IllegalArgumentException(
+                            "The file '" + inputFile.getFileName() + "' was expected to holds points with dimensions " +
+                            dimensions + ", but a line with dimension " + tsneDims.length + " was encountered:\n" +
+                            line);
+                }
+                for (int dim = 0; dim < dimensions; dim++) {
+                    set(dim, point, Double.parseDouble(tsneDims[dim]));
+                }
+                point++;
             }
-            String[] tsneDims = line.split(" ");
-            if (tsneDims.length != dimensions) {
-                throw new IllegalArgumentException(
-                        "The file '" + inputFile.getFileName() + "' was expected to holds points with dimensions " +
-                        dimensions + ", but a line with dimension " + tsneDims.length + " was encountered:\n" +
-                        line);
-            }
-            for (int dim = 0; dim < dimensions; dim++) {
-                set(dim, point, Double.parseDouble(tsneDims[dim]));
-            }
-            point++;
         }
-        input.close();
+        System.out.println(String.format("Loaded %d text points @ %d dimensions in %d seconds",
+                                         points, dimensions, (System.nanoTime()-startTime)/1000000000L));
     }
 
-    public BufferedReader getReader(Path inputFile) throws IOException {
-        return new BufferedReader(
-                inputFile.getFileName().toString().endsWith(".gz") ?
-                        new InputStreamReader(new GZIPInputStream(inputFile.toUri().toURL().openStream()), StandardCharsets.UTF_8) :
-                        new InputStreamReader(inputFile.toUri().toURL().openStream(), StandardCharsets.UTF_8));
+    public static BufferedReader getReader(Path inputFile) throws IOException {
+        return new BufferedReader(new InputStreamReader(getStream(inputFile), StandardCharsets.UTF_8));
+    }
+    public static InputStream getStream(Path inputFile) throws IOException {
+        return inputFile.getFileName().toString().endsWith(".gz") ?
+                new GZIPInputStream(inputFile.toUri().toURL().openStream()) :
+                inputFile.toUri().toURL().openStream();
     }
 
     public MultiDimPoints(int dimensions, int points) {

@@ -29,6 +29,7 @@ import java.util.Random;
  */
 public class NearestNeighbour {
     private static final String VECTOR_SAMPLE = "/home/te/projects/ponder-this/pixplot_vectors_270707.txt.gz";
+    private static final String VECTOR_SAMPLE_BIN = "/home/te/projects/ponder-this/pixplot_vectors_270707.bin";
     private static Log log = LogFactory.getLog(NearestNeighbour.class);
 
     private final int dimensions;
@@ -46,7 +47,7 @@ public class NearestNeighbour {
 
     public static void main(String[] args) throws IOException {
         final int RUNS = 10;
-        NearestNeighbour nn = new NearestNeighbour(2048, 10000 , DISTRIBUTION.load);
+        NearestNeighbour nn = new NearestNeighbour(2048, 20000 , DISTRIBUTION.load);
         nn.measureEarlyTermination(RUNS);
     }
 
@@ -54,7 +55,7 @@ public class NearestNeighbour {
         log.debug("Creating double array");
         MultiDimPoints multiDimPoints;
         if (distribution == DISTRIBUTION.load) {
-            multiDimPoints = new MultiDimPoints(Paths.get(VECTOR_SAMPLE), points);
+            multiDimPoints = MultiDimPoints.load(Paths.get(VECTOR_SAMPLE_BIN), points, dimensions);
         } else {
             multiDimPoints = new MultiDimPoints(dimensions, points);
             log.debug("Filling array");
