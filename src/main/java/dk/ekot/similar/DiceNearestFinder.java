@@ -28,10 +28,13 @@ import java.util.Random;
  * Calculates X divides and keeps track of the points belonging to each divide.
  * When matching, the divides for the base image are iterated and the images with the highest number of
  * matching divides are taken as candidates for proper distance comparison.
+ *
+ * Unsolved problem: Too many all- _and_ too many none-matches.
  */
 public class DiceNearestFinder extends NearestFinder {
     final Divide[] divides;
     final Bitmap[] pointDivides;
+
     public static final int CANDIDATES = 500;
     public static final int DEFAULT_DIVIDE_COUNT = 10;
 
@@ -61,21 +64,46 @@ public class DiceNearestFinder extends NearestFinder {
         // Generate dividers
         divides = new Divide[divideCount];
         for (int i = 0; i < divides.length ; i++) {
-            divides[i] = new Divide(i, minDimVals, maxDimVals);
+            divides[i] = new Divide(i, multiDimPoints, minDimVals, maxDimVals);
         }
 
         // Calculate divide members
         pointDivides = new Bitmap[multiDimPoints.points];
+        int passesNone = 0;
+        int firstPassNone = -1;
+        int passesAll = 0;
+        int firstPassAll = -1;
         for (int point = 0; point < multiDimPoints.points ; point++) {
-            Bitmap belowDivides = new Bitmap(divides.length);
-            pointDivides[point] = belowDivides;
+            Bitmap aboveDivides = new Bitmap(divides.length);
+            pointDivides[point] = aboveDivides;
+            int matches = 0;
             for (int divideI = 0 ; divideI < divides.length ; divideI++) {
-                if (divides[divideI].isAboveDivide(multiDimPoints, point)) {
-                    belowDivides.set(divideI);
+                if (divides[divideI].isAboveDivide(point)) {
+                    aboveDivides.set(divideI);
+                    matches++;
                 }
             }
+            if (matches == divides.length) {
+                passesAll++;
+                if (firstPassAll ==-1) {
+                    firstPassAll = point;
+                }
+            }
+            if (matches == 0) {
+                passesNone++;
+                if (firstPassNone ==-1) {
+                    firstPassNone = point;
+                }
+            }
+            // TODO: Seems like some candidates passes all possible divides?
+            //System.out.println("point: " + point + " Bitmap[0]: " + Long.toBinaryString(aboveDivides.getBacking()[0]));
         }
-
+        if (passesAll > 0) {
+            System.out.println(passesAll + " points passes all divides. First to pass all was point " + firstPassAll);
+        }
+        if (passesNone > 0) {
+            System.out.println(passesNone + " points passes no divides. First to pass none was point " + firstPassNone);
+        }
 
     }
 
@@ -120,16 +148,38 @@ public class DiceNearestFinder extends NearestFinder {
 
     private static class Divide {
         final int seed;
+        final MultiDimPoints mdp;
         final double[] minDimVals;
         final double[] maxDimVals;
+        final int aboveLimit;
 
-        public Divide(int seed, double[] minDimVals, double[] maxDimVals) {
+        public Divide(int seed, MultiDimPoints mdp, double[] minDimVals, double[] maxDimVals) {
             this.seed = seed;
+            this.mdp = mdp;
             this.minDimVals = minDimVals;
             this.maxDimVals = maxDimVals;
+
+            int minAbove = Integer.MAX_VALUE;
+            int maxAbove = Integer.MIN_VALUE;
+            for (int point = 0 ; point < mdp.points ; point++) {
+                int above = countAbove(point);
+                if (above < minAbove) {
+                    minAbove = above;
+                }
+                if (above > maxAbove) {
+                    maxAbove = above;
+                }
+            }
+            aboveLimit = (int) ((minAbove + maxAbove) * 0.5);
         }
 
-        public boolean isAboveDivide(MultiDimPoints mdp, int pointIndex) {
+        public boolean isAboveDivide(int pointIndex) {
+            int above = countAbove(pointIndex);
+            //System.out.println("point " + pointIndex + ", seed " + seed + ", above " + above + ", aboveLimit " + aboveLimit);
+            return above >= aboveLimit;
+        }
+
+        private int countAbove(int pointIndex) {
             Random random = new Random(seed);
             int above = 0;
             for (int dim = 0 ; dim < mdp.dimensions ; dim++) {
@@ -138,7 +188,7 @@ public class DiceNearestFinder extends NearestFinder {
                     above++;
                 }
             }
-            return above >= mdp.dimensions/2;
+            return above;
         }
     }
 }
