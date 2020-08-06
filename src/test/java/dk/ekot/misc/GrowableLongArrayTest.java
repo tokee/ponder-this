@@ -22,7 +22,7 @@ public class GrowableLongArrayTest {
 
     @Test
     public void testTrivial() {
-        GrowableLongArray la = new GrowableLongArray();
+        GrowableByteArray la = new GrowableByteArray();
         la.set(0, 87);
         la.set(12, 88);
         assertEquals("At index 0, the value should be correct", 87, la.get(0));
@@ -31,7 +31,7 @@ public class GrowableLongArrayTest {
 
     @Test
     public void testHighIndex() {
-        GrowableLongArray la = new GrowableLongArray();
+        GrowableByteArray la = new GrowableByteArray();
         final long index = Integer.MAX_VALUE*12L;
         la.set(index, 89);
         assertEquals("At index " + index + " (> Integer.MAX_VALUE), the value should be correct", 89, la.get(index));
