@@ -37,10 +37,11 @@ public class VaccineRobot {
     // 0, 1 & 2 are simply received vaccine doses
     public static void main(String[] args) {
 //        threaded(1, 4, 4, 3);
- //       threaded(8, 4, 200, 3, true);
+  //      threaded(8, 4, 200, 3, true);
+        threaded(8, 4, 200, 3);
         //threaded(8, 93, 200, 3);
         //threaded(8, 4, 200, 3);
-        timeFlat(); // ~10s
+//        timeFlat(); // ~10s
         //empties();
 
 //        test4();
@@ -156,21 +157,33 @@ public class VaccineRobot {
 
     private static String systematicFlat(int width, int height, int antiCount) {
         FlatGrid empty = new FlatGrid(width, height);
-        empty.fullRun(); // We know there must be at least 1 antiCount in one of the non-zero positions
-
+        if (empty.fullRun()) { // We know there must be at least 1 antiCount in one of the non-zero positions
+            return String.format(
+                    Locale.ENGLISH, "Flat(%3d, %3d) moves=%6d, ms=%6d, antis=%d: %s%n",
+                    width, height, empty.move, empty.lastRunMS, 0, "[]");
+        }
         FlatGrid grid = new FlatGrid(width, height);
         return systematicFlat(grid, empty, new int[antiCount], 0, 0);
     }
-    private static String systematicFlat(FlatGrid grid, FlatGrid baseEmpty, final int[] antis, int antiIndex, int minPos) {
+    private static String systematicFlat(FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex, int minPos) {
         final int all = grid.width*grid.height;
 //        if (antiIndex == 1) {
 //            System.out.println(minPos + "/" + (all-1));
 //        }
 
+        // Does not seem to speed up
+        if (false && antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
+            empty = new FlatGrid(grid.width, grid.height);
+            for (int i = 0 ; i < antis.length-1 ; i++) {
+              empty.addMarks(antis[i]);
+            }
+            empty.fullRun();
+        }
+
         for (int antiPos = minPos ; antiPos < all-(antis.length-antiIndex-1) ; antiPos++) {
             antis[antiIndex] = antiPos;
             if (antiIndex < antis.length-1) { // More antis to go
-                String result = systematicFlat(grid, baseEmpty, antis, antiIndex + 1, antiPos + 1);
+                String result = systematicFlat(grid, empty, antis, antiIndex + 1, antiPos + 1);
                 if (result != null) {
                     return result;
                 }
@@ -179,7 +192,7 @@ public class VaccineRobot {
 
             // Reached the bottom
 
-            if (!baseEmpty.atLeastOneAntiOnMarked(antis)) {
+            if (!empty.atLeastOneAntiOnMarked(antis)) {
                 continue; // No need to try as all the anties ar only on non-visited places
             }
 
