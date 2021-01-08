@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
@@ -36,18 +37,24 @@ public class VaccineRobot {
     // 0, 1 & 2 are simply received vaccine doses
     public static void main(String[] args) {
 //        threaded(1, 4, 4, 3);
-        threaded(8, 4, 200, 3, true);
+ //       threaded(8, 4, 200, 3, true);
         //threaded(8, 93, 200, 3);
         //threaded(8, 4, 200, 3);
-
+        timeFlat(); // ~10s
         //empties();
 
-        test4();
+//        test4();
 
 //        Grid grid = new Grid(4);
 //        grid.mark(new Pos(1, 0));
 //        System.out.println(grid.fullRun());
 //        System.out.println(grid);
+    }
+
+    private static void timeFlat() {
+        long startMS = System.currentTimeMillis();
+        threaded(1, 41, 45, 3);
+        System.out.println("Total time: " + (System.currentTimeMillis()-startMS));
     }
 
     private static void empties() {
@@ -152,22 +159,18 @@ public class VaccineRobot {
         empty.fullRun(); // We know there must be at least 1 antiCount in one of the non-zero positions
 
         FlatGrid grid = new FlatGrid(width, height);
-        Pos[] antis = new Pos[antiCount];
-        for (int i = 0 ; i < antis.length ; i++) {
-            antis[i] = new Pos();
-        }
-        return systematicFlat(grid, empty, antis, 0, 0);
+        return systematicFlat(grid, empty, new int[antiCount], 0, 0);
     }
-    private static String systematicFlat(FlatGrid grid, FlatGrid empty, final Pos[] antis, int antiIndex, int minPos) {
+    private static String systematicFlat(FlatGrid grid, FlatGrid baseEmpty, final int[] antis, int antiIndex, int minPos) {
         final int all = grid.width*grid.height;
 //        if (antiIndex == 1) {
 //            System.out.println(minPos + "/" + (all-1));
 //        }
-        for (int p = minPos ; p < all-(antis.length-antiIndex-1) ; p++) {
-            antis[antiIndex].x = p % grid.height;
-            antis[antiIndex].y = p / grid.height;
-            if (antiIndex < antis.length-1) { // Recursive
-                String result = systematicFlat(grid, empty, antis, antiIndex + 1, p + 1);
+
+        for (int antiPos = minPos ; antiPos < all-(antis.length-antiIndex-1) ; antiPos++) {
+            antis[antiIndex] = antiPos;
+            if (antiIndex < antis.length-1) { // More antis to go
+                String result = systematicFlat(grid, baseEmpty, antis, antiIndex + 1, antiPos + 1);
                 if (result != null) {
                     return result;
                 }
@@ -176,8 +179,8 @@ public class VaccineRobot {
 
             // Reached the bottom
 
-            if (!empty.atLeastOneAntiOnMarked(antis)) {
-                continue; // No need to try as the anties ar only on non-visited places
+            if (!baseEmpty.atLeastOneAntiOnMarked(antis)) {
+                continue; // No need to try as all the anties ar only on non-visited places
             }
 
             grid.clear();
@@ -185,11 +188,19 @@ public class VaccineRobot {
             if (grid.fullRun()) {
                 return String.format(
                         Locale.ENGLISH, "Flat(%3d, %3d) moves=%6d, ms=%6d, antis=%d: %s%n",
-                        grid.width, grid.height, grid.move, grid.lastRunMS, antis.length, Arrays.asList(antis));
+                        grid.width, grid.height, grid.move, grid.lastRunMS, antis.length, toPosList(antis, grid.width, grid.height));
             }
         }
         // TODO: Also handle antis.length == 0
         return null;
+    }
+
+    private static List<Pos> toPosList(int[] antis, int width, int height) {
+        List<Pos> poss = new ArrayList<>(antis.length);
+        for (int anti : antis) {
+            poss.add(new Pos(anti % width, anti / width));
+        }
+        return poss;
     }
 
     private static class Grid {
@@ -477,6 +488,19 @@ public class VaccineRobot {
             marks += antis.length;
         }
 
+        public void setMarks(int... antis) {
+            clear();
+            marks = 0;
+            addMarks(antis);
+        }
+
+        public void addMarks(int... antis) {
+            for (int anti : antis) {
+                grid[anti] = ANTI;
+            }
+            marks += antis.length;
+        }
+
         public void clear() {
             Arrays.fill(grid, 0);
             immune = 0;
@@ -630,6 +654,15 @@ public class VaccineRobot {
         public boolean atLeastOneAntiOnMarked(Pos[] antis) {
             for (Pos anti: antis) {
                 if (grid[anti.x + anti.y*width] != 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public boolean atLeastOneAntiOnMarked(int[] antis) {
+            for (int anti: antis) {
+                if (grid[anti] != 0) {
                     return true;
                 }
             }
