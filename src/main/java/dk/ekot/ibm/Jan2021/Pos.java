@@ -19,6 +19,7 @@ import org.apache.commons.logging.Log;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  *
@@ -53,6 +54,6 @@ public class Pos {
     }
 
     public String toString() {
-        return "(" + x + ", " + y + ")";
+        return String.format(Locale.ENGLISH, "(%3d, %3d)", x, y);
     }
 }
