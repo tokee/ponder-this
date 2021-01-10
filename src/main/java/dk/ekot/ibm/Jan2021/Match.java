@@ -14,9 +14,6 @@
  */
 package dk.ekot.ibm.Jan2021;
 
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
-
 import java.util.List;
 import java.util.Locale;
 
@@ -27,18 +24,20 @@ class Match {
     public final String nature;
     public final int width;
     public final int height;
+    public final int startY;
     public final int moves;
     public final long spendTimeMS;
     public final String visualGrid;
     public final List<Pos> antis;
 
-    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, int[] antis) {
-        this(nature, width, height, moves, spendTimeMS, visualGrid, Pos.toPosList(antis, width, height));
+    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, int[] antis, int startY) {
+        this(nature, width, height, moves, spendTimeMS, visualGrid, Pos.toPosList(antis, width, height), startY);
     }
-    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, List<Pos> antis) {
+    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, List<Pos> antis, int startY) {
         this.nature = nature;
         this.width = width;
         this.height = height;
+        this.startY = startY;
         this.moves = moves;
         this.spendTimeMS = spendTimeMS;
         this.visualGrid = visualGrid;
@@ -46,9 +45,16 @@ class Match {
     }
 
     public String toString() {
+        boolean matchOnStartY = false;
+        for (Pos anti: antis) {
+            if (anti.y == startY && anti.x == 0) {
+                matchOnStartY = true;
+                break;
+            }
+        }
         return String.format(
-                Locale.ENGLISH, "%s(%3d, %3d) moves=%6d, ms=%6d, antis=%d: %s",
-                nature, width, height, moves, spendTimeMS, antis.size(), antis);
+                Locale.ENGLISH, "%s(%3d, %3d) ms=%6d, antis=%d: %s, startY=%d%s",
+                nature, width, height, spendTimeMS, antis.size(), antis, startY, matchOnStartY ? "" : " *");
 
     }
 }
