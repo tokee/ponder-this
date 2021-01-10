@@ -54,18 +54,18 @@ public class VaccineRobot {
     }
     public static void fallbackMain() {
 //        threaded(1, 4, 4, 3);
-//        threaded(1, 100, 100, 3);
+        threaded(4, 100, 103, 3);
 //         threaded(4, 4, 300, 3);
 
 
 //        findMiddle();
-        threaded(4, 170, 300, 3);
+   //     threaded(4, 170, 300, 3);
         //threaded(4, 4, 200, 3);
         //threaded(4, 232, 232, 3);
 //        timeFlat(); // ~10s
         //empties();
 
-        //timeFlatVsTopD();
+//        timeFlatVsTopD();
 
           //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
         //countMatches(13, 2);
@@ -433,8 +433,8 @@ public class VaccineRobot {
 //        }
 
         // Does not seem to speed up
-        if (false && antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
-            empty = new FlatGrid(grid.width, grid.height);
+        if (antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
+            empty.clear();
             for (int i = 0 ; i < antis.length-1 ; i++) {
               empty.addMarks(antis[i]);
             }
