@@ -53,7 +53,7 @@ class Match {
             }
         }
         return String.format(
-                Locale.ENGLISH, "%s(%3d, %3d) ms=%6d, antis=%d: %s, startY=%d%s",
+                Locale.ENGLISH, "%s(%3d, %3d) ms=%,7d, antis=%d: %s, startY=%d%s",
                 nature, width, height, spendTimeMS, antis.size(), antis, startY, matchOnStartY ? "" : " *");
 
     }
