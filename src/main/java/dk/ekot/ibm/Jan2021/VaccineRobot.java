@@ -38,7 +38,16 @@ public class VaccineRobot {
 
     // 0, 1 & 2 are simply received vaccine doses
     public static void main(String[] args) {
-        System.out.println("Not implemented yet");
+        if (args.length == 0) {
+            fallbackMain();
+            return;
+        }
+        if (args.length < 3) {
+            System.out.println("Usage: VaccineRobot <threads> <minSide> <maxSide>");
+            return;
+        }
+
+        threaded(Integer.parseInt(args[0]), Integer.parseInt(args[0]), Integer.parseInt(args[0]), 3);
     }
     public static void fallbackMain() {
 //        threaded(1, 4, 4, 3);
