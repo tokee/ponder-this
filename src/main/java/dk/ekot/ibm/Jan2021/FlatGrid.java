@@ -36,6 +36,7 @@ class FlatGrid {
     public final String name;
     public final int width;
     public final int height;
+    private final int startY;
     private final int total;
     private final int[] grid;
 
@@ -59,16 +60,20 @@ class FlatGrid {
         this (width, height, "Flat");
     }
     public FlatGrid(int width, int height, String name) {
+        this(width, height, name, 0);
+    }
+    public FlatGrid(int width, int height, String name, int startY) {
         this.name = name;
         this.width = width;
         this.height = height;
+        this.startY = startY;
         total = width * height;
         grid = new int[total];
         maxNonChangingMoves = total;
     }
 
     public Match getMatch() {
-        return new Match(name, width, height, move, lastRunMS, toString(), antis);
+        return new Match(name, width, height, move, lastRunMS, toString(), antis, startY);
     }
 
     public void setMarks(Pos... antis) {
@@ -275,5 +280,20 @@ class FlatGrid {
             }
         }
         return false;
+    }
+
+    public int getRowForLeftmostNontouched() {
+        int leftmostX = Integer.MAX_VALUE;
+        int firstY = 0;
+        for (int posY = 0; posY < height ; posY++) {
+          for (int posX = 0 ; posX < width && posX < leftmostX ; posX++) {
+              if (grid[posX + posY*width] == 0) {
+                  leftmostX = posX;
+                  firstY = posY;
+                  break;
+              }
+          }
+        }
+        return firstY;
     }
 }
