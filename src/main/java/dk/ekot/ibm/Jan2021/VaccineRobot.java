@@ -28,6 +28,9 @@ import java.util.concurrent.Future;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+// Build with mvn clean compile assembly:single -DskipTests
+// Run with java -jar target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar -h
+
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
  */
@@ -47,7 +50,7 @@ public class VaccineRobot {
             return;
         }
 
-        threaded(Integer.parseInt(args[0]), Integer.parseInt(args[0]), Integer.parseInt(args[0]), 3);
+        threaded(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]), 3);
     }
     public static void fallbackMain() {
 //        threaded(1, 4, 4, 3);
