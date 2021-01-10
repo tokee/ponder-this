@@ -52,22 +52,34 @@ public class VaccineRobot {
     public static void fallbackMain() {
 //        threaded(1, 4, 4, 3);
 //        threaded(1, 100, 100, 3);
-        // threaded(4, 4, 200, 3);
-        //threaded(8, 139, 200, 3);
-        //threaded(8, 4, 200, 3);
+//         threaded(4, 4, 300, 3);
+
+
+//        findMiddle();
+        threaded(4, 170, 300, 3);
+        //threaded(4, 4, 200, 3);
+        //threaded(4, 232, 232, 3);
 //        timeFlat(); // ~10s
-        empties();
+        //empties();
 
         //timeFlatVsTopD();
 
           //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
-//        countMatches(10, 2);
+        //countMatches(13, 2);
 
-//        for (int side = 10 ; side <= 30 ; side++) {
-//            showMatches(side, 2);
-//        }
+        // Problem child: TopD(126, 126) ms=116806, antis=2: [(0, 56), (18, 79)], startY=47 *
+        // 24 is atypical: No antis to the left of 11 although the empty is there
+        // 38 same
+        //for (int side = 10 ; side <= 40 ; side++) {
+        //    showMatches(side, 2);
+        //}
+//        showMatches(13, 2);
+//        showMatches(24, 2);
+//        showMatches(38, 2);
 
-//        showAll(10, 2);
+//        showMatches(30, 2);
+  //      showMatches(35, 2);
+        //showAll(10, 2);
 
 //        test4();
 
@@ -75,6 +87,43 @@ public class VaccineRobot {
 //        grid.mark(new Pos(1, 0));
 //        System.out.println(grid.fullRun());
 //        System.out.println(grid);
+    }
+
+    private static void findMiddle() {
+        for (int side: new int[]{64, 74, 96, 98, 110, 112}) {
+            threaded(4, side, side, 3);
+            showEmpty(side);
+            System.out.println("Begin at " + guessStartY(side, side));
+            System.out.println("*********************************************************");
+        }
+    }
+
+    /**
+     * Creates an empty grid and runs it. Finds the first row with a 0 count to the farthest left.
+     * Top-down iterations has a high chance of matches by starting there.
+     */
+    private static int guessStartY(int width, int height) {
+        FlatGrid grid = new FlatGrid(width, height);
+        if (grid.fullRun()) {
+            return 0; // No antis needed
+        }
+        return grid.getRowForLeftmostNontouched();
+    }
+
+    private static void showEmpty(int side) {
+        FlatGrid grid = new FlatGrid(side);
+        grid.fullRun();
+        String[] lines = visualiseGridNoCount(grid).split("\n");
+        for (int i = 0 ; i < lines.length ; i++) {
+            System.out.printf(Locale.ENGLISH, "%3d %s%n", i, lines[i]);
+        }
+    }
+
+    private static void show(FlatGrid grid) {
+        String[] lines = visualiseGridNoCount(grid).split("\n");
+        for (int i = 0 ; i < lines.length ; i++) {
+            System.out.printf(Locale.ENGLISH, "%3d %s%n", i, lines[i]);
+        }
     }
 
     private static void flatCheck(int side, List<Pos> antis) {
@@ -117,9 +166,22 @@ public class VaccineRobot {
     private static void showMatches(int side, int antis) {
         FlatGrid flat = new FlatGrid(side);
         flat.fullRun();
-        systematicFlat(side, side, antis, Integer.MAX_VALUE).
-                forEach(match -> flat.addMarks(match.antis.toArray(new Pos[0])));
-        System.out.println(flat.toString().replace("1", " ").replace("2", " ").replace("0", "-"));
+        List<Match> matches = systematicFlatTD(side, side, antis, Integer.MAX_VALUE);
+
+        //matches = matches.stream().filter(match -> match.antis.get(0).x == 0).collect(Collectors.toList());
+        matches.forEach(match -> flat.addMarks(match.antis.toArray(new Pos[0])));
+
+        show(flat);
+        matches.stream().
+                filter(match -> match.antis.get(0).y == match.height/2 || match.antis.get(0).y == match.height/2+1).
+                forEach(match -> System.out.println(match.height + ": " + match.antis));
+        System.out.println("Begin at " + guessStartY(side, side));
+        System.out.println("****************");
+        //matches.forEach(match -> System.out.println(match.antis));
+    }
+
+    private static String visualiseGridNoCount(FlatGrid flat) {
+        return flat.toString().replace("1", " ").replace("2", " ").replace("0", "-");
     }
 
     private static void countMatches(int side, int antis) {
@@ -331,17 +393,35 @@ public class VaccineRobot {
     }
 
     private static List<Match> systematicFlatTD(int width, int height, int antiCount, int maxMatches) {
-        final List<Match> matches = new ArrayList<>();
+        int startY = guessStartY(width, height);
+        List<Match> matches = getMatchesTD(width, height, antiCount, maxMatches, startY);
+        if (antiCount < 2) { // No need to try more here
+            return matches;
+        }
+        if (matches.isEmpty()) {
+            System.out.println("No matches found for " + width + "x" + height + " with startY=" + startY + ", rerunning with startY=0");
+            return getMatchesTD(width, height, antiCount, maxMatches, 0);
+        }
+        if (matches.get(0).antis.size() > 2) {
+            System.out.println("Match with 3 antis " + matches.get(0).antis + " found for " + width + "x" + height +
+                               " with startY=" + startY + ", rerunning with startY=0");
+            return getMatchesTD(width, height, antiCount, maxMatches, 0);
+        }
+        return matches;
+    }
 
+    private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches, int startY) {
+        final List<Match> matches = new ArrayList<>();
         FlatGrid empty = new FlatGrid(width, height);
         empty.fullRun();
-        FlatGrid grid = new FlatGrid(width, height, "TopD");
-        systematicFlatTD(grid, empty, new int[antiCount], 0, 0, 0, match -> {
+        FlatGrid grid = new FlatGrid(width, height, "TopD", startY);
+        systematicFlatTD(grid, empty, new int[antiCount], 0, 0, startY, match -> {
             matches.add(match);
             return matches.size() < maxMatches;
         });
         return matches;
     }
+
     private static boolean systematicFlatTD(
             FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex, int posX, int posY, Predicate<Match> collect) {
         final int all = grid.width*grid.height;
@@ -534,6 +614,49 @@ Flat(135, 135) moves=291391, ms=2098988, antis=2: [(1, 1), (49, 102)]
 Flat(136, 136) moves=294960, ms=1186020, antis=2: [(117, 0), (114, 88)]
 Flat(137, 137) moves=340168, ms=1313430, antis=2: [(110, 0), (48, 96)]
 Flat(138, 138) moves=368936, ms=2691298, antis=2: [(117, 1), (122, 2)]
+---------- TopD on laptop below
+TopD(139, 139) moves=234776, ms=801430, antis=2: [(0, 34), (0, 84)]
+TopD(140, 140) moves=380743, ms= 79578, antis=2: [(0, 5), (62, 5)]
+TopD(141, 141) moves=379432, ms=537106, antis=2: [(0, 23), (74, 23)]
+TopD(142, 142) moves=361669, ms=459118, antis=2: [(0, 20), (73, 20)]
+TopD(143, 143) moves=371472, ms=255443, antis=2: [(0, 11), (63, 11)]
+TopD(144, 144) moves=259217, ms=1160455, antis=2: [(0, 41), (74, 30)]
+TopD(145, 145) moves=408822, ms=270592, antis=2: [(0, 11), (73, 11)]
+TopD(146, 146) moves=264033, ms=1231544, antis=2: [(0, 41), (72, 41)]
+TopD(147, 147) moves=365408, ms=723144, antis=2: [(0, 24), (146, 4)]
+TopD(148, 148) moves=380315, ms=1687619, antis=2: [(0, 52), (129, 100)]
+TopD(140, 140) moves=380743, ms= 79578, antis=2: [(0, 5), (62, 5)]
+TopD(141, 141) moves=379432, ms=537106, antis=2: [(0, 23), (74, 23)]
+TopD(142, 142) moves=361669, ms=459118, antis=2: [(0, 20), (73, 20)]
+TopD(143, 143) moves=371472, ms=255443, antis=2: [(0, 11), (63, 11)]
+TopD(144, 144) moves=259217, ms=1160455, antis=2: [(0, 41), (74, 30)]
+TopD(145, 145) moves=408822, ms=270592, antis=2: [(0, 11), (73, 11)]
+TopD(146, 146) moves=264033, ms=1231544, antis=2: [(0, 41), (72, 41)]
+TopD(147, 147) moves=365408, ms=723144, antis=2: [(0, 24), (146, 4)]
+TopD(148, 148) moves=380315, ms=1687619, antis=2: [(0, 52), (129, 100)]
+TopD(149, 149) moves=260579, ms=1318040, antis=2: [(0, 41), (31, 74)]
+TopD(150, 150) moves=469262, ms=275418, antis=2: [(0, 11), (0, 85)]
+TopD(151, 151) moves=462015, ms=103318, antis=2: [(0, 4), (0, 100)]
+TopD(152, 152) moves=442896, ms=213963, antis=2: [(0, 8), (75, 8)]
+TopD(153, 153) moves=660594, ms=1719598, antis=2: [(0, 47), (61, 10)]
+TopD(154, 154) moves=340725, ms=1394039, antis=2: [(0, 38), (0, 87)]
+TopD(155, 155) moves=441601, ms=779319, antis=2: [(0, 23), (0, 80)]
+TopD(156, 156) moves=441456, ms=1109257, antis=2: [(0, 30), (0, 94)]
+TopD(157, 157) moves=483987, ms=374837, antis=2: [(0, 11), (79, 11)]
+TopD(158, 158) moves=295663, ms=2007712, antis=2: [(0, 47), (96, 155)]
+TopD(159, 159) moves=502760, ms=217592, antis=2: [(0, 8), (0, 85)]
+TopD(160, 160) moves=507814, ms=458416, antis=2: [(0, 14), (0, 69)]
+TopD(161, 161) moves=428402, ms=1560860, antis=2: [(0, 37), (0, 72)]
+TopD(162, 162) moves=525431, ms=367360, antis=2: [(0, 11), (0, 93)]
+TopD(163, 163) moves=546664, ms=275212, antis=2: [(0, 8), (71, 8)]
+TopD(164, 164) moves=542949, ms=245340, antis=2: [(0, 8), (0, 86)]
+TopD(165, 165) moves=566448, ms=254747, antis=2: [(0, 8), (0, 75)]
+TopD(166, 166) moves=364749, ms=2561147, antis=2: [(0, 49), (0, 84)]
+TopD(167, 167) moves=597842, ms=1311401, antis=2: [(0, 29), (0, 65)]
+TopD(168, 168) moves=367820, ms=2975430, antis=2: [(0, 53), (127, 89)]
+TopD(169, 169) moves=591161, ms=1431526, antis=2: [(0, 29), (0, 79)]
+
+
      */
 
 }
