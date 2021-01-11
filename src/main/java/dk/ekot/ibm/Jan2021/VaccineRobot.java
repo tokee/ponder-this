@@ -102,8 +102,8 @@ public class VaccineRobot {
         //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
 
-        showMatches(50, 2);
-        checkSpecific(50, 0, 49, 46, 3);
+        //showMatches(20, 2);
+        //checkSpecific(50, 0, 49, 46, 3);
 
 //        findMiddle();
    //     threaded(4, 170, 300, 3);
@@ -113,7 +113,8 @@ public class VaccineRobot {
 
 //        timeFlatVsTopD();
 
-//        timeTopD(30, 60);
+ //       timeTopD(30, 32);
+        timeTopD(30, 60);
           //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
         //countMatches(13, 2);
 
@@ -238,18 +239,30 @@ public class VaccineRobot {
     private static void showMatches(int side, int antis) {
         showMatches(side, antis, -1, -1);
     }
-    private static void showMatches(int side, int antis, int antiIndex, int maxX) {
+    private static void showMatches(int side, int antis, int showAntiIndex, int maxXForAnti0) {
         FlatGrid flat = new FlatGrid(side);
         flat.fullRun();
-        List<Match> matches = getMatchesTD(
-                side, side, antis, Integer.MAX_VALUE, Collections.singletonList(0),
-                0, 0, maxX == -1 ? side : maxX, side);
+
+        maxXForAnti0 = maxXForAnti0 < 0 || maxXForAnti0 > side-1 ? side-1 : maxXForAnti0;
+        int[][] walks = new int[antis][];
+        for (int antiIndex = 0 ; antiIndex < antis ; antiIndex++) {
+            walks[antiIndex] = antiIndex != 0 ? new int[side*side] : new int[side*(maxXForAnti0+1)];
+            int maxX = antiIndex == 0 ? maxXForAnti0 : side-1;
+            int walkIndex = 0;
+            for (int x = 0 ; x <= maxX ; x++) {
+                for (int y = 0 ; y < side ; y++) {
+                    walks[antiIndex][walkIndex++] = x + y*side;
+                }
+            }
+        }
+
+        List<Match> matches = getMatchesTD(side, side, antis, Integer.MAX_VALUE, Collections.singletonList(0), walks);
 
         //matches = matches.stream().filter(match -> match.antis.get(0).x == 0).collect(Collectors.toList());
         matches.stream().
                 peek(match -> {
-                    if (antiIndex != -1) {
-                        List<Pos> newAntis = Collections.singletonList(match.antis.get(antiIndex));
+                    if (showAntiIndex != -1) {
+                        List<Pos> newAntis = Collections.singletonList(match.antis.get(showAntiIndex));
                         match.antis.clear();
                         match.antis.addAll(newAntis);
                     }}).
@@ -473,33 +486,25 @@ public class VaccineRobot {
         return systematicFlatTD(width, height, antiCount, maxMatches, true);
     }
     private static List<Match> systematicFlatTD(int width, int height, int antiCount, int maxMatches, boolean optimize) {
+        int[] baseWalk = getWalk(width, height, true);
+        int[][] walks = new int[antiCount][];
+        for (int antiIndex = 0 ; antiIndex < antiCount ; antiIndex++) {
+            walks[antiIndex] = baseWalk;
+        }
+
         List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
-        int startY = startYs.isEmpty() ? 0 : startYs.get(0);
-        List<Match> matches = getMatchesTD(width, height, antiCount, maxMatches, startYs, 0, startY, width-1, height-1);
-        if (antiCount < 2) { // No need to try more here
-            return matches;
-        }
-        if (matches.isEmpty()) { // Try the skipped ys in the first row
-            return getMatchesTD(width, height, antiCount, maxMatches, startYs, 0, 0, 0, startY-1);
-        }
-        if (matches.get(0).antis.size() > 2) {
-            System.out.println("Match with 3 antis " + matches.get(0).antis + " found for " + width + "x" + height +
-                               " with startYs=" + startYs + ", rerunning with startY=0");
-            List<Match> extras = getMatchesTD(width, height, antiCount, maxMatches, startYs, 0, 0, 0, startY-1);
-            return matches.get(0).antis.size() < extras.get(0).antis.size() ? matches : extras;
-        }
-        return matches;
+        return getMatchesTD(width, height, antiCount, maxMatches, startYs, walks);
     }
 
     // An array of positions for antibots to try in descending order of priority
-    private int[] getWalk(int width, int height, boolean optimize) {
+    private static int[] getWalk(int width, int height, boolean optimize) {
         List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
         Set<Integer> startYsSet = new HashSet<>(startYs);
 
         int[] walk = new int[width*height];
         int index = 0;
         for (int pos: startYs) {
-            walk[index++] = pos;
+            walk[index++] = pos*width;
         }
 
         // Plain top-down
@@ -515,17 +520,18 @@ public class VaccineRobot {
     }
 
     private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches,
-                                            List<Integer> startYs, int startX, int startY, int maxX, int maxY) {
+                                            List<Integer> startYs, int[][] walks) {
         final List<Match> matches = new ArrayList<>();
         FlatGrid empty = new FlatGrid(width, height);
-        empty.fullRun();
+        //empty.fullRun();
         FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
 
         if (verbose) {
             System.err.printf(Locale.ENGLISH, "grid(%d, %d), startYs=%s: ", width, height, startYs);
         }
+
         // TODO: Only uses the first startY
-        systematicFlatTD(grid, empty, new int[antiCount], 0, startX, startY, maxX, maxY, match -> {
+        systematicFlatTD(grid, empty, new int[antiCount], 0, walks, 0, match -> {
             matches.add(match);
             return matches.size() < maxMatches;
         });
@@ -537,8 +543,7 @@ public class VaccineRobot {
 
     private static boolean systematicFlatTD(
             FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex,
-            int posX, int posY, final int maxX, final int maxY,
-            Predicate<Match> collect) {
+            int[][] walks, int walkOrigo, Predicate<Match> collect) {
         final int all = grid.width*grid.height;
 //        if (antiIndex == 1) {
 //            System.out.println(minPos + "/" + (all-1));
@@ -553,48 +558,39 @@ public class VaccineRobot {
             empty.fullRun();
         }
 
-        int startY = posY;
-        int realMaxY = Math.min(maxY, grid.height-1);
-        int realMaxX = Math.min(maxX, grid.width-1);
-        for (int x = posX ; x <= realMaxX ; x++) {
+        final int[] walk = walks[antiIndex];
+        if (verbose && antiIndex == 0) {
+            System.err.print("0=(" + walk[walkOrigo]%grid.width + ", " + walk[walkOrigo]/grid.width + ")");
+        }
+        for (int walkIndex = walkOrigo ; walkIndex < walk.length ; walkIndex++) {
             if (verbose && antiIndex == 0) {
-                System.err.print("x=" + x + ": ");
+                System.err.print(".");
             }
-            for (int y = startY; y <= realMaxY; y++) {
-                if (verbose && antiIndex == 0) {
-                    System.err.print(".");
+            antis[antiIndex] = walk[walkIndex];
+            if (antiIndex < antis.length - 1) { // More antis to go
+                if (!systematicFlatTD(grid, empty, antis, antiIndex + 1, walks, walkOrigo+1, collect)) {
+                    return false;
                 }
-                int antiPos = x + y * grid.width;
-//        for (int antiPos = minPos ; antiPos < all-(antis.length-antiIndex-1) ; antiPos++) {
-                antis[antiIndex] = antiPos;
-                if (antiIndex < antis.length - 1) { // More antis to go
-                    int nextX = y == grid.height-1 ? 0 : x;
-                    int nextY = y == grid.height-1 ? 0 : y+1;
-                    if (!systematicFlatTD(grid, empty, antis, antiIndex + 1, nextX, nextY, maxX, maxY, collect)) {
-                        return false;
-                    }
-                    continue;
+                continue;
+            }
+
+            // Reached the bottom
+
+            // Check if the last anti is on a position where it will change things
+            if (!empty.isPositionMarked(antis[antis.length-1])) {
+                continue;
+            }
+
+            grid.clear();
+            grid.setMarks(antis);
+            if (grid.fullRun()) {
+                if (!collect.test(grid.getMatch())) {
+                    return false;
                 }
-
-                // Reached the bottom
-
-                // Check if the last anti is on a position where it will change things
-                if (!empty.isPositionMarked(antis[antis.length-1])) {
-                    continue;
-                }
-
-                grid.clear();
-                grid.setMarks(antis);
-                if (grid.fullRun()) {
-                    if (!collect.test(grid.getMatch())) {
-                        return false;
-                    }
 //                String.format(
 //                        Locale.ENGLISH, "Flat(%3d, %3d) moves=%6d, ms=%6d, antis=%d: %s%n",
 //                        grid.width, grid.height, grid.move, grid.lastRunMS, antis.length, toPosList(antis, grid.width, grid.height));
-                }
             }
-            startY = 0;
         }
         // TODO: Also handle antis.length == 0
         return true;
