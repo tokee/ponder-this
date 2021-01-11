@@ -526,17 +526,13 @@ public class VaccineRobot {
         //empty.fullRun();
         FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
 
-        if (verbose) {
-            System.err.printf(Locale.ENGLISH, "grid(%d, %d), startYs=%s: ", width, height, startYs);
-        }
-
         // TODO: Only uses the first startY
         systematicFlatTD(grid, empty, new int[antiCount], 0, walks, 0, match -> {
             matches.add(match);
             return matches.size() < maxMatches;
         });
         if (verbose) {
-            System.err.println(" " + matches);
+            System.err.println("\n" + matches);
         }
         return matches;
     }
