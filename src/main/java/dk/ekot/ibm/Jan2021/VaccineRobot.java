@@ -20,8 +20,10 @@ import org.apache.commons.logging.Log;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -56,9 +58,21 @@ public class VaccineRobot {
         }
 
         // Show grid with antis
-        if ("-G".equals(args[0]) && args.length == 2) {
-            showMatches(Integer.parseInt(args[1]), 2);
-            return;
+        if ("-G".equals(args[0]) && args.length >= 2) {
+            if (args.length == 2) {
+                showMatches(Integer.parseInt(args[1]), 2);
+                return;
+            }
+            if (args.length == 3) {
+                showMatches(Integer.parseInt(args[1]), 2, Integer.parseInt(args[2]), -1);
+                return;
+            }
+            if (args.length == 4) {
+                showMatches(Integer.parseInt(args[1]), 2, Integer.parseInt(args[2]), Integer.parseInt(args[3]));
+                return;
+            }
+            System.err.println("Too many arguments for -G");
+            System.exit(10);
         }
 
         switch (args.length) {
@@ -75,16 +89,21 @@ public class VaccineRobot {
             default: System.out.println(
                     "Usage: VaccineRobot <threads> <minSide> [maxSide]\n" +
                     "                    -g <side>\n" +
-                    "                    -G <side>\n"
+                    "                    -G <side> [antiIndex] [maxX]\n"
             );
         }
     }
+
     public static void fallbackMain() {
         //threaded(6, 4, 20, 3);
-        threaded(1, 12, 12, 3);
+//        threaded(1, 12, 12, 3);
+//        showMatches(30, 2, -1, 0);
+//        showMatches(30, 2, 1, 0);
         //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
 
+        showMatches(50, 2);
+        checkSpecific(50, 0, 49, 46, 3);
 
 //        findMiddle();
    //     threaded(4, 170, 300, 3);
@@ -122,6 +141,13 @@ public class VaccineRobot {
 //        grid.mark(new Pos(1, 0));
 //        System.out.println(grid.fullRun());
 //        System.out.println(grid);
+    }
+
+    private static void checkSpecific(int side, int a0x, int a0y, int a1x, int a1y) {
+        FlatGrid grid = new FlatGrid(side);
+        grid.setMarks(new Pos(a0x, a0y), new Pos(a1x, a1y));
+        System.out.printf(Locale.ENGLISH, "grid=%dx%d, antis=[(%d, %d), (%d, %d)]: %b%n",
+                          side, side, a0x, a0y, a1x, a1y, grid.fullRun());
     }
 
     private static void findMiddle() {
@@ -210,12 +236,24 @@ public class VaccineRobot {
 
     // Observation: It seems that the first column has more viable antis than first row. So top-down instead of left-right oriented might be faster?
     private static void showMatches(int side, int antis) {
+        showMatches(side, antis, -1, -1);
+    }
+    private static void showMatches(int side, int antis, int antiIndex, int maxX) {
         FlatGrid flat = new FlatGrid(side);
         flat.fullRun();
-        List<Match> matches = systematicFlatTD(side, side, antis, Integer.MAX_VALUE, false);
+        List<Match> matches = getMatchesTD(
+                side, side, antis, Integer.MAX_VALUE, Collections.singletonList(0),
+                0, 0, maxX == -1 ? side : maxX, side);
 
         //matches = matches.stream().filter(match -> match.antis.get(0).x == 0).collect(Collectors.toList());
-        matches.forEach(match -> flat.addMarks(match.antis.toArray(new Pos[0])));
+        matches.stream().
+                peek(match -> {
+                    if (antiIndex != -1) {
+                        List<Pos> newAntis = Collections.singletonList(match.antis.get(antiIndex));
+                        match.antis.clear();
+                        match.antis.addAll(newAntis);
+                    }}).
+                forEach(match -> flat.addMarks(match.antis.toArray(new Pos[0])));
 
         show(flat);
         matches.stream().
@@ -453,6 +491,29 @@ public class VaccineRobot {
         return matches;
     }
 
+    // An array of positions for antibots to try in descending order of priority
+    private int[] getWalk(int width, int height, boolean optimize) {
+        List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
+        Set<Integer> startYsSet = new HashSet<>(startYs);
+
+        int[] walk = new int[width*height];
+        int index = 0;
+        for (int pos: startYs) {
+            walk[index++] = pos;
+        }
+
+        // Plain top-down
+        for (int x = 0 ; x < width ; x++) {
+            for (int y = 0 ; y < height ; y++) {
+                int pos = x + y*width;
+                if (!startYsSet.contains(pos)) {
+                    walk[index++] = pos;
+                }
+            }
+        }
+        return walk;
+    }
+
     private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches,
                                             List<Integer> startYs, int startX, int startY, int maxX, int maxY) {
         final List<Match> matches = new ArrayList<>();
@@ -493,7 +554,7 @@ public class VaccineRobot {
         }
 
         int startY = posY;
-        int realMaxY = Math.min(maxY, grid.height-(antis.length-antiIndex-1)-1);
+        int realMaxY = Math.min(maxY, grid.height-1);
         int realMaxX = Math.min(maxX, grid.width-1);
         for (int x = posX ; x <= realMaxX ; x++) {
             if (verbose && antiIndex == 0) {
