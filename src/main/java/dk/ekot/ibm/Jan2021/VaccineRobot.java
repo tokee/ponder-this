@@ -40,6 +40,8 @@ public class VaccineRobot {
 
     // Overall principle is that each tile on the grid holds bits for its state
 
+    private static final boolean verbose = System.getenv().containsKey("VERBOSE") && Boolean.parseBoolean(System.getenv().get("VERBOSE"));
+
     // 0, 1 & 2 are simply received vaccine doses
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -78,7 +80,8 @@ public class VaccineRobot {
         }
     }
     public static void fallbackMain() {
-        threaded(6, 4, 20, 3);
+        //threaded(6, 4, 20, 3);
+        threaded(1, 12, 12, 3);
         //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
 
@@ -216,7 +219,7 @@ public class VaccineRobot {
 
         show(flat);
         matches.stream().
-                filter(match -> match.antis.get(0).y == match.height/2 || match.antis.get(0).y == match.height/2+1).
+                //filter(match -> match.antis.get(0).y == match.height/2 || match.antis.get(0).y == match.height/2+1).
                 forEach(match -> System.out.println(match.height + ": " + match.antis));
         System.out.println("startYs: " + guessStartYs(side, side));
         System.out.println("****************");
@@ -256,7 +259,7 @@ public class VaccineRobot {
         for (int side = minSide ; side <= maxSide ; side++) {
             final int finalSide = side;
             jobs.add(executor.submit(() -> {
-                for (int antis = 1 ; antis <= maxAntis ; antis++) {
+                for (int antis = 2 ; antis <= maxAntis ; antis++) { // We could do 1, but it is only realistic for small grids
                     int finalAntis = antis;
                     List<List<Match>> results = strategies.stream().
                             map(strategy -> strategy.process(finalSide, finalSide, finalAntis, 1)).
@@ -456,12 +459,18 @@ public class VaccineRobot {
         FlatGrid empty = new FlatGrid(width, height);
         empty.fullRun();
         FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
+
+        if (verbose) {
+            System.err.printf(Locale.ENGLISH, "grid(%d, %d), startYs=%s: ", width, height, startYs);
+        }
         // TODO: Only uses the first startY
-        systematicFlatTD(grid, empty, new int[antiCount], 0,
-                         startX, startY, maxX, maxY, match -> {
+        systematicFlatTD(grid, empty, new int[antiCount], 0, startX, startY, maxX, maxY, match -> {
             matches.add(match);
             return matches.size() < maxMatches;
         });
+        if (verbose) {
+            System.err.println(" " + matches);
+        }
         return matches;
     }
 
@@ -487,7 +496,13 @@ public class VaccineRobot {
         int realMaxY = Math.min(maxY, grid.height-(antis.length-antiIndex-1)-1);
         int realMaxX = Math.min(maxX, grid.width-1);
         for (int x = posX ; x <= realMaxX ; x++) {
+            if (verbose && antiIndex == 0) {
+                System.err.print("x=" + x + ": ");
+            }
             for (int y = startY; y <= realMaxY; y++) {
+                if (verbose && antiIndex == 0) {
+                    System.err.print(".");
+                }
                 int antiPos = x + y * grid.width;
 //        for (int antiPos = minPos ; antiPos < all-(antis.length-antiIndex-1) ; antiPos++) {
                 antis[antiIndex] = antiPos;
