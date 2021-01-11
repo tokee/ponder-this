@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
  */
+@SuppressWarnings("SameParameterValue")
 public class VaccineRobot {
     private static Log log = LogFactory.getLog(VaccineRobot.class);
 
@@ -61,7 +62,7 @@ public class VaccineRobot {
         }
     }
     public static void fallbackMain() {
-//        threaded(1, 4, 4, 3);
+        threaded(6, 4, 20, 3);
         //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
 
@@ -74,7 +75,7 @@ public class VaccineRobot {
 
 //        timeFlatVsTopD();
 
-        timeTopD(30, 60);
+//        timeTopD(30, 60);
           //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
         //countMatches(13, 2);
 
@@ -416,29 +417,32 @@ public class VaccineRobot {
 
     private static List<Match> systematicFlatTD(int width, int height, int antiCount, int maxMatches) {
         List<Integer> startYs = guessStartYs(width, height);
-        List<Match> matches = getMatchesTD(width, height, antiCount, maxMatches, startYs);
+        int startY = startYs.isEmpty() ? 0 : startYs.get(0);
+        List<Match> matches = getMatchesTD(width, height, antiCount, maxMatches, startYs, 0, startY, width-1, height-1);
         if (antiCount < 2) { // No need to try more here
             return matches;
         }
-        if (matches.isEmpty()) {
-            System.out.println("No matches found for " + width + "x" + height + " with startYs=" + startYs + ", rerunning with startY=0");
-            return getMatchesTD(width, height, antiCount, maxMatches, Collections.singletonList(0));
+        if (matches.isEmpty()) { // Try the skipped ys in the first row
+            return getMatchesTD(width, height, antiCount, maxMatches, startYs, 0, 0, 0, startY-1);
         }
         if (matches.get(0).antis.size() > 2) {
             System.out.println("Match with 3 antis " + matches.get(0).antis + " found for " + width + "x" + height +
                                " with startYs=" + startYs + ", rerunning with startY=0");
-            return getMatchesTD(width, height, antiCount, maxMatches, Collections.singletonList(0));
+            List<Match> extras = getMatchesTD(width, height, antiCount, maxMatches, startYs, 0, 0, 0, startY-1);
+            return matches.get(0).antis.size() < extras.get(0).antis.size() ? matches : extras;
         }
         return matches;
     }
 
-    private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches, List<Integer> startYs) {
+    private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches,
+                                            List<Integer> startYs, int startX, int startY, int maxX, int maxY) {
         final List<Match> matches = new ArrayList<>();
         FlatGrid empty = new FlatGrid(width, height);
         empty.fullRun();
         FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
         // TODO: Only uses the first startY
-        systematicFlatTD(grid, empty, new int[antiCount], 0, 0, startYs.isEmpty() ? 0 : startYs.get(0), match -> {
+        systematicFlatTD(grid, empty, new int[antiCount], 0,
+                         startX, startY, maxX, maxY, match -> {
             matches.add(match);
             return matches.size() < maxMatches;
         });
@@ -446,7 +450,9 @@ public class VaccineRobot {
     }
 
     private static boolean systematicFlatTD(
-            FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex, int posX, int posY, Predicate<Match> collect) {
+            FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex,
+            int posX, int posY, final int maxX, final int maxY,
+            Predicate<Match> collect) {
         final int all = grid.width*grid.height;
 //        if (antiIndex == 1) {
 //            System.out.println(minPos + "/" + (all-1));
@@ -462,16 +468,17 @@ public class VaccineRobot {
         }
 
         int startY = posY;
-        int maxY = grid.height-(antis.length-antiIndex-1);
-        for (int x = posX ; x < grid.width ; x++) {
-            for (int y = startY; y < maxY; y++) {
+        int realMaxY = Math.min(maxY, grid.height-(antis.length-antiIndex-1)-1);
+        int realMaxX = Math.min(maxX, grid.width-1);
+        for (int x = posX ; x <= realMaxX ; x++) {
+            for (int y = startY; y <= realMaxY; y++) {
                 int antiPos = x + y * grid.width;
 //        for (int antiPos = minPos ; antiPos < all-(antis.length-antiIndex-1) ; antiPos++) {
                 antis[antiIndex] = antiPos;
                 if (antiIndex < antis.length - 1) { // More antis to go
                     int nextX = y == grid.height-1 ? 0 : x;
                     int nextY = y == grid.height-1 ? 0 : y+1;
-                    if (!systematicFlatTD(grid, empty, antis, antiIndex + 1, nextX, nextY, collect)) {
+                    if (!systematicFlatTD(grid, empty, antis, antiIndex + 1, nextX, nextY, maxX, maxY, collect)) {
                         return false;
                     }
                     continue;
