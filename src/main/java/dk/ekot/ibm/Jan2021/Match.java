@@ -14,6 +14,7 @@
  */
 package dk.ekot.ibm.Jan2021;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,20 +25,20 @@ class Match {
     public final String nature;
     public final int width;
     public final int height;
-    public final int startY;
+    public final List<Integer> startYs;
     public final int moves;
     public final long spendTimeMS;
     public final String visualGrid;
     public final List<Pos> antis;
 
-    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, int[] antis, int startY) {
-        this(nature, width, height, moves, spendTimeMS, visualGrid, Pos.toPosList(antis, width, height), startY);
+    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, int[] antis, List<Integer> startYs) {
+        this(nature, width, height, moves, spendTimeMS, visualGrid, Pos.toPosList(antis, width, height), startYs);
     }
-    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, List<Pos> antis, int startY) {
+    public Match(String nature, int width, int height, int moves, long spendTimeMS, String visualGrid, List<Pos> antis, List<Integer> startYs) {
         this.nature = nature;
         this.width = width;
         this.height = height;
-        this.startY = startY;
+        this.startYs = startYs;
         this.moves = moves;
         this.spendTimeMS = spendTimeMS;
         this.visualGrid = visualGrid;
@@ -45,16 +46,22 @@ class Match {
     }
 
     public String toString() {
-        boolean matchOnStartY = false;
-        for (Pos anti: antis) {
-            if (anti.y == startY && anti.x == 0) {
-                matchOnStartY = true;
-                break;
+        String startYStatus = " *";
+        out:
+        if (startYs.size() > 0) {
+            for (int i = 0 ; i < antis.size() ; i++) {
+               Pos anti = antis.get(i);
+                for (int startY: startYs) {
+                    if (anti.y == startY && anti.x == 0) {
+                        startYStatus = i == 0 ? "" : " -";
+                        break out;
+                    }
+                }
             }
         }
         return String.format(
-                Locale.ENGLISH, "%s(%3d, %3d) ms=%,10d, antis=%d: %s, startY=%3d%s",
-                nature, width, height, spendTimeMS, antis.size(), antis, startY, matchOnStartY ? "" : " *");
+                Locale.ENGLISH, "%s(%3d, %3d) ms=%,10d, antis=%d: %s, startYs=%s%s",
+                nature, width, height, spendTimeMS, antis.size(), antis, startYs, startYStatus);
 
     }
 }

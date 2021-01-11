@@ -54,23 +54,27 @@ public class VaccineRobot {
     }
     public static void fallbackMain() {
 //        threaded(1, 4, 4, 3);
-        threaded(4, 100, 103, 3);
+        //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
 
 
 //        findMiddle();
    //     threaded(4, 170, 300, 3);
-        //threaded(4, 4, 200, 3);
+//        threaded(4, 4, 200, 3);
         //threaded(4, 232, 232, 3);
-//        timeFlat(); // ~10s
         //empties();
 
 //        timeFlatVsTopD();
 
+        timeTopD(30, 60);
           //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
         //countMatches(13, 2);
 
-        // Problem child: TopD(126, 126) ms=116806, antis=2: [(0, 56), (18, 79)], startY=47 *
+        // Problem childs:
+        // TopD( 64,  64) ms=     7,257, antis=2: [(  0,  30), (  0,  38)], startYs=[24, 25] *
+        // TopD( 67,  67) ms=     1,490, antis=2: [(  0,  27), (  0,  42)], startYs=[26] *
+        // TopD( 74,  74) ms=     3,539, antis=2: [(  0,  30), (  0,  53)], startYs=[28, 29] *
+        // TopD(126, 126) ms=116806, antis=2: [(0, 56), (18, 79)], startY=47 *
         // 24 is atypical: No antis to the left of 11 although the empty is there
         // 38 same
         //for (int side = 10 ; side <= 40 ; side++) {
@@ -96,7 +100,7 @@ public class VaccineRobot {
         for (int side: new int[]{64, 74, 96, 98, 110, 112}) {
             threaded(4, side, side, 3);
             showEmpty(side);
-            System.out.println("Begin at " + guessStartY(side, side));
+            System.out.println("startYs: " + guessStartYs(side, side));
             System.out.println("*********************************************************");
         }
     }
@@ -105,12 +109,12 @@ public class VaccineRobot {
      * Creates an empty grid and runs it. Finds the first row with a 0 count to the farthest left.
      * Top-down iterations has a high chance of matches by starting there.
      */
-    private static int guessStartY(int width, int height) {
+    private static List<Integer> guessStartYs(int width, int height) {
         FlatGrid grid = new FlatGrid(width, height);
         if (grid.fullRun()) {
-            return 0; // No antis needed
+            return Collections.singletonList(0);
         }
-        return grid.getRowForLeftmostNontouched();
+        return grid.getRowsForLeftmostNontouched();
     }
 
     private static void showEmpty(int side) {
@@ -160,9 +164,23 @@ public class VaccineRobot {
         }
         System.out.println("Average Flat-time: " + flatMS/(RUNS-SKIPS));
         System.out.println("Average TopD-time: " + TopDMS/(RUNS-SKIPS));
+    }
 
+    private static void timeTopD(int minSide, int maxSide) {
+        int RUNS = 2;
+        int SKIPS = 1;
+        long TopDMS = 0;
+        for (int r = 0 ; r < RUNS ; r++) {
+            long tdms = -System.currentTimeMillis();
+            threaded(1, minSide, maxSide, 3,
+                     Collections.singletonList(VaccineRobot::systematicFlatTD));
+            tdms += System.currentTimeMillis();
 
-
+            if (r < SKIPS) {
+                TopDMS += tdms;
+            }
+        }
+        System.out.println("Average TopD-time: " + TopDMS/(RUNS-SKIPS));
     }
 
     // Observation: It seems that the first column has more viable antis than first row. So top-down instead of left-right oriented might be faster?
@@ -178,7 +196,7 @@ public class VaccineRobot {
         matches.stream().
                 filter(match -> match.antis.get(0).y == match.height/2 || match.antis.get(0).y == match.height/2+1).
                 forEach(match -> System.out.println(match.height + ": " + match.antis));
-        System.out.println("Begin at " + guessStartY(side, side));
+        System.out.println("startYs: " + Arrays.asList(guessStartYs(side, side)));
         System.out.println("****************");
         //matches.forEach(match -> System.out.println(match.antis));
     }
@@ -197,12 +215,6 @@ public class VaccineRobot {
         flat.fullRun();
 
 
-    }
-
-    private static void timeFlat() {
-        long startMS = System.currentTimeMillis();
-        threaded(1, 41, 45, 3);
-        System.out.println("Total time: " + (System.currentTimeMillis()-startMS));
     }
 
     private static void empties() {
@@ -356,8 +368,7 @@ public class VaccineRobot {
 //            System.out.println(minPos + "/" + (all-1));
 //        }
 
-        // Does not seem to speed up
-        if (false && antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
+        if (antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
             empty = new FlatGrid(grid.width, grid.height);
             for (int i = 0 ; i < antis.length-1 ; i++) {
               empty.addMarks(antis[i]);
@@ -396,29 +407,30 @@ public class VaccineRobot {
     }
 
     private static List<Match> systematicFlatTD(int width, int height, int antiCount, int maxMatches) {
-        int startY = guessStartY(width, height);
-        List<Match> matches = getMatchesTD(width, height, antiCount, maxMatches, startY);
+        List<Integer> startYs = guessStartYs(width, height);
+        List<Match> matches = getMatchesTD(width, height, antiCount, maxMatches, startYs);
         if (antiCount < 2) { // No need to try more here
             return matches;
         }
         if (matches.isEmpty()) {
-            System.out.println("No matches found for " + width + "x" + height + " with startY=" + startY + ", rerunning with startY=0");
-            return getMatchesTD(width, height, antiCount, maxMatches, 0);
+            System.out.println("No matches found for " + width + "x" + height + " with startYs=" + startYs + ", rerunning with startY=0");
+            return getMatchesTD(width, height, antiCount, maxMatches, Collections.singletonList(0));
         }
         if (matches.get(0).antis.size() > 2) {
             System.out.println("Match with 3 antis " + matches.get(0).antis + " found for " + width + "x" + height +
-                               " with startY=" + startY + ", rerunning with startY=0");
-            return getMatchesTD(width, height, antiCount, maxMatches, 0);
+                               " with startYs=" + startYs + ", rerunning with startY=0");
+            return getMatchesTD(width, height, antiCount, maxMatches, Collections.singletonList(0));
         }
         return matches;
     }
 
-    private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches, int startY) {
+    private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches, List<Integer> startYs) {
         final List<Match> matches = new ArrayList<>();
         FlatGrid empty = new FlatGrid(width, height);
         empty.fullRun();
-        FlatGrid grid = new FlatGrid(width, height, "TopD", startY);
-        systematicFlatTD(grid, empty, new int[antiCount], 0, 0, startY, match -> {
+        FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
+        // TODO: Only uses the first startY
+        systematicFlatTD(grid, empty, new int[antiCount], 0, 0, startYs.isEmpty() ? 0 : startYs.get(0), match -> {
             matches.add(match);
             return matches.size() < maxMatches;
         });
@@ -459,8 +471,9 @@ public class VaccineRobot {
 
                 // Reached the bottom
 
-                if (!empty.atLeastOneAntiOnMarked(antis)) {
-                    continue; // No need to try as all the anties ar only on non-visited places
+                // Check if the last anti is on a position where it will change things
+                if (!empty.isPositionMarked(antis[antis.length-1])) {
+                    continue;
                 }
 
                 grid.clear();

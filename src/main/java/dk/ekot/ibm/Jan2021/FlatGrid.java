@@ -17,7 +17,10 @@ package dk.ekot.ibm.Jan2021;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  *
@@ -36,7 +39,7 @@ class FlatGrid {
     public final String name;
     public final int width;
     public final int height;
-    private final int startY;
+    private final List<Integer> startYs;
     private final int total;
     private final int[] grid;
 
@@ -60,20 +63,20 @@ class FlatGrid {
         this (width, height, "Flat");
     }
     public FlatGrid(int width, int height, String name) {
-        this(width, height, name, 0);
+        this(width, height, name, Collections.singletonList(0));
     }
-    public FlatGrid(int width, int height, String name, int startY) {
+    public FlatGrid(int width, int height, String name, List<Integer> startYs) {
         this.name = name;
         this.width = width;
         this.height = height;
-        this.startY = startY;
+        this.startYs = startYs;
         total = width * height;
         grid = new int[total];
         maxNonChangingMoves = total;
     }
 
     public Match getMatch() {
-        return new Match(name, width, height, move, lastRunMS, toString(), antis, startY);
+        return new Match(name, width, height, move, lastRunMS, toString(), antis, startYs);
     }
 
     public void setMarks(Pos... antis) {
@@ -282,18 +285,25 @@ class FlatGrid {
         return false;
     }
 
-    public int getRowForLeftmostNontouched() {
+    public List<Integer> getRowsForLeftmostNontouched() {
+        List<Integer> startYs = new ArrayList<>();
         int leftmostX = Integer.MAX_VALUE;
-        int firstY = 0;
         for (int posY = 0; posY < height ; posY++) {
-          for (int posX = 0 ; posX < width && posX < leftmostX ; posX++) {
+          for (int posX = 0 ; posX < width && posX <= leftmostX ; posX++) {
               if (grid[posX + posY*width] == 0) {
+                  if (posX < leftmostX) {
+                      startYs.clear();
+                  }
                   leftmostX = posX;
-                  firstY = posY;
+                  startYs.add(posY);
                   break;
               }
           }
         }
-        return firstY;
+        return startYs;
+    }
+
+    public boolean isPositionMarked(int anti) {
+        return grid[anti] != 0;
     }
 }
