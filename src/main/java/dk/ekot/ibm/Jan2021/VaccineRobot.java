@@ -42,12 +42,24 @@ public class VaccineRobot {
 
     // 0, 1 & 2 are simply received vaccine doses
     public static void main(String[] args) {
-        System.out.println("Length: " + args.length);
+        if (args.length == 0) {
+            fallbackMain();
+            return;
+        }
+
+        // Show grid with no antis
+        if ("-g".equals(args[0]) && args.length == 2) {
+            showEmpty(Integer.parseInt(args[1]));
+            return;
+        }
+
+        // Show grid with antis
+        if ("-G".equals(args[0]) && args.length == 2) {
+            showMatches(Integer.parseInt(args[1]), 2);
+            return;
+        }
+
         switch (args.length) {
-            case 0: {
-                fallbackMain();
-                break;
-            }
             case 2:
             case 3: {
                 int threads = Integer.parseInt(args[0]);
@@ -58,7 +70,11 @@ public class VaccineRobot {
                 threaded(threads, minSide, maxSide, 3);
                 break;
             }
-            default: System.out.println("Usage: VaccineRobot <threads> <minSide> [maxSide]");
+            default: System.out.println(
+                    "Usage: VaccineRobot <threads> <minSide> [maxSide]\n" +
+                    "                    -g <side>\n" +
+                    "                    -G <side>\n"
+            );
         }
     }
     public static void fallbackMain() {
@@ -129,10 +145,7 @@ public class VaccineRobot {
     private static void showEmpty(int side) {
         FlatGrid grid = new FlatGrid(side);
         grid.fullRun();
-        String[] lines = visualiseGridNoCount(grid).split("\n");
-        for (int i = 0 ; i < lines.length ; i++) {
-            System.out.printf(Locale.ENGLISH, "%3d %s%n", i, lines[i]);
-        }
+        show(grid);
     }
 
     private static void show(FlatGrid grid) {
@@ -196,7 +209,7 @@ public class VaccineRobot {
     private static void showMatches(int side, int antis) {
         FlatGrid flat = new FlatGrid(side);
         flat.fullRun();
-        List<Match> matches = systematicFlatTD(side, side, antis, Integer.MAX_VALUE);
+        List<Match> matches = systematicFlatTD(side, side, antis, Integer.MAX_VALUE, false);
 
         //matches = matches.stream().filter(match -> match.antis.get(0).x == 0).collect(Collectors.toList());
         matches.forEach(match -> flat.addMarks(match.antis.toArray(new Pos[0])));
@@ -205,7 +218,7 @@ public class VaccineRobot {
         matches.stream().
                 filter(match -> match.antis.get(0).y == match.height/2 || match.antis.get(0).y == match.height/2+1).
                 forEach(match -> System.out.println(match.height + ": " + match.antis));
-        System.out.println("startYs: " + Arrays.asList(guessStartYs(side, side)));
+        System.out.println("startYs: " + guessStartYs(side, side));
         System.out.println("****************");
         //matches.forEach(match -> System.out.println(match.antis));
     }
@@ -228,11 +241,11 @@ public class VaccineRobot {
 
     private static void empties() {
         for (int side = 4 ; side <= 50 ; side++) {
-            FlatGrid grid = new FlatGrid(side);
-            grid.fullRun();
-            System.out.println(grid);
+            showEmpty(side);
         }
     }
+
+    // ------------------------------------------------------------------------------------------------------
 
     private static void threaded(int threads, int minSide, int maxSide, int maxAntis) {
         threaded(threads, minSide, maxSide, maxAntis, Collections.singletonList(VaccineRobot::systematicFlatTD));
@@ -416,7 +429,10 @@ public class VaccineRobot {
     }
 
     private static List<Match> systematicFlatTD(int width, int height, int antiCount, int maxMatches) {
-        List<Integer> startYs = guessStartYs(width, height);
+        return systematicFlatTD(width, height, antiCount, maxMatches, true);
+    }
+    private static List<Match> systematicFlatTD(int width, int height, int antiCount, int maxMatches, boolean optimize) {
+        List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
         int startY = startYs.isEmpty() ? 0 : startYs.get(0);
         List<Match> matches = getMatchesTD(width, height, antiCount, maxMatches, startYs, 0, startY, width-1, height-1);
         if (antiCount < 2) { // No need to try more here
