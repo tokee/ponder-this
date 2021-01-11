@@ -41,16 +41,21 @@ public class VaccineRobot {
 
     // 0, 1 & 2 are simply received vaccine doses
     public static void main(String[] args) {
-        if (args.length == 0) {
-            fallbackMain();
-            return;
+        switch (args.length) {
+            case 0: {
+                fallbackMain();
+                break;
+            }
+            case 2:
+            case 3: {
+                int threads = Integer.parseInt(args[0]);
+                int minSide = Integer.parseInt(args[1]);
+                int maxSide = args.length == 2 ? minSide : Integer.parseInt(args[2]);
+                threaded(threads, minSide, maxSide, 3);
+                break;
+            }
+            default: System.out.println("Usage: VaccineRobot <threads> <minSide> [maxSide]");
         }
-        if (args.length < 3) {
-            System.out.println("Usage: VaccineRobot <threads> <minSide> <maxSide>");
-            return;
-        }
-
-        threaded(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]), 3);
     }
     public static void fallbackMain() {
 //        threaded(1, 4, 4, 3);
