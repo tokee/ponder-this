@@ -97,7 +97,7 @@ public class VaccineRobot {
     public static void fallbackMain() {
         //threaded(6, 4, 20, 3);
 //        threaded(1, 12, 12, 3);
-//        showMatches(30, 2, -1, 0);
+        showMatches(30, 2, -1, 0);
 //        showMatches(30, 2, 1, 0);
         //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
@@ -114,7 +114,7 @@ public class VaccineRobot {
 //        timeFlatVsTopD();
 
  //       timeTopD(30, 32);
-        timeTopD(30, 60);
+        //timeTopD(30, 60);
           //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
         //countMatches(13, 2);
 
@@ -560,7 +560,9 @@ public class VaccineRobot {
 
         final int[] walk = walks[antiIndex];
         if (verbose && antiIndex == 0) {
-            System.err.print("0=(" + walk[walkOrigo]%grid.width + ", " + walk[walkOrigo]/grid.width + ")");
+            System.err.printf(
+                    Locale.ENGLISH, "\ngrid(%d, %d /%d), 0=(%d, %d)",
+                    grid.width, grid.height, antis.length, walk[walkOrigo]%grid.width, walk[walkOrigo]/grid.width);
         }
         for (int walkIndex = walkOrigo ; walkIndex < walk.length ; walkIndex++) {
             if (verbose && antiIndex == 0) {
