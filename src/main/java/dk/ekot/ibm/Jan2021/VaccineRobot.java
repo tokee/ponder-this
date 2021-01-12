@@ -41,9 +41,11 @@ import java.util.stream.Collectors;
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
  *
- * TODO: Thread inside grids for large complete tests
  * TODO: Figure out earlier termination when walking
  * TODO: Plot processing times
+ * TODO: Split threading up in job/grid so that poor candidates are processed later on inside of grids
+ * TODO: Investigate shortest & longest distance between first antibot and second
+ * TODO: Report timing in CPU-time (multiply wall time with #threads)
  */
 @SuppressWarnings("SameParameterValue")
 public class VaccineRobot {
@@ -132,15 +134,16 @@ public class VaccineRobot {
 //        findMiddle();
    //     threaded(4, 170, 300, 3);
 //        threaded(4, 4, 200, 3);
-        threaded(4, 4, 100, 3);
+//        threaded(4, 4, 100, 3);
         //threaded(4, 232, 232, 3);
         //empties();
 
 //        timeFlatVsTopD();
 
- //       timeTopD(30, 32);
-//        timeTopD(30, 60); // 1800, 2000, 1840, 1850 | 2023, 1840
-          //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
+        //timeTopD(30, 32);
+        timeTopD(64, 64); // 3200, 3500, 3450, 
+        //timeTopD(30, 60); // 1800, 2000, 1840, 1850 | 2023, 1840
+        //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
         //countMatches(13, 2);
 
         // Problem childs:
@@ -249,8 +252,7 @@ public class VaccineRobot {
         long TopDMS = 0;
         for (int r = 0 ; r < RUNS ; r++) {
             long tdms = -System.currentTimeMillis();
-            threaded(1, minSide, maxSide, 3,
-                     Collections.singletonList(VaccineRobot::systematicFlatTD));
+            threaded(1, minSide, maxSide, 3, Collections.singletonList(VaccineRobot::systematicFlatTD));
             tdms += System.currentTimeMillis();
 
             if (r >= SKIPS) {
@@ -457,7 +459,7 @@ public class VaccineRobot {
     public interface Systematic {
         List<Match> process(int width, int height, int antiCount, int maxMatches, ExecutorService executor, int threads);
     }
-    private static List<Match> systematicFlat(int width, int height, int antiCount, int maxMatches, ExecutorService executor, int threads) {
+    private static List<Match> systematicFlat(int width, int height, int antiCount, int maxMatches, ExecutorService executor, final int threads) {
         final List<Match> matches = new ArrayList<>();
 
         FlatGrid empty = new FlatGrid(width, height);
@@ -502,7 +504,7 @@ public class VaccineRobot {
             grid.clear();
             grid.setMarks(antis);
             if (grid.fullRun()) {
-                if (!collect.test(grid.getMatch())) {
+                if (!collect.test(grid.getMatch(1))) {
                     return false;
                 }
 //                String.format(
@@ -518,34 +520,119 @@ public class VaccineRobot {
         return systematicFlatTD(width, height, antiCount, maxMatches, executor, threads, true);
     }
     private static List<Match> systematicFlatTD(int width, int height, int antiCount, int maxMatches, ExecutorService executor, int threads, boolean optimize) {
-        int[] baseWalk = getWalk(width, height, true);
-        int[][] walks = new int[antiCount][];
-        for (int antiIndex = 0 ; antiIndex < antiCount ; antiIndex++) {
-            walks[antiIndex] = baseWalk;
+        List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
+
+        //int[][] firstRow = getWalksFirstRowOnly(width, height, antiCount, startYs);
+        int[][] firstRow = getWalksFirstRowOnly(width, height, antiCount);
+        List<Match> firstRowMatches = getMatchesTD(
+                width, height, antiCount, maxMatches, startYs, firstRow, executor, threads);
+        if (firstRowMatches.size() >= maxMatches) {
+            return firstRowMatches;
+        }
+        if (verbose) {
+            System.err.printf(Locale.ENGLISH, "(%d, %d /%d)_switchToFull_with_%d_matches",
+                              width, height, antiCount, firstRowMatches.size());
         }
 
-        List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
-        return getMatchesTD(width, height, antiCount, maxMatches, startYs, walks, executor, threads);
+        int[][] full = getWalksFull(width, height, antiCount, startYs);
+        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, threads);
     }
 
-    // An array of positions for antibots to try in descending order of priority
-    private static int[] getWalk(int width, int height, boolean optimize) {
-        List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
-        Set<Integer> startYsSet = new HashSet<>(startYs);
+    private static int[][] getWalksFull(int width, int height, int antiCount, List<Integer> startYs) {
+        int[][] walks = new int[antiCount][];
+        int[] walk = getWalkStartY(width, height, startYs);;
+        for (int antiIndex = 0; antiIndex < antiCount; antiIndex++) {
+            walks[antiIndex] = walk;
+        }
+        return walks;
+    }
 
-        int[] walk = new int[width*height];
+    private static int[][] getWalksFirstRowOnly(int width, int height, int antiCount) {
+        int[][] walks = new int[antiCount][];
+        int[] walk = getWalkFirstRowOnly(width, height);
+        for (int antiIndex = 0; antiIndex < antiCount; antiIndex++) {
+            walks[antiIndex] = walk;
+        }
+        return walks;
+    }
+    private static int[][] getWalksFirstRowOnly(int width, int height, int antiCount, List<Integer> startYs) {
+        int[][] walks = new int[antiCount][];
+        int[] walk = getWalkFirstRowOnly(width, height, startYs);
+        for (int antiIndex = 0; antiIndex < antiCount; antiIndex++) {
+            walks[antiIndex] = walk;
+        }
+        return walks;
+    }
+
+    private static int[] getWalkStartY(int width, int height, List<Integer> startYs) {
+        Set<Integer> startYsSet = toFullCoordinateSet(startYs, width);
+
+        int[] walk = new int[width * height];
         int index = 0;
-        for (int pos: startYs) {
-            walk[index++] = pos*width;
+
+        // Calculated starting positions
+        for (int pos: startYsSet) {
+            walk[index++] = pos;
         }
 
         // Plain top-down
-        for (int x = 0 ; x < width ; x++) {
-            for (int y = 0 ; y < height ; y++) {
-                int pos = x + y*width;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int pos = x + y * width;
                 if (!startYsSet.contains(pos)) {
                     walk[index++] = pos;
                 }
+            }
+        }
+        return walk;
+    }
+
+    private static Set<Integer> toFullCoordinateSet(List<Integer> rows, int width) {
+        Set<Integer> full = new HashSet<>(rows.size());
+        for (Integer row: rows) {
+            full.add(row*width);
+        }
+        return full;
+    }
+
+    private static int[] getWalkRowBased(int width, int height) {
+        int[] walk = new int[width * height];
+        int index = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int pos = x + y * width;
+                walk[index++] = pos;
+            }
+        }
+        return walk;
+    }
+
+    private static int[] getWalkFirstRowOnly(int width, int height) {
+        int[] walk = new int[height];
+        int index = 0;
+        for (int y = 0; y < height; y++) {
+            int pos = y * width;
+            walk[index++] = pos;
+        }
+        return walk;
+    }
+
+    private static int[] getWalkFirstRowOnly(int width, int height, List<Integer> startYs) {
+        Set<Integer> startYsSet = toFullCoordinateSet(startYs, width);
+
+        int[] walk = new int[height];
+        int index = 0;
+
+        // Calculated starting positions
+        for (int pos : startYsSet) {
+            walk[index++] = pos;
+        }
+
+        // The rest of first row
+        for (int y = 0; y < height; y++) {
+            int pos = y * width;
+            if (!startYsSet.contains(pos)) {
+                walk[index++] = pos;
             }
         }
         return walk;
@@ -570,23 +657,30 @@ public class VaccineRobot {
                 FlatGrid empty = new FlatGrid(width, height);
                 FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
 
-                systematicFlatTD(grid, empty, new int[antiCount], 0, walks, zeroBotIndex, continueWalk, match -> {
-                    matches.add(match);
-                    if (matches.size() >= maxMatches) {
-                        continueWalk.set(false); // Signal stop to other workers
-                    }
-                    return matches.size() < maxMatches;
-                });
+                systematicFlatTD(grid, empty, new int[antiCount], 0, walks,
+                                 zeroBotIndex, continueWalk, threads, match -> {
+                            matches.add(match);
+                            if (matches.size() >= maxMatches) {
+                                continueWalk.set(false); // Signal stop to other workers
+                            }
+                            return matches.size() < maxMatches;
+                        });
                 return matches;
             }));
         }
-        jobs.forEach(job -> {
-            try {
-                job.get(); // Already collected in matches, but we want to trigger delayed Exceptions
-            } catch (Exception e) {
-                log.error("Failed job", e);
+
+        // Wait for jobs to finish until we have found enough matches
+        for (Future<List<Match>> job: jobs) {
+            if (matches.size() >= maxMatches) {
+                break; // No need to wait more
             }
-        });
+            try {
+                job.get(); // Worst case is still poor. Maybe busy wait for matches to be ok or all jobs isDone()
+            } catch (Exception e) {
+                System.err.println(
+                        "Exception retrieving job result for " + width + "x" + height + ": " + e.getMessage());
+            }
+        }
         if (verbose) {
             System.err.println("\n" + matches);
         }
@@ -595,7 +689,7 @@ public class VaccineRobot {
 
     private static boolean systematicFlatTD(
             FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex,
-            int[][] walks, AtomicInteger walkOrigo, AtomicBoolean continueWalk, Predicate<Match> collect) {
+            int[][] walks, AtomicInteger walkOrigo, AtomicBoolean continueWalk, int threads, Predicate<Match> collect) {
         if (antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
             empty.clear();
             for (int i = 0 ; i < antis.length-1 ; i++) {
@@ -613,7 +707,7 @@ public class VaccineRobot {
             antis[antiIndex] = walk[walkIndex];
             if (antiIndex < antis.length - 1) { // More antis to go
                 if (!systematicFlatTD(grid, empty, antis, antiIndex + 1,
-                                      walks, new AtomicInteger(walkIndex+1), continueWalk, collect)) {
+                                      walks, new AtomicInteger(walkIndex+1), continueWalk, threads, collect)) {
                     return false;
                 }
                 continue;
@@ -629,7 +723,7 @@ public class VaccineRobot {
             grid.clear();
             grid.setMarks(antis);
             if (grid.fullRun()) {
-                if (!collect.test(grid.getMatch())) {
+                if (!collect.test(grid.getMatch(threads))) {
                     return false;
                 }
 //                String.format(
