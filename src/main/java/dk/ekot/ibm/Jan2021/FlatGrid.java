@@ -76,8 +76,8 @@ class FlatGrid {
         maxNonChangingMoves = total;
     }
 
-    public Match getMatch() {
-        return new Match(name, width, height, move, lastRunMS, toString(), antis, startYs);
+    public Match getMatch(int threads) {
+        return new Match(name, width, height, move, lastRunMS*threads, toString(), antis, startYs);
     }
 
     public void setMarks(Pos... antis) {

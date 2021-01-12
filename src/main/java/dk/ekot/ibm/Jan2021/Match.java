@@ -45,6 +45,11 @@ class Match {
     }
 
     public String toString() {
+        return String.format(
+                Locale.ENGLISH, "%s(%3d, %3d) ms=%,10d, antis=%d: %s",
+                nature, width, height, spendTimeMS, antis.size(), antis);
+    }
+    public String toStringStartY() {
         String startYStatus = " *";
         out:
         if (startYs.size() > 0) {
