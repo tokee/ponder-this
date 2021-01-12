@@ -31,6 +31,7 @@ class FlatGrid {
     public static final int RIGHT = 1;
     public static final int DOWN = 2;
     public static final int LEFT = 3;
+    public static final int DIRECTION_MASK = 3;
 
     public static final int ANTI = 15;
 
@@ -146,7 +147,8 @@ class FlatGrid {
             case 0: {
                 lastUpdate = move;
                 grid[pos]++;
-                clockwise();
+                direction++;
+                //clockwise();
                 forward();
                 break;
             }
@@ -154,7 +156,8 @@ class FlatGrid {
                 lastUpdate = move;
                 grid[pos]++;
                 immune++;
-                counterClockwise();
+                direction--;
+                //counterClockwise();
                 forward();
                 break;
             }
@@ -163,7 +166,8 @@ class FlatGrid {
                 break;
             }
             case ANTI: {
-                counterClockwise();
+                direction--;
+                //counterClockwise();
                 forward();
                 break;
             }
@@ -174,7 +178,7 @@ class FlatGrid {
     }
 
     private void forward() {
-        switch (direction) {
+        switch (direction & DIRECTION_MASK) {
             case UP: {
                 if ((posY -= 1) < 0) {
                     posY = height - 1;
@@ -231,7 +235,7 @@ class FlatGrid {
                 int field = grid[x + y * width];
                 sb.append(field == ANTI ? "B" : field);
                 if (pos == x + y * width) {
-                    switch (direction) {
+                    switch (direction & DIRECTION_MASK) {
                         case UP: {
                             sb.append("↑");
                             break;
