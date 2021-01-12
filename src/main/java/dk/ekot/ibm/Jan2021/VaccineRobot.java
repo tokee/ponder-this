@@ -27,6 +27,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
  * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
  *
  * TODO: Thread inside grids for large complete tests
+ * TODO: Figure out earlier termination when walking
  * TODO: Plot processing times
  */
 @SuppressWarnings("SameParameterValue")
@@ -526,14 +529,19 @@ public class VaccineRobot {
 
     private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches,
                                             List<Integer> startYs, int[][] walks) {
-        final List<Match> matches = new ArrayList<>();
+        final List<Match> matches = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger zeroBotIndex = new AtomicInteger(0);
+        AtomicBoolean continueWalk = new AtomicBoolean(true);
+
         FlatGrid empty = new FlatGrid(width, height);
         //empty.fullRun();
         FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
 
-        // TODO: Only uses the first startY
-        systematicFlatTD(grid, empty, new int[antiCount], 0, walks, 0, match -> {
+        systematicFlatTD(grid, empty, new int[antiCount], 0, walks, zeroBotIndex, continueWalk, match -> {
             matches.add(match);
+            if (matches.size() >= maxMatches) {
+                continueWalk.set(false); // Signal stop to other workers
+            }
             return matches.size() < maxMatches;
         });
         if (verbose) {
@@ -544,13 +552,7 @@ public class VaccineRobot {
 
     private static boolean systematicFlatTD(
             FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex,
-            int[][] walks, int walkOrigo, Predicate<Match> collect) {
-        final int all = grid.width*grid.height;
-//        if (antiIndex == 1) {
-//            System.out.println(minPos + "/" + (all-1));
-//        }
-
-        // Does not seem to speed up
+            int[][] walks, AtomicInteger walkOrigo, AtomicBoolean continueWalk, Predicate<Match> collect) {
         if (antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
             empty.clear();
             for (int i = 0 ; i < antis.length-1 ; i++) {
@@ -563,15 +565,19 @@ public class VaccineRobot {
         if (verbose && antiIndex == 0) {
             System.err.printf(
                     Locale.ENGLISH, "\ngrid(%d, %d /%d), 0=(%d, %d)",
-                    grid.width, grid.height, antis.length, walk[walkOrigo]%grid.width, walk[walkOrigo]/grid.width);
+                    grid.width, grid.height, antis.length,
+                    walk[walkOrigo.get()]%grid.width, walk[walkOrigo.get()]/grid.width);
         }
-        for (int walkIndex = walkOrigo ; walkIndex < walk.length ; walkIndex++) {
+
+        int walkIndex;
+        while (continueWalk.get() && (walkIndex = walkOrigo.getAndIncrement()) < walk.length) {
             if (verbose && antiIndex == 0) {
                 System.err.print(".");
             }
             antis[antiIndex] = walk[walkIndex];
             if (antiIndex < antis.length - 1) { // More antis to go
-                if (!systematicFlatTD(grid, empty, antis, antiIndex + 1, walks, walkOrigo+1, collect)) {
+                if (!systematicFlatTD(grid, empty, antis, antiIndex + 1,
+                                      walks, new AtomicInteger(walkIndex+1), continueWalk, collect)) {
                     return false;
                 }
                 continue;
@@ -596,7 +602,7 @@ public class VaccineRobot {
             }
         }
         // TODO: Also handle antis.length == 0
-        return true;
+        return continueWalk.get();
     }
 
     /*
