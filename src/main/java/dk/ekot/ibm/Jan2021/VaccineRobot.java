@@ -33,8 +33,13 @@ import java.util.stream.Collectors;
 // Build with mvn clean compile assembly:single -DskipTests
 // Run with java -jar target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar -h
 
+
+
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
+ *
+ * TODO: Thread inside grids for large complete tests
+ * TODO: Plot processing times
  */
 @SuppressWarnings("SameParameterValue")
 public class VaccineRobot {
@@ -97,7 +102,7 @@ public class VaccineRobot {
     public static void fallbackMain() {
         //threaded(6, 4, 20, 3);
 //        threaded(1, 12, 12, 3);
-        showMatches(30, 2, -1, 0);
+        //showMatches(30, 2, -1, 0);
 //        showMatches(30, 2, 1, 0);
         //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
@@ -114,7 +119,7 @@ public class VaccineRobot {
 //        timeFlatVsTopD();
 
  //       timeTopD(30, 32);
-        //timeTopD(30, 60);
+        timeTopD(30, 60); // 1800, 2000, 1840, 1850 | 2023, 1840
           //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
         //countMatches(13, 2);
 
@@ -219,7 +224,7 @@ public class VaccineRobot {
     }
 
     private static void timeTopD(int minSide, int maxSide) {
-        int RUNS = 2;
+        int RUNS = 5;
         int SKIPS = 1;
         long TopDMS = 0;
         for (int r = 0 ; r < RUNS ; r++) {
@@ -228,7 +233,7 @@ public class VaccineRobot {
                      Collections.singletonList(VaccineRobot::systematicFlatTD));
             tdms += System.currentTimeMillis();
 
-            if (r < SKIPS) {
+            if (r >= SKIPS) {
                 TopDMS += tdms;
             }
         }
