@@ -238,28 +238,26 @@ final class FlatGrid {
 
         switch (direction & DIRECTION_MASK) {
             case UP: {
-                if ((posY -= 1) < 0) {
-                    posY = height - 1;
+                if (posY-- == 0) {
+                    posY = height-1;
                 }
                 break;
             }
             case RIGHT: {
-                posX++;
-                if (posX == width) {
+                if (++posX == width) {
                     posX = 0;
                 }
                 break;
             }
             case DOWN: {
-                if ((posY += 1) == height) {
+                if (++posY == height) {
                     posY = 0;
                 }
                 break;
             }
             case LEFT: {
-                posX--;
-                if (posX < 0) {
-                    posX = width - 1;
+                if (posX-- == 0) {
+                    posX = width-1;
                 }
                 break;
             }
