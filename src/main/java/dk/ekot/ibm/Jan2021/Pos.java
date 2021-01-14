@@ -14,9 +14,6 @@
  */
 package dk.ekot.ibm.Jan2021;
 
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -42,6 +39,10 @@ public class Pos {
             poss.add(new Pos(anti % width, anti / width));
         }
         return poss;
+    }
+
+    public static Pos fromInt(int anti, int width, int height) {
+        return new Pos(anti % width, anti / width);
     }
 
     public void set(int x, int y) {
