@@ -39,20 +39,23 @@ final class FlatGrid {
     public final int height;
     private final List<Integer> startYs;
     private final int total;
+    private final int maxNonChangingMoves;
+
+
     //private final int[] grid;
     final byte[] grid;
 
-    private int[] antis = new int[0];
     private int direction = UP;
     private int pos = 0;
     private int posX = 0;
     private int posY = 0;
     private int move = 0;
     private int lastUpdate = 0;
-    private int marks = 0;
     private int immune = 0; // Fields vaccinated twice
-    private final int maxNonChangingMoves;
+
+    private int marks = 0;
     private long lastRunMS = 0;
+    private int[] antis = new int[0];
 
     public FlatGrid(int edge) {
         this(edge, edge);
@@ -188,7 +191,7 @@ final class FlatGrid {
         move++;
     }
 
-    final void next() {
+    final void nextOld2() {
         move++;
         final int tile = grid[pos];
         if (tile == 2) {
@@ -214,6 +217,55 @@ final class FlatGrid {
         // ANTI
         direction--;
         forward();
+    }
+
+    final void next() {
+        final int tile = grid[pos];
+        if (tile == 0) {
+            lastUpdate = move;
+            grid[pos]++;
+            direction++;
+        } else if (tile == 1) {
+            lastUpdate = move;
+            grid[pos]++;
+            immune++;
+            direction--;
+        } else if (tile == ANTI) {
+            direction--;
+        }
+        // Not shown above: 2, where the bot does not turn
+        // Seems like the JIT is clever enough to see that 2 is the most common case
+
+        switch (direction & DIRECTION_MASK) {
+            case UP: {
+                if ((posY -= 1) < 0) {
+                    posY = height - 1;
+                }
+                break;
+            }
+            case RIGHT: {
+                posX++;
+                if (posX == width) {
+                    posX = 0;
+                }
+                break;
+            }
+            case DOWN: {
+                if ((posY += 1) == height) {
+                    posY = 0;
+                }
+                break;
+            }
+            case LEFT: {
+                posX--;
+                if (posX < 0) {
+                    posX = width - 1;
+                }
+                break;
+            }
+        }
+        pos = posX + posY * width;
+        move++;
     }
 
     final void forward() {
