@@ -14,9 +14,6 @@
  */
 package dk.ekot.ibm.Jan2021;
 
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,7 +22,7 @@ import java.util.List;
 /**
  *
  */
-class FlatGrid {
+final class FlatGrid {
 
     public static final int UP = 0;
     public static final int RIGHT = 1;
@@ -42,7 +39,8 @@ class FlatGrid {
     public final int height;
     private final List<Integer> startYs;
     private final int total;
-    private final int[] grid;
+    //private final int[] grid;
+    final byte[] grid;
 
     private int[] antis = new int[0];
     private int direction = UP;
@@ -72,7 +70,8 @@ class FlatGrid {
         this.height = height;
         this.startYs = startYs;
         total = width * height;
-        grid = new int[total];
+        //grid = new int[total];
+        grid = new byte[total];
         maxNonChangingMoves = total;
     }
 
@@ -119,7 +118,8 @@ class FlatGrid {
 
 
     public void clear() {
-        Arrays.fill(grid, 0);
+        //Arrays.fill(grid, 0);
+        Arrays.fill(grid, (byte)0);
         immune = 0;
         move = 0;
         lastUpdate = 0;
@@ -129,9 +129,20 @@ class FlatGrid {
         posY = 0;
     }
 
-    public boolean fullRun() {
+    public boolean fullRunOld() {
         lastRunMS -= System.currentTimeMillis();
         while (hasNext()) {
+            next();
+        }
+        lastRunMS += System.currentTimeMillis();
+        return allImmune();
+    }
+
+    public boolean fullRun() {
+        lastRunMS -= System.currentTimeMillis();
+        final int immuneGoal = total - marks;
+        //while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
+        while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
             next();
         }
         lastRunMS += System.currentTimeMillis();
@@ -142,7 +153,7 @@ class FlatGrid {
         return !allImmune() && move - maxNonChangingMoves < lastUpdate;
     }
 
-    public void next() {
+    public void nextOld() {
         switch (grid[pos]) {
             case 0: {
                 lastUpdate = move;
@@ -177,7 +188,35 @@ class FlatGrid {
         move++;
     }
 
-    private void forward() {
+    final void next() {
+        move++;
+        final int tile = grid[pos];
+        if (tile == 2) {
+            forward();
+            return;
+        }
+        if (tile == 0) {
+            lastUpdate = move;
+            grid[pos]++;
+            direction++;
+            forward();
+            return;
+        }
+        if (tile == 1) {
+            lastUpdate = move;
+            grid[pos]++;
+            immune++;
+            direction--;
+            //counterClockwise();
+            forward();
+            return;
+        }
+        // ANTI
+        direction--;
+        forward();
+    }
+
+    final void forward() {
         switch (direction & DIRECTION_MASK) {
             case UP: {
                 if ((posY -= 1) < 0) {

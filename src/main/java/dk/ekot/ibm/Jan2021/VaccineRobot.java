@@ -41,11 +41,18 @@ import java.util.stream.Collectors;
 /**
  * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
  *
- * TODO: Figure out earlier termination when walking
  * TODO: Plot processing times
  * TODO: Split threading up in job/grid so that poor candidates are processed later on inside of grids
  * TODO: Investigate shortest & longest distance between first antibot and second
- * TODO: Report timing in CPU-time (multiply wall time with #threads)
+ */
+/*
+ * Timeline (by memory)
+ *
+ * Grid as int[] instead of int[][] for memory locality
+ * Direction as int to avoid conditionals (extract with &)
+ * Start at left corner of rhombus
+ * Start by searching for pairs in column 0, with fallback to full search
+ * Grid as byte[] for better caching
  */
 @SuppressWarnings("SameParameterValue")
 public class VaccineRobot {
@@ -170,7 +177,13 @@ public class VaccineRobot {
 //        timeFlatVsTopD();
 
         //timeTopD(30, 32);
-        deepDive(20, 1, 2, 20*20, 20*20-1);
+        //deepDive(20, 4, 2, 0, 20*20-1);
+        for (int r = 0 ; r < 3 ; r++) {
+            deepDive(355, 8, 2, 355 * 355 - 100, 355 * 355);
+        }
+        // 133s, 144, 134, 134, 130 | 132, 132, 126 | 100, 97, 96 | 94, 93, 87
+        // 1:30 (origo), 1:17 (byte), 1:08 (code cleanup 1)
+
 //        timeTopD(64, 64); // 3200, 3500, 3450,
         //timeTopD(30, 60); // 1800, 2000, 1840, 1850 | 2023, 1840
         //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
@@ -409,9 +422,13 @@ public class VaccineRobot {
                               side, threads, antis, firstAnti0Index, lastAnti0Index);
         }
         ExecutorService gridExecutor = Executors.newFixedThreadPool(threads, ghostFactory);
+        long time = -System.currentTimeMillis();
         List<Match> matches = strategy.process(side, side, antis, 1, gridExecutor, threads, firstAnti0Index, lastAnti0Index);
-        System.out.printf(Locale.ENGLISH, "side=%d, threads=%d, antis=%d, firstAntiIndex=%d, lastAntiIndex=%d, match=%s%n",
-                          side, threads, antis, firstAnti0Index, lastAnti0Index, matches.isEmpty() ? "none" : matches);
+        time += System.currentTimeMillis();
+        System.out.printf(Locale.ENGLISH, "side=%d, threads=%d, antis=%d, firstAntiIndex=%d, lastAntiIndex=%d, " +
+                                          "wallTime=%,dms, CPUTime=%,dms, match=%s%n",
+                          side, threads, antis, firstAnti0Index, lastAnti0Index,
+                          time, time*threads, matches.isEmpty() ? "none" : matches);
     }
 
     /* ****************************************************************************************************************/
@@ -778,10 +795,10 @@ public class VaccineRobot {
                         grid, empty, antis, antiIndex + 1,
                         walks, new AtomicInteger(walkIndex+1), lastAnti0Index, continueWalk, printAnti0,
                         threads, collect)) {
-                    if (verbose && antiIndex == 0) {
-                        System.err.print(printAnti0 ? "</" + walkIndex + ">" :".");
-                    }
                     return false;
+                }
+                if (verbose && antiIndex == 0) {
+                    System.err.print(printAnti0 ? "</" + walkIndex + ">" :".");
                 }
                 continue;
             }
