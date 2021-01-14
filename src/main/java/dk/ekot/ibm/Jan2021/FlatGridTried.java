@@ -22,7 +22,7 @@ import java.util.List;
 /**
  *
  */
-final class FlatGrid {
+final class FlatGridTried {
 
     public static final int UP = 0;
     public static final int RIGHT = 1;
@@ -57,17 +57,17 @@ final class FlatGrid {
     private long lastRunMS = 0;
     private int[] antis = new int[0];
 
-    public FlatGrid(int edge) {
+    public FlatGridTried(int edge) {
         this(edge, edge);
     }
 
-    public FlatGrid(int width, int height) {
+    public FlatGridTried(int width, int height) {
         this (width, height, "Flat");
     }
-    public FlatGrid(int width, int height, String name) {
+    public FlatGridTried(int width, int height, String name) {
         this(width, height, name, Collections.singletonList(0));
     }
-    public FlatGrid(int width, int height, String name, List<Integer> startYs) {
+    public FlatGridTried(int width, int height, String name, List<Integer> startYs) {
         this.name = name;
         this.width = width;
         this.height = height;
@@ -153,8 +153,144 @@ final class FlatGrid {
         return allImmune();
     }
 
+    public final boolean fullRunThrow() {
+        lastRunMS -= System.currentTimeMillis();
+        final int immuneGoal = total - marks;
+        //while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
+
+        try {
+            while (move - maxNonChangingMoves < lastUpdate) {
+                nextThrow();
+            }
+        } catch (Exception e) {
+            // Expected
+        }
+        lastRunMS += System.currentTimeMillis();
+        return allImmune();
+    }
+
+    public final boolean fullRunTrial() {
+        lastRunMS -= System.currentTimeMillis();
+        final int immuneGoal = total - marks;
+        //while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
+        int maxMove = maxNonChangingMoves;
+        while (move != maxMove) {
+            final int tile = grid[pos];
+            if (tile == 0) {
+                maxMove = move + maxNonChangingMoves;
+                grid[pos]++;
+                direction++;
+            } else if (tile == 1) {
+                maxMove = move + maxNonChangingMoves;
+                grid[pos]++;
+                direction--;
+                if (++immune == immuneGoal) {
+                    break;
+                }
+            } else if (tile == ANTI) {
+                direction--;
+            }
+            // Not shown above: 2, where the bot does not turn
+            // Seems like the JIT is clever enough to see that 2 is the most common case
+
+            switch (direction & DIRECTION_MASK) {
+                case UP: {
+                    if (posY-- == 0) {
+                        posY = height-1;
+                    }
+                    break;
+                }
+                case RIGHT: {
+                    if (++posX == width) {
+                        posX = 0;
+                    }
+                    break;
+                }
+                case DOWN: {
+                    if (++posY == height) {
+                        posY = 0;
+                    }
+                    break;
+                }
+                case LEFT: {
+                    if (posX-- == 0) {
+                        posX = width-1;
+                    }
+                    break;
+                }
+            }
+            pos = posX + posY * width;
+            move++;
+        }
+        lastRunMS += System.currentTimeMillis();
+        return allImmune();
+    }
+
     public boolean hasNext() {
         return !allImmune() && move - maxNonChangingMoves < lastUpdate;
+    }
+
+    public void nextOld() {
+        switch (grid[pos]) {
+            case 0: {
+                lastUpdate = move;
+                grid[pos]++;
+                direction++;
+                //clockwise();
+                forward();
+                break;
+            }
+            case 1: {
+                lastUpdate = move;
+                grid[pos]++;
+                immune++;
+                direction--;
+                //counterClockwise();
+                forward();
+                break;
+            }
+            case 2: {
+                forward();
+                break;
+            }
+            case ANTI: {
+                direction--;
+                //counterClockwise();
+                forward();
+                break;
+            }
+            default:
+                throw new IllegalStateException("grid[" + pos + "] was " + grid[pos]);
+        }
+        move++;
+    }
+
+    final void nextOld2() {
+        move++;
+        final int tile = grid[pos];
+        if (tile == 2) {
+            forward();
+            return;
+        }
+        if (tile == 0) {
+            lastUpdate = move;
+            grid[pos]++;
+            direction++;
+            forward();
+            return;
+        }
+        if (tile == 1) {
+            lastUpdate = move;
+            grid[pos]++;
+            immune++;
+            direction--;
+            //counterClockwise();
+            forward();
+            return;
+        }
+        // ANTI
+        direction--;
+        forward();
     }
 
     final void next() {
@@ -204,6 +340,104 @@ final class FlatGrid {
         move++;
     }
 
+    final void nextThrow() {
+        final int tile = grid[pos];
+        if (tile == 0) {
+            lastUpdate = move;
+            grid[pos]++;
+            direction++;
+        } else if (tile == 1) {
+            lastUpdate = move;
+            grid[pos]++;
+            if (++immune == total-marks) {
+                throw new RuntimeException("Fully immune");
+            }
+            direction--;
+        } else if (tile == ANTI) {
+            direction--;
+        }
+        // Not shown above: 2, where the bot does not turn
+        // Seems like the JIT is clever enough to see that 2 is the most common case
+
+        switch (direction & DIRECTION_MASK) {
+            case UP: {
+                if (posY-- == 0) {
+                    posY = height-1;
+                }
+                break;
+            }
+            case RIGHT: {
+                if (++posX == width) {
+                    posX = 0;
+                }
+                break;
+            }
+            case DOWN: {
+                if (++posY == height) {
+                    posY = 0;
+                }
+                break;
+            }
+            case LEFT: {
+                if (posX-- == 0) {
+                    posX = width-1;
+                }
+                break;
+            }
+        }
+        pos = posX + posY * width;
+        if (++move > lastUpdate + maxNonChangingMoves) {
+            throw new RuntimeException("Out of moves");
+        }
+    }
+
+    final void forward() {
+        switch (direction & DIRECTION_MASK) {
+            case UP: {
+                if ((posY -= 1) < 0) {
+                    posY = height - 1;
+                }
+                break;
+            }
+            case RIGHT: {
+                posX++;
+                if (posX == width) {
+                    posX = 0;
+                }
+                break;
+            }
+            case DOWN: {
+                if ((posY += 1) == height) {
+                    posY = 0;
+                }
+                break;
+            }
+            case LEFT: {
+                posX--;
+                if (posX < 0) {
+                    posX = width - 1;
+                }
+                break;
+            }
+        }
+        pos = posX + posY * width;
+        //          System.out.println(this);
+    }
+
+    private void counterClockwise() {
+        direction--;
+        if (direction == UP - 1) {
+            direction = LEFT;
+        }
+    }
+
+    private void clockwise() {
+        direction++;
+        if (direction == LEFT + 1) {
+            direction = UP;
+        }
+    }
+
     public final boolean allImmune() {
         return immune + marks == total;
     }
@@ -242,7 +476,7 @@ final class FlatGrid {
         return sb.toString();
     }
 
-    public boolean atLeastOneAntiOnMarked(FlatGrid empty) {
+    public boolean atLeastOneAntiOnMarked(FlatGridTried empty) {
         for (int pos = 0; pos < total; pos++) {
             if (grid[pos] == ANTI && empty.grid[pos] != 0) {
                 return true;
