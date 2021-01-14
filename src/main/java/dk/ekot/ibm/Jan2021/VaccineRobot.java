@@ -178,15 +178,19 @@ public class VaccineRobot {
 
         //timeTopD(30, 32);
         //deepDive(20, 4, 2, 0, 20*20-1);
-        for (int r = 0 ; r < 3 ; r++) {
-            deepDive(355, 8, 2, 355 * 355 - 100, 355 * 355);
-        }
+//        for (int r = 0 ; r < 3 ; r++) {
+//            deepDive(355, 8, 2, 355 * 355 - 100, 355 * 355);
+//        }
         // 133s, 144, 134, 134, 130 | 132, 132, 126 | 100, 97, 96 | 94, 93, 87
         // 1:30 (origo), 1:17 (byte), 1:08 (code cleanup 1)
 
 //        timeTopD(64, 64); // 3200, 3500, 3450,
         //timeTopD(30, 60); // 1800, 2000, 1840, 1850 | 2023, 1840
         //flatCheck(38, Arrays.asList(new Pos(0, 2), new Pos(5, 28)));
+
+        //[TopD(355, 355) ms=366,505,420, antis=2: [(  7, 329), ( 80, 298)]]
+        flatCheck(355, Arrays.asList(new Pos(7, 329), new Pos(80, 298)));
+
         //countMatches(13, 2);
 
         // Problem childs:
@@ -333,7 +337,7 @@ public class VaccineRobot {
         }
         // TODO: Enable threading
         List<Match> matches = getMatchesTD(side, side, antis, Integer.MAX_VALUE, Collections.singletonList(0), walks,
-                                           executor, threads, 0, side*side-1);
+                                           executor, false, threads,0, side*side-1);
 
         //matches = matches.stream().filter(match -> match.antis.get(0).x == 0).collect(Collectors.toList());
         matches.stream().
@@ -594,7 +598,7 @@ public class VaccineRobot {
         //int[][] firstRow = getWalksFirstRowOnly(width, height, antiCount, startYs);
         int[][] firstRow = getWalksFirstRowOnly(width, height, antiCount);
         List<Match> firstRowMatches = getMatchesTD(
-                width, height, antiCount, maxMatches, startYs, firstRow, executor, threads, 0, width*height-1);
+                width, height, antiCount, maxMatches, startYs, firstRow, executor, false, threads, 0, width*height-1);
         if (firstRowMatches.size() >= maxMatches) {
             return firstRowMatches;
         }
@@ -604,7 +608,7 @@ public class VaccineRobot {
         }
 
         int[][] full = getWalksFull(width, height, antiCount, startYs);
-        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, threads, 0, width*height-1);
+        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, true, threads, 0, width*height-1);
     }
 
     private static List<Match> systematicFlatTDLimited(
@@ -613,7 +617,7 @@ public class VaccineRobot {
         List<Integer> startYs = Collections.singletonList(0);
 
         int[][] full = getWalksFull(width, height, antiCount, startYs);
-        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, threads, firstAnti0Index, lastAnti0Index);
+        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, firstAnti0Index != 0, threads, firstAnti0Index, lastAnti0Index);
     }
 
     private static int[][] getWalksFull(int width, int height, int antiCount, List<Integer> startYs) {
@@ -718,7 +722,7 @@ public class VaccineRobot {
 
     private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches,
                                             List<Integer> startYs, int[][] walks,
-                                            ExecutorService executor, int threads,
+                                            ExecutorService executor, boolean printAnti0, int threads,
                                             int firstAnti0Index, int lastAnti0Index) {
         final List<Match> matches = Collections.synchronizedList(new ArrayList<>());
         AtomicInteger zeroBotIndex = new AtomicInteger(firstAnti0Index);
@@ -737,7 +741,7 @@ public class VaccineRobot {
                 FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
 
                 systematicFlatTDSingle(grid, empty, new int[antiCount], 0, walks,
-                                       zeroBotIndex, lastAnti0Index, continueWalk, firstAnti0Index != 0,
+                                       zeroBotIndex, lastAnti0Index, continueWalk, printAnti0,
                                        threads, match -> {
                             matches.add(match);
                             if (matches.size() >= maxMatches) {
@@ -1004,6 +1008,9 @@ TopD(167, 167) moves=597842, ms=1311401, antis=2: [(0, 29), (0, 65)]
 TopD(168, 168) moves=367820, ms=2975430, antis=2: [(0, 53), (127, 89)]
 TopD(169, 169) moves=591161, ms=1431526, antis=2: [(0, 29), (0, 79)]
 
+
+
+[TopD(355, 355) ms=366,505,420, antis=2: [(  7, 329), ( 80, 298)]]
 
      */
 
