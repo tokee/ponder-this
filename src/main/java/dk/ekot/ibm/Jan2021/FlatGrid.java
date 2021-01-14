@@ -152,6 +152,63 @@ final class FlatGrid {
         return allImmune();
     }
 
+    public final boolean fullRunTrial() {
+        lastRunMS -= System.currentTimeMillis();
+        final int immuneGoal = total - marks;
+        //while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
+        int maxMove = maxNonChangingMoves;
+        while (move != maxMove) {
+            final int tile = grid[pos];
+            if (tile == 0) {
+                maxMove = move + maxNonChangingMoves;
+                grid[pos]++;
+                direction++;
+            } else if (tile == 1) {
+                maxMove = move + maxNonChangingMoves;
+                grid[pos]++;
+                direction--;
+                if (++immune == immuneGoal) {
+                    break;
+                }
+            } else if (tile == ANTI) {
+                direction--;
+            }
+            // Not shown above: 2, where the bot does not turn
+            // Seems like the JIT is clever enough to see that 2 is the most common case
+
+            switch (direction & DIRECTION_MASK) {
+                case UP: {
+                    if (posY-- == 0) {
+                        posY = height-1;
+                    }
+                    break;
+                }
+                case RIGHT: {
+                    if (++posX == width) {
+                        posX = 0;
+                    }
+                    break;
+                }
+                case DOWN: {
+                    if (++posY == height) {
+                        posY = 0;
+                    }
+                    break;
+                }
+                case LEFT: {
+                    if (posX-- == 0) {
+                        posX = width-1;
+                    }
+                    break;
+                }
+            }
+            pos = posX + posY * width;
+            move++;
+        }
+        lastRunMS += System.currentTimeMillis();
+        return allImmune();
+    }
+
     public boolean hasNext() {
         return !allImmune() && move - maxNonChangingMoves < lastUpdate;
     }
