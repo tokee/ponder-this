@@ -46,11 +46,10 @@ final class FlatGrid {
     final byte[] grid;
 
     private int direction = UP;
-    private int pos = 0;
     private int posX = 0;
     private int posY = 0;
     private int move = 0;
-    private int lastUpdate = 0;
+    private int maxMove = 0;
     private int immune = 0; // Fields vaccinated twice
 
     private int marks = 0;
@@ -125,9 +124,8 @@ final class FlatGrid {
         Arrays.fill(grid, (byte)0);
         immune = 0;
         move = 0;
-        lastUpdate = 0;
+        maxMove = maxNonChangingMoves;
         direction = UP;
-        pos = 0;
         posX = 0;
         posY = 0;
     }
@@ -146,7 +144,7 @@ final class FlatGrid {
         final int immuneGoal = total - marks;
         //while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
 
-        while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
+        while (move != maxMove && immune != immuneGoal) {
             next();
         }
         lastRunMS += System.currentTimeMillis();
@@ -154,29 +152,30 @@ final class FlatGrid {
     }
 
     public boolean hasNext() {
-        return !allImmune() && move - maxNonChangingMoves < lastUpdate;
+        return !allImmune() && move < maxMove;
     }
 
     final void next() {
+        final int pos = posX + posY * width;
         final int tile = grid[pos];
         if (tile == 0) {
-            lastUpdate = move;
-            grid[pos]++;
-            direction++;
+            ++grid[pos];
+            ++direction;
+            maxMove = move + maxNonChangingMoves;
         } else if (tile == 1) {
-            lastUpdate = move;
-            grid[pos]++;
-            immune++;
-            direction--;
+            ++grid[pos];
+            ++immune;
+            --direction;
+            maxMove = move + maxNonChangingMoves;
         } else if (tile == ANTI) {
-            direction--;
+            --direction;
         }
         // Not shown above: 2, where the bot does not turn
         // Seems like the JIT is clever enough to see that 2 is the most common case
 
         switch (direction & DIRECTION_MASK) {
             case UP: {
-                if (posY-- == 0) {
+                if (--posY == -1) {
                     posY = height-1;
                 }
                 break;
@@ -194,13 +193,12 @@ final class FlatGrid {
                 break;
             }
             case LEFT: {
-                if (posX-- == 0) {
+                if (--posX == -1) {
                     posX = width-1;
                 }
                 break;
             }
         }
-        pos = posX + posY * width;
         move++;
     }
 
@@ -209,6 +207,7 @@ final class FlatGrid {
     }
 
     public String toString() {
+        final int pos = posX + posY * width;
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < width; y++) {
             for (int x = 0; x < width; x++) {
@@ -291,3 +290,76 @@ final class FlatGrid {
         return grid[anti] != 0;
     }
 }
+
+/*
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,674
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,897
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     8,112
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27    10,490
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    11,694
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    13,464
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,973
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75    10,174
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     8,282
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27    10,569
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    12,643
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    14,098
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     7,388
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,724
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     7,770
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27     9,968
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    10,880
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    12,744
+
+Selective *
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     8,377
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75    11,933
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     9,746
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27    12,583
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    13,874
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    16,212
+
+++x not x++
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,930
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,910
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     8,143
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27    10,379
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    11,481
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    13,312
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,569
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,889
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     7,913
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27    10,196
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    11,270
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    13,079
+
+local pos
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,806
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,362
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     7,516
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27     9,746
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    10,696
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    12,413
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,918
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75    10,249
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     8,354
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27    10,733
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    11,979
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    13,941
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,573
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,343
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     7,622
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27     9,886
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    10,785
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    12,419
+
+ */
