@@ -29,12 +29,7 @@ public class WalkPlanner {
     private static Log log = LogFactory.getLog(WalkPlanner.class);
 
     static int[][] getWalksFull(int width, int height, int antiCount, List<Integer> startYs) {
-        int[][] walks = new int[antiCount][];
-        int[] walk = getWalkStartY(width, height, startYs);;
-        for (int antiIndex = 0; antiIndex < antiCount; antiIndex++) {
-            walks[antiIndex] = walk;
-        }
-        return walks;
+        return asWalks(getWalkStartY(width, height, startYs), antiCount);
     }
 
     private static int[][] getWalksFullRLDT(int width, int height, int antiCount) {
@@ -46,6 +41,31 @@ public class WalkPlanner {
             }
         }
         return asWalks(walk, antiCount);
+    }
+
+    // Based on observation of all solutiond for sizes < 75
+    // col0(TD), rowMax(RL), then LR, TD
+    public static int[][] getWalksFullOrdered(int width, int height, int antiCount) {
+        return asWalks(getWalkFullOrdered(width, height), antiCount);
+    }
+    public static int[] getWalkFullOrdered(int width, int height) {
+        int[] walk = new int[width*height];
+        int index = 0;
+        for (int y = 0 ; y < height ;y++) {
+            walk[index++] = y*width;
+        }
+        for (int x = width-1 ; x > 0 ; x--) {
+            walk[index++] = x + (height-1)*width;
+        }
+        for (int y = 0 ; y < height-1 ;y++) {
+            for (int x = 1 ; x < width ; x++) {
+               walk[index++] = x + y*width;
+            }
+        }
+        if (index != walk.length) {
+            throw new IllegalStateException("Logic error:index is " + index + " but should be " + width*height);
+        }
+        return walk;
     }
 
     // Duplicate walk to all antis
@@ -63,6 +83,7 @@ public class WalkPlanner {
         return asWalks(getWalkFirstRowOnly(width, height, startYs), antiCount);
     }
 
+    // TD,LR starting at the given startYs
     private static int[] getWalkStartY(int width, int height, List<Integer> startYs) {
         Set<Integer> startYsSet = toFullCoordinateSet(startYs, width);
 
@@ -86,6 +107,7 @@ public class WalkPlanner {
         return walk;
     }
 
+    // LR,TD
     static int[] getWalkRowBased(int width, int height) {
         int[] walk = new int[width * height];
         int index = 0;
