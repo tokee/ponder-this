@@ -363,7 +363,7 @@ public class VaccineRobot {
         ExecutorService executor = Executors.newFixedThreadPool(threads, ghostFactory);
         long startMS = System.currentTimeMillis();
         final int antiCount = 2;
-        int[][] walks = getWalksFull(side, side, antiCount, Collections.singletonList(0));
+        int[][] walks = WalkPlanner.getWalksFull(side, side, antiCount, Collections.singletonList(0));
 
         List<Match> matches = getMatchesTD(
                 side, side, antiCount, Integer.MAX_VALUE, Collections.singletonList(0), walks, executor,
@@ -461,7 +461,7 @@ public class VaccineRobot {
                     walkNot0[walkIndex++] = x + y*side;
                 }
             }
-            return asWalks(walkNot0, antis);
+            return WalkPlanner.asWalks(walkNot0, antis);
         }, null);
     }
 
@@ -474,7 +474,7 @@ public class VaccineRobot {
         walkProducer = walkProducer != null ? walkProducer : () -> {
             // Walk everything
             int[][] walks = new int[antis][];
-            int[] walk = getWalkRowBased(side, side);
+            int[] walk = WalkPlanner.getWalkRowBased(side, side);
             for (int antiIndex = 0 ; antiIndex < antis ; antiIndex++) {
                 walks[antiIndex] = walk;
             }
@@ -746,7 +746,7 @@ public class VaccineRobot {
         List<Integer> startYs = optimize ? guessStartYs(width, height) : Collections.singletonList(0);
 
         //int[][] firstRow = getWalksFirstRowOnly(width, height, antiCount, startYs);
-        int[][] firstRow = getWalksFirstRowOnly(width, height, antiCount);
+        int[][] firstRow = WalkPlanner.getWalksFirstRowOnly(width, height, antiCount);
         List<Match> firstRowMatches = getMatchesTD(
                 width, height, antiCount, maxMatches, startYs, firstRow, executor, false, threads, 0, width*height-1);
         if (firstRowMatches.size() >= maxMatches) {
@@ -757,7 +757,7 @@ public class VaccineRobot {
                               width, height, antiCount, firstRowMatches.size());
         }
 
-        int[][] full = getWalksFull(width, height, antiCount, startYs);
+        int[][] full = WalkPlanner.getWalksFull(width, height, antiCount, startYs);
         return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, true, threads, 0, width*height-1);
     }
 
@@ -766,116 +766,8 @@ public class VaccineRobot {
             int firstAnti0Index, int lastAnti0Index) {
         List<Integer> startYs = Collections.singletonList(0);
 
-        int[][] full = getWalksFull(width, height, antiCount, startYs);
+        int[][] full = WalkPlanner.getWalksFull(width, height, antiCount, startYs);
         return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, firstAnti0Index != 0, threads, firstAnti0Index, lastAnti0Index);
-    }
-
-    private static int[][] getWalksFull(int width, int height, int antiCount, List<Integer> startYs) {
-        int[][] walks = new int[antiCount][];
-        int[] walk = getWalkStartY(width, height, startYs);;
-        for (int antiIndex = 0; antiIndex < antiCount; antiIndex++) {
-            walks[antiIndex] = walk;
-        }
-        return walks;
-    }
-
-    private static int[][] getWalksFullRLDT(int width, int height, int antiCount) {
-        int[] walk = new int[width*height];
-        int index = 0;
-        for (int y = height-1 ; y >= 0 ; y--) {
-            for (int x = width-1 ; x >= 0 ; x--) {
-                walk[index++] = x + y*width;
-            }
-        }
-        return asWalks(walk, antiCount);
-    }
-
-    // Duplicate walk to all antis
-    private static int[][] asWalks(int[] walk, int antiCount) {
-        int[][] walks = new int[antiCount][];
-        Arrays.fill(walks, walk);
-        return walks;
-    }
-
-    private static int[][] getWalksFirstRowOnly(int width, int height, int antiCount) {
-        return asWalks(getWalkFirstRowOnly(width, height), antiCount);
-    }
-    private static int[][] getWalksFirstRowOnly(int width, int height, int antiCount, List<Integer> startYs) {
-        return asWalks(getWalkFirstRowOnly(width, height, startYs), antiCount);
-    }
-
-    private static int[] getWalkStartY(int width, int height, List<Integer> startYs) {
-        Set<Integer> startYsSet = toFullCoordinateSet(startYs, width);
-
-        int[] walk = new int[width * height];
-        int index = 0;
-
-        // Calculated starting positions
-        for (int pos: startYsSet) {
-            walk[index++] = pos;
-        }
-
-        // Plain top-down
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                int pos = x + y * width;
-                if (!startYsSet.contains(pos)) {
-                    walk[index++] = pos;
-                }
-            }
-        }
-        return walk;
-    }
-
-    private static Set<Integer> toFullCoordinateSet(List<Integer> rows, int width) {
-        Set<Integer> full = new HashSet<>(rows.size());
-        for (Integer row: rows) {
-            full.add(row*width);
-        }
-        return full;
-    }
-
-    private static int[] getWalkRowBased(int width, int height) {
-        int[] walk = new int[width * height];
-        int index = 0;
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                int pos = x + y * width;
-                walk[index++] = pos;
-            }
-        }
-        return walk;
-    }
-
-    private static int[] getWalkFirstRowOnly(int width, int height) {
-        int[] walk = new int[height];
-        int index = 0;
-        for (int y = 0; y < height; y++) {
-            int pos = y * width;
-            walk[index++] = pos;
-        }
-        return walk;
-    }
-
-    private static int[] getWalkFirstRowOnly(int width, int height, List<Integer> startYs) {
-        Set<Integer> startYsSet = toFullCoordinateSet(startYs, width);
-
-        int[] walk = new int[height];
-        int index = 0;
-
-        // Calculated starting positions
-        for (int pos : startYsSet) {
-            walk[index++] = pos;
-        }
-
-        // The rest of first row
-        for (int y = 0; y < height; y++) {
-            int pos = y * width;
-            if (!startYsSet.contains(pos)) {
-                walk[index++] = pos;
-            }
-        }
-        return walk;
     }
 
     private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches,
