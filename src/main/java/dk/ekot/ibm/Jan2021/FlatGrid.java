@@ -139,20 +139,67 @@ final class FlatGrid {
         return allImmune();
     }
 
-    public boolean fullRun() {
+    public boolean fullRunOld2() {
         lastRunMS -= System.currentTimeMillis();
-        final int immuneGoal = total - marks;
-        //while (immune != immuneGoal && move - maxNonChangingMoves < lastUpdate) {
-
-        while (move != maxMove && immune != immuneGoal) {
+        while (move != maxMove) {
             next();
         }
         lastRunMS += System.currentTimeMillis();
         return allImmune();
     }
 
-    public boolean hasNext() {
-        return !allImmune() && move < maxMove;
+    public boolean fullRun() {
+        lastRunMS -= System.currentTimeMillis();
+        while (move != maxMove) {
+            final int pos = posX + posY * width;
+            final int tile = grid[pos];
+            if (tile == 0) {
+                ++grid[pos];
+                ++direction;
+                maxMove = move + maxNonChangingMoves;
+            } else if (tile == 1) {
+                ++grid[pos];
+                --direction;
+                if (++immune == total-marks) {
+                    break;
+                }
+                maxMove = move+maxNonChangingMoves;
+            } else if (tile == ANTI) {
+                --direction;
+            }
+            // Not shown above: 2, where the bot does not turn
+            // Seems like the JIT is clever enough to see that 2 is the most common case
+
+            switch (direction & DIRECTION_MASK) {
+                case UP: {
+                    if (--posY == -1) {
+                        posY = height-1;
+                    }
+                    break;
+                }
+                case RIGHT: {
+                    if (++posX == width) {
+                        posX = 0;
+                    }
+                    break;
+                }
+                case DOWN: {
+                    if (++posY == height) {
+                        posY = 0;
+                    }
+                    break;
+                }
+                case LEFT: {
+                    if (--posX == -1) {
+                        posX = width-1;
+                    }
+                    break;
+                }
+            }
+            ++move;
+        }
+        lastRunMS += System.currentTimeMillis();
+        return allImmune();
     }
 
     final void next() {
@@ -164,9 +211,8 @@ final class FlatGrid {
             maxMove = move + maxNonChangingMoves;
         } else if (tile == 1) {
             ++grid[pos];
-            ++immune;
             --direction;
-            maxMove = move + maxNonChangingMoves;
+            maxMove = ++immune == total-marks ? move+1 : move+maxNonChangingMoves;
         } else if (tile == ANTI) {
             --direction;
         }
@@ -199,7 +245,11 @@ final class FlatGrid {
                 break;
             }
         }
-        move++;
+        ++move;
+    }
+
+    public boolean hasNext() {
+        return !allImmune() && move < maxMove;
     }
 
     public final boolean allImmune() {
@@ -361,5 +411,23 @@ local pos
       43      11     105       0      12       1       5       3       1      44       3     155      39      27     9,886
       44       6      41       0       8       1       4       3       1      43       1      81      34      26    10,785
       45      10      76       1       8       3       4       3       0      42       2     121      35      26    12,419
+
+localise immunecheck
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     5,974
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,442
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     7,610
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27     9,774
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    10,807
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    13,419
+
+inline
+    side  col0=2  col0=1  rowM=2  rowM=1      tl      tr      br      bl     non   break     all  col0=0  rowM=0        ms
+      40       0      59       0       6       4       4       3       3      42       2      93      34      28     6,036
+      41       8     109       0       6       2       5       7       2     134       4     198      81      75     9,162
+      42       8      31       0      12       1       3       1       0      49       1      78      39      27     7,457
+      43      11     105       0      12       1       5       3       1      44       3     155      39      27     9,468
+      44       6      41       0       8       1       4       3       1      43       1      81      34      26    10,580
+      45      10      76       1       8       3       4       3       0      42       2     121      35      26    12,310
 
  */
