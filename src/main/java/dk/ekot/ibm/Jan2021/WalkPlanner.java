@@ -49,19 +49,53 @@ public class WalkPlanner {
         return asWalks(getWalkFullOrdered(width, height), antiCount);
     }
     public static int[] getWalkFullOrdered(int width, int height) {
+        boolean[] marked = new boolean[width*height];
         int[] walk = new int[width*height];
         int index = 0;
+
+        // column 0
         for (int y = 0 ; y < height ;y++) {
             walk[index++] = y*width;
+            marked[y*width] = true;
         }
+
+        // Bottom row
         for (int x = width-1 ; x > 0 ; x--) {
             walk[index++] = x + (height-1)*width;
+            marked[x + (height-1)*width] = true;
         }
-        for (int y = 0 ; y < height-1 ;y++) {
-            for (int x = 1 ; x < width ; x++) {
-               walk[index++] = x + y*width;
+
+        // Top right & bottom right corners (highest priority to the positions closest to the corners)
+        // cornerWidth formula from eyeballing the result of
+        // for S in $(seq 30 60); do MAX_C0=0 MAX_RM=0 ./antis.sh -G $S ; done | grep -v :
+        int cornerWidth = width/4; // Not ideal if width != height
+        for (int cx = 0 ; cx < cornerWidth ; cx++) {
+            for (int cy = 0 ; cy <= cx ; cy++) {
+                int br = (width-1-cx) + (height-1-cy)*width;
+                if (!marked[br]) {
+                    walk[index++] = br;
+                    marked[br] = true;
+                }
+                int tr = (width-1-cx) + cy*width;
+                if (!marked[tr]) {
+                    walk[index++] = tr;
+                    marked[tr] = true;
+                }
             }
         }
+
+        // Fill in the blanks Left->right, Top->Down (no real strategy yet)
+        for (int y = 0 ; y < height-1 ;y++) {
+            for (int x = 1 ; x < width ; x++) {
+                int pos = x + y*width;
+                if (!marked[pos]) {
+                    walk[index++] = pos;
+                    marked[pos] = true;
+                }
+            }
+        }
+
+        // Check the math
         if (index != walk.length) {
             throw new IllegalStateException("Logic error:index is " + index + " but should be " + width*height);
         }
