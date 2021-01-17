@@ -18,12 +18,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -34,28 +31,44 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-// Build with mvn clean compile assembly:single -DskipTests
-// Run with java -jar target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar -h
+/*
+ *   https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
+ */
 
+/*
+ * Instructions
+ *
+ * Build with
+ *   mvn clean compile assembly:single -DskipTests
+ * Run with
+ *   java -jar target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar -h
+ *
+ * For larger grids (200+) you probably want some feedback while processing. Running
+ *   VERBOSE=true java -jar target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar 20 200 250 | tee results.txt
+ * searches for solutions in grids 200-250, outputting a "." on stderr for each starting antibot until the first column
+ * has been searched for antibots that are both in column 0. After that the strategy is shifted to exhaustive search,
+ * where each starting antibot results in "<antiindex(antiX,antiY)>" (e.g. "<1910(4,198)>") on stderr.
+ * Found solutions (not the verbose output) will be collected in "results.txt".
+ */
 
-
-/**
- * https://www.research.ibm.com/haifa/ponderthis/challenges/January2021.html
+/*
+ *
  *
  * TODO: Plot processing times
  * TODO: Investigate shortest & longest distance between first antibot and second
- * TODO: Strategies: 1) double column 0, 2)single column 0, 3) single row max, 4) single corner(s)? (how large?)
- * TODO: Merge strategies into a single run to avoid redundant visits
+ * TODO: Add corner search
+ * TODO: Investigate secondary bot placement for the different strategies
  */
 /*
- * Timeline (by memory)
+ * Optimization timeline (by memory)
  *
  * Grid as int[] instead of int[][] for memory locality
- * Direction as int to avoid conditionals (extract with &)
- * Start at left corner of rhombus
- * Start by searching for pairs in column 0, with fallback to full search
- * Grid as byte[] for better caching
+ * Inner class: Direction as int to avoid conditionals (extract with &)
+ * Start at left corner of rhombus (does not help with 250+ grids)
+ * Start by searching for pairs in column 0, with fallback to full search (this helped a lot)
+ * Inner structure: Grid as byte[] for better caching
  * If there are no matches in column 0, there probably is at the last row
+ * Inner loop: Remove a few conditionals, use ++i instead of i++, refactor to a single method
  */
 @SuppressWarnings("SameParameterValue")
 public class VaccineRobot {
@@ -63,7 +76,16 @@ public class VaccineRobot {
 
     // Overall principle is that each tile on the grid holds bits for its state
 
-    private static final boolean verbose = System.getenv().containsKey("VERBOSE") && Boolean.parseBoolean(System.getenv().get("VERBOSE"));
+    private static boolean verbose = System.getenv().containsKey("VERBOSE") && Boolean.parseBoolean(System.getenv().get("VERBOSE"));
+    //private static Integer minC0 =
+    private static Integer minC0 = getEnvInt("MIN_C0");
+    private static Integer maxC0 = getEnvInt("MAX_C0");
+    private static Integer minRM = getEnvInt("MIN_RM");
+    private static Integer maxRM = getEnvInt("MAX_RM");
+    private static Integer getEnvInt(String key) {
+        return System.getenv().containsKey(key) ? Integer.parseInt(System.getenv().get(key)) : null;
+    }
+
     private static final ThreadFactory ghostFactory = new ThreadFactory() {
         AtomicInteger threadID = new AtomicInteger(0);
         @Override
@@ -91,7 +113,15 @@ public class VaccineRobot {
             "     Print statistics for antibots in selcted columns & rows\n\n" +
 
             "  -d <side> [threads [antiCount [firstAnti0Index (default 0) [lastAnti0Index (default side^2-1)]]]]\n" +
-            "     Deep-dive (not preliminary column-0 check)";
+            "     Deep-dive (not preliminary column-0 check)\n\n" +
+
+            "Modifiers:\n" +
+            "  VERBOSE=true      Print status at regular intervals\n" +
+            "  MIN_C0=true The minimum amount of antibots in column0 to perform a walk\n" +
+            "  MAX_C0=true The maximum amount of antibots in column0 to perform a walk\n" +
+            "  MIN_RM=true The minimum amount of antibots in the bottom row to perform a walk\n" +
+            "  MAX_RM=true The maximum amount of antibots in the bottom row to perform a walk\n";
+
     // 0, 1 & 2 are simply received vaccine doses
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -199,13 +229,17 @@ public class VaccineRobot {
         //threaded(6, 4, 20, 3);
         //threaded(1, 12, 12, 3);
         //showMatches(30, 2, -1, 0);
-//        showMatches(30, 2, 1, 0);
+
+//        noAnyC0 = true;
+//        threaded(6, 20, 20, 2);
+        showMatches(30, 2, -1, 30);
+
         //threaded(4, 124, 127, 3);
 //         threaded(4, 4, 300, 3);
 
         //showMatches(20, 2, -1, -1, 4);
 
-        positionStats(40, 45, 4);
+       // positionStats(40, 45, 4);
 
         //showMatchesExactly0(20, 2, -1, 2, 2);
         //showMatchesExactly0(20, 2, -1, 2, 1);
@@ -311,33 +345,6 @@ public class VaccineRobot {
         System.out.println("Flat: side=" + side + ", antis=" + antis + " returns " + flat.fullRun());
     }
 
-    private static void timeFlatVsTopD() {
-        int RUNS = 4;
-        int SKIPS = 1;
-        int MIN_SIDE = 30;
-        int MAX_SIDE = 40;
-        long flatMS = 0;
-        long TopDMS = 0;
-        for (int r = 0 ; r < RUNS ; r++) {
-            long fms = -System.currentTimeMillis();
-            threaded(1, MIN_SIDE, MAX_SIDE, 3,
-                     Collections.singletonList(VaccineRobot::systematicFlat));
-            fms += System.currentTimeMillis();
-
-            long tdms = -System.currentTimeMillis();
-            threaded(1, MIN_SIDE, MAX_SIDE, 3,
-                     Collections.singletonList(VaccineRobot::systematicFlatTD));
-            tdms += System.currentTimeMillis();
-
-            if (r < SKIPS) {
-                flatMS += fms;
-                TopDMS += tdms;
-            }
-        }
-        System.out.println("Average Flat-time: " + flatMS/(RUNS-SKIPS));
-        System.out.println("Average TopD-time: " + TopDMS/(RUNS-SKIPS));
-    }
-
     private static void timeTopD(int minSide, int maxSide) {
         int RUNS = 5;
         int SKIPS = 1;
@@ -367,7 +374,8 @@ public class VaccineRobot {
 
         List<Match> matches = getMatchesTD(
                 side, side, antiCount, Integer.MAX_VALUE, Collections.singletonList(0), walks, executor,
-                false, threads,0, side*side-1);
+                false, threads,
+                false, 0, side*side-1);
         final int[][] cornerGrid = getCornerGrid(side);
 
         int[] c0 = new int[3];
@@ -483,7 +491,8 @@ public class VaccineRobot {
 
         List<Match> matches = getMatchesTD(side, side, antis, Integer.MAX_VALUE, Collections.singletonList(0),
                                            walkProducer.get(),
-                                           executor, false, threads,0, side*side-1);
+                                           executor, false, threads,
+                                           false, 0, side*side-1);
 
         FlatGrid flat = new FlatGrid(side);
         flat.fullRun();
@@ -587,36 +596,6 @@ public class VaccineRobot {
 
     /* ****************************************************************************************************************/
 
-    private static void threaded(int threads, int minSide, int maxSide, int minAntis, int maxAntis, boolean compare) {
-        ExecutorService executor = Executors.newSingleThreadExecutor(ghostFactory);
-        ExecutorService gridExecutor = Executors.newFixedThreadPool(threads, ghostFactory);
-        List<Future<String>> jobs = new ArrayList<>(maxSide-minSide+1);
-        for (int side = minSide ; side <= maxSide ; side++) {
-            final int finalSide = side;
-            jobs.add(executor.submit(() -> {
-                for (int antis = minAntis ; antis <= maxAntis ; antis++) {
-                    String base = null;
-                    if (compare) {
-                        base = systematic(finalSide, finalSide, antis);
-                    }
-                    List<Match> matches = systematicFlat(finalSide, finalSide, antis, 1, gridExecutor, threads);
-                    if (!matches.isEmpty()) {
-                        return compare ? base + matches.get(0) : "" + matches.get(0);
-                    }
-                }
-                return null;
-            }));
-        }
-        jobs.forEach(job -> {
-            try {
-                System.out.println(job.get());
-            } catch (Exception e) {
-                log.error("Failed job", e);
-            }
-        });
-        executor.shutdown();
-    }
-
     private static void test4() {
         Grid grid = new Grid(4);
         grid.setMarks(new Pos(3, 0));
@@ -639,100 +618,9 @@ public class VaccineRobot {
         }
     }
 
-    private static String systematic(int width, int height, int antiCount) {
-        Grid grid = new Grid(width, height);
-        Pos[] antis = new Pos[antiCount];
-        for (int i = 0 ; i < antis.length ; i++) {
-            antis[i] = new Pos();
-        }
-        return systematic(grid, antis, 0, 0);
-    }
-    private static String systematic(Grid grid, Pos[] antis, int antiIndex, int minPos) {
-        int all = grid.width*grid.height;
-//        if (antiIndex == 1) {
-//            System.out.println(minPos + "/" + (all-1));
-//        }
-        for (int p = minPos ; p < all-(antis.length-antiIndex-1) ; p++) {
-            antis[antiIndex].x =p % grid.height;
-            antis[antiIndex].y =p / grid.height;
-            if (antiIndex < antis.length-1) {
-                String result = systematic(grid, antis, antiIndex + 1, p + 1);
-                if (result != null) {
-                    return result;
-                }
-                continue;
-            }
-
-            grid.clear();
-            grid.setMarks(antis);
-            if (grid.fullRun()) {
-                return String.format(
-                        Locale.ENGLISH, "Grid(%3d, %3d) moves=%6d, ms=%6d, antis=%d: %s%n",
-                        grid.width, grid.height, grid.move, grid.lastRunMS, antis.length, Arrays.asList(antis));
-            }
-        }
-        return null;
-    }
-
     @FunctionalInterface
     public interface Systematic {
         List<Match> process(int width, int height, int antiCount, int maxMatches, ExecutorService executor, int threads, int... hints);
-    }
-    private static List<Match> systematicFlat(int width, int height, int antiCount, int maxMatches, ExecutorService executor, final int threads, int... hints) {
-        final List<Match> matches = new ArrayList<>();
-
-        FlatGrid empty = new FlatGrid(width, height);
-        empty.fullRun();
-        FlatGrid grid = new FlatGrid(width, height, "Flat");
-        systematicFlat(grid, empty, new int[antiCount], 0, 0, match -> {
-            matches.add(match);
-            return matches.size() < maxMatches;
-        });
-        return matches;
-    }
-    private static boolean systematicFlat(
-            FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex, int minPos, Predicate<Match> collect) {
-        final int all = grid.width*grid.height;
-//        if (antiIndex == 1) {
-//            System.out.println(minPos + "/" + (all-1));
-//        }
-
-        if (antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
-            empty = new FlatGrid(grid.width, grid.height);
-            for (int i = 0 ; i < antis.length-1 ; i++) {
-              empty.addMarks(antis[i]);
-            }
-            empty.fullRun();
-        }
-
-        for (int antiPos = minPos ; antiPos < all-(antis.length-antiIndex-1) ; antiPos++) {
-            antis[antiIndex] = antiPos;
-            if (antiIndex < antis.length-1) { // More antis to go
-                if (!systematicFlat(grid, empty, antis, antiIndex + 1, antiPos + 1, collect)) {
-                    return false;
-                }
-                continue;
-            }
-
-            // Reached the bottom
-
-            if (!empty.atLeastOneAntiOnMarked(antis)) {
-                continue; // No need to try as all the anties ar only on non-visited places
-            }
-
-            grid.clear();
-            grid.setMarks(antis);
-            if (grid.fullRun()) {
-                if (!collect.test(grid.getMatch(1))) {
-                    return false;
-                }
-//                String.format(
-//                        Locale.ENGLISH, "Flat(%3d, %3d) moves=%6d, ms=%6d, antis=%d: %s%n",
-//                        grid.width, grid.height, grid.move, grid.lastRunMS, antis.length, toPosList(antis, grid.width, grid.height));
-            }
-        }
-        // TODO: Also handle antis.length == 0
-        return true;
     }
 
     // hints = [startAnti0Index, [endAnti0Index]
@@ -747,8 +635,9 @@ public class VaccineRobot {
 
         //int[][] firstRow = getWalksFirstRowOnly(width, height, antiCount, startYs);
         int[][] firstRow = WalkPlanner.getWalksFirstRowOnly(width, height, antiCount);
-        List<Match> firstRowMatches = getMatchesTD(
-                width, height, antiCount, maxMatches, startYs, firstRow, executor, false, threads, 0, width*height-1);
+        List<Match> firstRowMatches = getMatchesTD(width, height, antiCount, maxMatches, startYs, firstRow,
+                                                   executor, false, threads,
+                                                   false, 0, width*height-1);
         if (firstRowMatches.size() >= maxMatches) {
             return firstRowMatches;
         }
@@ -757,8 +646,11 @@ public class VaccineRobot {
                               width, height, antiCount, firstRowMatches.size());
         }
 
-        int[][] full = WalkPlanner.getWalksFull(width, height, antiCount, startYs);
-        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, true, threads, 0, width*height-1);
+        //int[][] full = WalkPlanner.getWalksFull(width, height, antiCount, startYs);
+        int[][] full = WalkPlanner.getWalksFullOrdered(width, height, antiCount);
+        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full,
+                            executor, true, threads,
+                            true, 0, width*height-1);
     }
 
     private static List<Match> systematicFlatTDLimited(
@@ -767,12 +659,31 @@ public class VaccineRobot {
         List<Integer> startYs = Collections.singletonList(0);
 
         int[][] full = WalkPlanner.getWalksFull(width, height, antiCount, startYs);
-        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full, executor, firstAnti0Index != 0, threads, firstAnti0Index, lastAnti0Index);
+        return getMatchesTD(width, height, antiCount, maxMatches, startYs, full,
+                            executor, firstAnti0Index != 0, threads,
+                            false, firstAnti0Index, lastAnti0Index);
     }
 
+    /**
+     *
+     * @param width           grid width.
+     * @param height          grid height.
+     * @param antiCount       the number of anitbots.
+     * @param maxMatches      the maximum number of matches to find before returning.
+     * @param startYs         startingY positions, only used for feedback.
+     * @param walks           the walks to follow.
+     * @param executor        the executor for the threads.
+     * @param printAnti0      if true and verbose==true, detailed debug is written for each antibot0 position
+     * @param threads         the number of threads to use.
+     * @param skipCol0Pairs   if true, the test is skipped if all bots are in column 0.
+     * @param firstAnti0Index start index in walks.
+     * @param lastAnti0Index  end index in walks.
+     * @return the matches from the run.
+     */
     private static List<Match> getMatchesTD(int width, int height, int antiCount, int maxMatches,
                                             List<Integer> startYs, int[][] walks,
                                             ExecutorService executor, boolean printAnti0, int threads,
+                                            boolean skipCol0Pairs,
                                             int firstAnti0Index, int lastAnti0Index) {
         final List<Match> matches = Collections.synchronizedList(new ArrayList<>());
         AtomicInteger zeroBotIndex = new AtomicInteger(firstAnti0Index);
@@ -791,7 +702,7 @@ public class VaccineRobot {
                 FlatGrid grid = new FlatGrid(width, height, "TopD", startYs);
 
                 systematicFlatTDSingle(grid, empty, new int[antiCount], 0, walks,
-                                       zeroBotIndex, lastAnti0Index, continueWalk, printAnti0,
+                                       zeroBotIndex, skipCol0Pairs, lastAnti0Index, continueWalk, printAnti0,
                                        threads, match -> {
                             matches.add(match);
                             if (matches.size() >= maxMatches) {
@@ -823,8 +734,8 @@ public class VaccineRobot {
 
     private static boolean systematicFlatTDSingle(
             FlatGrid grid, FlatGrid empty, final int[] antis, int antiIndex,
-            int[][] walks, AtomicInteger walkOrigo, int lastAnti0Index, AtomicBoolean continueWalk,
-            boolean printAnti0,
+            int[][] walks, AtomicInteger walkOrigo, boolean skipCol0Pairs, int lastAnti0Index,
+            AtomicBoolean continueWalk, boolean printAnti0,
             int threads, Predicate<Match> collect) {
         if (antis.length > 1 && antiIndex == antis.length-1) { // Ready to iterate last anti
             empty.clear();
@@ -836,6 +747,7 @@ public class VaccineRobot {
 
         final int[] walk = walks[antiIndex];
         int walkIndex;
+
         while (continueWalk.get() && (walkIndex = walkOrigo.getAndIncrement()) < walk.length) {
             if (antiIndex == 0 && walkIndex > lastAnti0Index) {
                 break;
@@ -847,7 +759,8 @@ public class VaccineRobot {
             if (antiIndex < antis.length - 1) { // More antis to go
                 if (!systematicFlatTDSingle(
                         grid, empty, antis, antiIndex + 1,
-                        walks, new AtomicInteger(walkIndex+1), lastAnti0Index, continueWalk, printAnti0,
+                        walks, new AtomicInteger(walkIndex+1), skipCol0Pairs, lastAnti0Index,
+                        continueWalk, printAnti0,
                         threads, collect)) {
                     return false;
                 }
@@ -859,9 +772,39 @@ public class VaccineRobot {
 
             // Reached the bottom
 
+            // Check for bots in column 0
+            if (skipCol0Pairs || minC0 != null || maxC0 != null) {
+                int col0Count = 0;
+                for (int anti : antis) {
+                    if (anti % grid.width == 0) { // Column 0
+                        col0Count++;
+                    }
+                }
+                if ((skipCol0Pairs && col0Count == antis.length) ||
+                    (minC0 != null && col0Count < minC0) ||
+                    (maxC0 != null && col0Count > maxC0)) {
+                    continue;
+                }
+            }
+
+            // Check for bots in bottom row
+            if (minRM != null || maxRM != null) {
+                int rmCount = 0;
+                int bottomRowOrigo = (grid.height-1)*grid.width;
+                for (int anti : antis) {
+                    if (anti >= bottomRowOrigo) {
+                        rmCount++;
+                    }
+                }
+                if ((minRM != null && rmCount < minRM) ||
+                    (maxRM != null && rmCount > maxRM)) {
+                    continue;
+                }
+            }
+
             // Check if the last anti is on a position where it will change things
             if (!empty.isPositionMarked(antis[antis.length-1])) {
-                continue;
+                continue; // majorLoop
             }
 
             grid.clear();
