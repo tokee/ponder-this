@@ -42,17 +42,19 @@ import java.util.stream.Collectors;
  *   mvn clean compile assembly:single -DskipTests
  * Run with
  *   java -jar target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar -h
+ * to get usage.
  *
  * For larger grids (200+) you probably want some feedback while processing. Running
  *   VERBOSE=true java -jar target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar 20 200 250 | tee results.txt
- * searches for solutions in grids 200-250, outputting a "." on stderr for each starting antibot until the first column
- * has been searched for antibots that are both in column 0. After that the strategy is shifted to exhaustive search,
+ * searches for solutions in grids 200-250.
+ *
+ * The VERBOSE part triggers outputting a "." on stderr for each starting antibot until the first column has been
+ * searched for antibots, where both antibots in column 0. After that the strategy is shifted to exhaustive search,
  * where each starting antibot results in "<antiindex(antiX,antiY)>" (e.g. "<1910(4,198)>") on stderr.
  * Found solutions (not the verbose output) will be collected in "results.txt".
  */
 
 /*
- *
  *
  * TODO: Plot processing times
  * TODO: Investigate shortest & longest distance between first antibot and second
