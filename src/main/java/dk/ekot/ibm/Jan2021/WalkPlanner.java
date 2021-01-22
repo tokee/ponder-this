@@ -28,6 +28,294 @@ import java.util.Set;
 public class WalkPlanner {
     private static Log log = LogFactory.getLog(WalkPlanner.class);
 
+    public static class WalkSingleStep {
+        private final int[] path;
+        private final int antiCount;
+        private final int[] antiIndexes;
+        private boolean depleted = false;
+
+        public WalkSingleStep(int width, int height, int[][] paths, int antiCount) {
+            this(width, height, concat(paths), antiCount);
+        }
+
+        public WalkSingleStep(int width, int height, int[] path, int antiCount) {
+            this.path = path;
+            if (path.length != width*height) {
+                throw new IllegalArgumentException(
+                        "The path must contain all positions for the grid (" + width*height +
+                        ") but contained " + path.length);
+            }
+
+            this.antiCount = antiCount;
+            this.antiIndexes = new int[antiCount];
+
+            for (int ai = 0 ; ai < antiCount ; ai++) {
+                antiIndexes[ai] = antiCount-1-ai;
+            }
+        }
+
+        /**
+         * @return the next tuple of antibot positions to try or null if there are no more tuples.
+         */
+        public int[] next() {
+            return next(new int[antiCount]);
+        }
+        /**
+         * @return the next tuple of antibot positions to try or null if there are no more tuples.
+         */
+        public synchronized int[] next(int[] reuseTuple) {
+            if (depleted) {
+                return null;
+            }
+
+            // Fill the result
+            int[] tuple = reuseTuple == null ? new int[antiCount] : reuseTuple;
+            for (int ai = 0 ; ai < antiCount ; ai++) {
+                tuple[ai] = path[antiIndexes[ai]];
+            }
+
+            // Jump to next valid tuple
+            inc();
+            // Might be depleted now, but that's okay
+            return tuple;
+        }
+
+        // Return true if there are a tuple available
+        private void inc() {
+            for (int ai = antiCount-1 ; ai >= 0 ; ai--) {
+                if (++antiIndexes[ai] == antiIndexes[0] && ai != 0) {
+                  antiIndexes[ai] = 0;
+                } else {
+                    break;
+                }
+            }
+            depleted = antiIndexes[0] >= path.length;
+        }
+
+        private static int[] concat(int[][] paths) {
+            int size = 0;
+            for (int[] ints : paths) {
+                size += ints.length;
+            }
+
+            int[] concatenated = new int[size];
+            int index = 0;
+            for (int[] path : paths) {
+//                System.out.println(Arrays.toString(path));
+                System.arraycopy(path, 0, concatenated, index, path.length);
+                index += path.length;
+            }
+            return concatenated;
+        }
+    }
+
+    public static class Walk {
+        private final List<int[]> paths; // Lengths must sum to width*height
+        private final int[] joinedPath;
+        private final int antiCount;
+        private final int[] antiIndexes;
+        private int antiIndexMax;
+        private boolean depleted = false;
+
+        private int pathIndex;
+        private int pathOrigo = 0;
+
+        public Walk(int width, int height, int[][] paths, int antiCount) {
+            this(width, height, Arrays.asList(paths), antiCount);
+        }
+        public Walk(int width, int height, List<int[]> paths, int antiCount) {
+            this.paths = paths;
+            // Check path lengths
+            int pathsLength = paths.stream().map(path -> path.length).reduce(0, Integer::sum);
+            if (pathsLength != width*height) {
+                throw new IllegalArgumentException(
+                        "The paths must contain all positions for the grid (" + width*height +
+                        ") but contained " + pathsLength);
+            }
+
+            // Single access path
+            joinedPath = new int[width*height];
+            {
+                int joinedIndex = 0;
+                for (int[] path : paths) {
+//                    System.out.println(Arrays.toString(path));
+                    System.arraycopy(path, 0, joinedPath, joinedIndex, path.length);
+                    joinedIndex += path.length;
+                }
+            }
+//            System.out.println(Arrays.toString(joinedPath));
+//            System.out.println("----------");
+            this.antiCount = antiCount;
+            this.antiIndexes = new int[antiCount];
+
+            pathIndex = -1;
+            switchToNextPath();
+        }
+
+        /**
+         * @return the next tuple of antibot positions to try or null if there are no more tuples.
+         */
+        public int[] next() {
+            return next(new int[antiCount]);
+        }
+        /**
+         * @return the next tuple of antibot positions to try or null if there are no more tuples.
+         */
+        public synchronized int[] next(int[] reuseTuple) {
+            if (depleted) {
+                return null;
+            }
+
+            // Fill the result
+            int[] tuple = reuseTuple == null ? new int[antiCount] : reuseTuple;
+            for (int ai = 0 ; ai < antiCount ; ai++) {
+                tuple[ai] = joinedPath[antiIndexes[ai]];
+            }
+//            System.out.println(Arrays.toString(tuple));
+//            System.out.println("DeliverTuple " + antiIndexes[0] + ", " + antiIndexes[1]);
+
+            // Jump to next valid tuple
+
+            inc();
+            // Might be depleted now, but that's okay
+            return tuple;
+        }
+
+        // Return true if there are a tuple available
+        private boolean inc() {
+//            System.out.print("I: " + state());
+            do {
+                incSimple();
+//                System.out.print(" -> " + state());
+            } while (!depleted && !isValid());
+            System.out.println("");
+            return !depleted;
+        }
+
+        private boolean isValid() {
+            //System.out.println("IsValid antiIndexMax=" + antiIndexMax + " " + state());
+            if (antiCount <= 1) {
+                return true;
+            }
+            // Check for duplicates
+            for (int ai = 0 ; ai < antiCount ; ai++) {
+                for (int sub = ai+1 ; sub < antiCount ; sub++) {
+                    if (antiIndexes[sub] == antiIndexes[ai] || antiIndexes[sub] == antiIndexes[0]) {
+                        return false;
+                    }
+                }
+            }
+
+            // Check for overflow with antiMax
+            for (int ai = 1 ; ai < antiCount ; ai++) {
+                if (antiIndexes[ai] > antiIndexMax) {
+                    return false;
+                }
+            }
+
+            // Check for relation to primary if above origo
+            for (int ai = 1 ; ai < antiCount ; ai++) {
+                if (antiIndexes[ai] >= pathOrigo) {
+                    return antiIndexes[ai] > antiIndexes[0];
+                }
+            }
+            return true;
+        }
+
+        private void incSimple() {
+
+            for (int ai = antiCount - 1; ai >= 0; ai--) {
+                ++antiIndexes[ai];
+
+                if (ai == 0) { // Primary
+                    if (antiIndexes[0] == joinedPath.length) { // EOD
+                        depleted = true;
+                        return;
+                    }
+                    if (antiIndexes[0] > antiIndexMax) { // End of segment
+                        switchToNextPath();
+                        return;
+                    }
+                    resetSecondaries(1, pathIndex == 0 ? antiIndexes[ai]+1 : 0);
+//                    System.out.print(" (" + state() + ")");
+                    return;
+                }
+
+                if (!resetSecondaries(ai+1, antiIndexes[ai]+1)) {
+                    continue;
+                }
+
+                if (antiIndexes[ai] <= antiIndexMax) {
+                    return;
+                }
+            }
+        }
+
+        // Return true if all went okay (indexes within boundaries)
+        private boolean resetSecondaries(int startAI, int origo) {
+            for (int ai = startAI ; ai < antiCount ; ai++) {
+                antiIndexes[ai] = ai-startAI+origo;
+                if (antiIndexes[ai] > antiIndexMax) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+
+        private String state(int ai) {
+            return Arrays.toString(antiIndexes) +
+                   //", val=" + IntStream.of(antiIndexes).boxed().map(index -> joinedPath[index]).collect(Collectors.toList()) +
+                   ", i=" + ai + ", origo=" + pathOrigo + ", max=" + antiIndexMax;
+        }
+
+        private String state() {
+            return Arrays.toString(antiIndexes);
+                   //", val=" + IntStream.of(antiIndexes).boxed().map(index -> joinedPath[index]).collect(Collectors.toList()) +
+                   //", i=" + ai + ", origo=" + pathOrigo + ", max=" + antiIndexMax;
+        }
+
+        // Return true if there are a tuple available
+        private boolean switchToNextPath() {
+//            System.out.println("Switching to next with " + antiIndexes[0]);
+            if (pathIndex >= 0) {
+                pathOrigo += paths.get(pathIndex).length;
+            }
+            if (++pathIndex == paths.size()) {
+                depleted = true;
+                return false;
+            }
+            antiIndexMax = pathOrigo+paths.get(pathIndex).length-1;
+            antiIndexes[0] = pathOrigo;
+            int secondaryOrigo = pathIndex == 0 ? 1 : 0;
+            for (int ai = 1 ; ai < antiCount ; ai++) {
+                antiIndexes[ai] = ai-1+secondaryOrigo;
+                if (antiIndexes[ai] > antiIndexMax) {
+                    throw new IllegalStateException("Internal error: The length of the path is too short: " + antiIndexMax);
+                }
+            }
+
+                int[] tuple = new int[antiCount];
+                for (int ai = 0; ai < antiCount; ai++) {
+                    tuple[ai] = joinedPath[antiIndexes[ai]];
+                }
+//                System.out.println("******** Dexexte " + Arrays.toString(tuple));
+            return true;
+        }
+
+        private boolean currentIndexesOKdisabled() {
+            // Check for duplicates
+            for (int i = 0 ; i < antiCount ; i++) {
+                for (int j = i+1 ; j < antiCount ; j++) {
+                    if (antiIndexes[i] == antiIndexes[j]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
     static int[][] getWalksFull(int width, int height, int antiCount, List<Integer> startYs) {
         return asWalks(getWalkStartY(width, height, startYs), antiCount);
     }
