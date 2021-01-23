@@ -339,6 +339,26 @@ final class FlatGrid {
     public boolean isPositionMarked(int anti) {
         return grid[anti] != 0;
     }
+
+    /**
+     * Clears, assigns antis and performs a fullRun.
+     */
+    public boolean fullRun(int[] antis) {
+        clear();
+        setMarks(antis);
+        return fullRun();
+    }
+
+    /**
+     * @return a boolean version of the grid with true for all entries that have been visited.
+     */
+    public boolean[] getVisitedMap() {
+        boolean[] visited = new boolean[grid.length];
+        for (int i = 0 ; i < grid.length ; i++) {
+            visited[i] = grid[i] != 0;
+        }
+        return visited;
+    }
 }
 
 /*
