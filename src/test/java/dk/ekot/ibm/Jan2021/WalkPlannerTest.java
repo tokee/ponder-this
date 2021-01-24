@@ -1,7 +1,6 @@
 package dk.ekot.ibm.Jan2021;
 
 import junit.framework.TestCase;
-import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -98,11 +98,23 @@ public class WalkPlannerTest extends TestCase {
         return walks;
     }
 
-    public void testWalkStridesSimple() {
+    public void testWalkStridesSimple3x3_3_6() {
         int width = 3;
         int height = 3;
         int[] blocks = new int[]{3, 6};
 
+        simpleHelper(width, height, blocks);
+    }
+
+    public void testWalkStridesSimple3x3_4_6() {
+        int width = 3;
+        int height = 3;
+        int[] blocks = new int[]{4, 5};
+
+        simpleHelper(width, height, blocks);
+    }
+
+    private void simpleHelper(int width, int height, int[] blocks) {
         List<int[]> walks = new ArrayList<>();
         int index = 0;
         for (int block : blocks) {
@@ -116,16 +128,29 @@ public class WalkPlannerTest extends TestCase {
         assertWalks(width, height, walks);
     }
 
+    public void testWalkPlanner() {
+        int width = 10;
+        int height = 10;
+        int[][] walks = WalkPlanner.getFullPrioritisedSegments(width, height);
+        //int[][] walks = new int[1][];
+        //walks[0] = WalkPlanner.getWalkFullLRTD(width, height);
+        assertWalks(width, height, Arrays.asList(walks));
+    }
+
     private void assertWalks(int width, int height, List<int[]> walks) {
+        // TODO: Adjust back to 1-3
         for (int antiCount = 1 ; antiCount <=3 ; antiCount++) {
             assertWalks(width, height, walks, antiCount);
         }
     }
     private void assertWalks(int width, int height, List<int[]> walks, int antiCount) {
         int fields = width*height;
-        int expected = antiCount == 1 ? fields :
-                // n! / ((n-k)! * k!)
-                fac(fields) / ((fac(fields-antiCount) * fac(antiCount)));
+
+        assertEquals("The number of positions should match the grid",
+                     Integer.valueOf(width*height), walks.stream().map(sub -> sub.length).reduce(Integer::sum).get());
+        assertAllEntries(width, height, walks);
+
+        int expected = WalkPlanner.combinations(width, height, antiCount);
 
         WalkPlanner.Walk walk = new WalkPlanner.Walk(width, height, walks, antiCount);
         int[] antiPoss = null;
@@ -142,15 +167,32 @@ public class WalkPlannerTest extends TestCase {
 
         List<String> duplicates = findDuplicates(positions);
 
-        if (antiCount == 3) {
+        if (antiCount == 2) {
+            List<String> allExpected = getExpected2(width * height);
+            Collections.sort(allExpected);
             assertEquals("The returned list should contain the expected elements",
-                         listToString(getExpected3(width * height)), listToString(positions));
+                         listToString(allExpected), listToString(positions));
+        }
+
+        if (antiCount == 3) {
+            List<String> allExpected = getExpected3(width * height);
+            Collections.sort(allExpected);
+            assertEquals("The returned list should contain the expected elements",
+                         listToString(allExpected), listToString(positions));
         }
 
         assertEquals("The number of delivered tuples for antiCount=" + antiCount + " should be correct\n" +
                      listToString(positions) + "\n\n" +
-                     duplicates,
-                     expected, posCount);
+                     duplicates, expected, posCount);
+    }
+
+    private void assertAllEntries(int width, int height, List<int[]> walks) {
+        int[] joined = WalkPlanner.getJoinedPath(width, height, walks);
+        Arrays.sort(joined);
+        for (int i = 0 ; i < width*height ; i++) {
+            assertEquals("The entry " + i + " in array of length " + joined.length + " should be as expected",
+                         i, joined[i]);
+        }
     }
 
     private String listToString(List<String> positions) {
@@ -162,12 +204,22 @@ public class WalkPlannerTest extends TestCase {
         return positions.stream().filter(element -> !set.add(element)).collect(Collectors.toList());
     }
 
-    private int fac(int fields) {
-        int factorial = 1;
+    private long fac(int fields) {
+        long factorial = 1;
         for (int i = 2 ; i <= fields ; i++) {
             factorial *= i;
         }
         return factorial;
+    }
+
+    private List<String> getExpected2(int fields) {
+        List<String> result = new ArrayList<>();
+        for (int one = 0 ; one < fields-1; one++) {
+            for (int two = one+1 ; two < fields; two++) {
+                result.add("[" + one + ", " + two + "]");
+            }
+        }
+        return result;
     }
 
     public List<String> getExpected3(int fields) {

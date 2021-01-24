@@ -14,28 +14,28 @@
  */
 package dk.ekot.ibm.Jan2021;
 
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.logging.Log;
-
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Cache for checking whether antibots can make viable outcomes.
  * The first antibot in a given tuple is considered the major bot
  * and is used as key for the cache.
  */
-public class NoGoCache {
+public class ViabilityChecker {
+    private static final int MAX_ENTRIES_DEFAULT = 1000;
     private final int width;
     private final int height;
     private final int maxEntries;
     private final FlatGrid emptyFinder;
+    private final Future<boolean[]> noAntisMap;
     private final Map<Integer, Future<boolean[]>> emptyMaps = new LinkedHashMap<Integer, Future<boolean[]>>() {
         @Override
         protected boolean removeEldestEntry(Map.Entry eldest) {
@@ -51,14 +51,27 @@ public class NoGoCache {
             return t;
         }
     });
+    private final AtomicLong viables = new AtomicLong();
+    private final AtomicLong nonViables = new AtomicLong();
+    private final AtomicLong emptyCreated = new AtomicLong();
 
-    public NoGoCache(int width, int height, int maxEntries) {
+    public ViabilityChecker(int width, int height) {
+        this(width, height, MAX_ENTRIES_DEFAULT);
+    }
+    public ViabilityChecker(int width, int height, int maxEntries) {
         this.width = width;
         this.height = height;
         this.maxEntries = maxEntries;
         emptyFinder = new FlatGrid(width, height);
+        noAntisMap = executor.submit(() -> {
+            synchronized (emptyFinder) {
+                emptyFinder.clear();
+                emptyFinder.fullRun();
+                emptyCreated.incrementAndGet();
+                return emptyFinder.getVisitedMap();
+            }
+        });
     }
-
 
     public boolean isViable(int[] antiBots) {
         final int primary = antiBots[0];
@@ -66,14 +79,18 @@ public class NoGoCache {
         synchronized (emptyMaps) {
             map = emptyMaps.get(primary);
             if (map == null) {
-                map = executor.submit(new Callable<boolean[]>() {
-                    @Override
-                    public boolean[] call() throws Exception {
-                        // TODO: This is a bottleneck. We should have a pool of grids
-                        synchronized (emptyFinder) {
-                            emptyFinder.fullRun(new int[]{primary});
-                            return emptyFinder.getVisitedMap();
-                        }
+                boolean isInNoAntis;
+                try {
+                    isInNoAntis = noAntisMap.get()[primary];
+                } catch (Exception e) {
+                    throw new RuntimeException("Internal error: Exception while requesting noAntisMap", e);
+                }
+                map = !isInNoAntis ? noAntisMap : executor.submit(() -> {
+                    // TODO: This is a bottleneck. We should have a pool of grids
+                    synchronized (emptyFinder) {
+                        emptyFinder.fullRun(new int[]{primary});
+                        emptyCreated.incrementAndGet();
+                        return emptyFinder.getVisitedMap();
                     }
                 });
             }
@@ -81,7 +98,8 @@ public class NoGoCache {
         }
         for (int ai = 1 ; ai < antiBots.length ; ai++) {
             try {
-                if (map.get()[ai]) {
+                if (map.get()[antiBots[ai]]) {
+                    viables.incrementAndGet();
                     return true;
                 }
             } catch (Exception e) {
@@ -89,6 +107,27 @@ public class NoGoCache {
                 throw new RuntimeException("Exception while getting result", e);
             }
         }
+        nonViables.incrementAndGet();
         return false;
+    }
+
+    // ViabilityChecker(calls=62795, viable=58824, non_viable=3971, gridwalks=258)
+    // TopD(106, 106) ms=    40,068, antis=2: [( 99,  99), (  0,  54)]
+    // ViabilityChecker(calls=62794, viable=58823, non_viable=3971, gridwalks=258)
+    // TopD(106, 106) ms=    40,398, antis=2: [( 99,  99), (  0,  54)]
+
+    // ViabilityChecker(calls=62799, viable=58828, non_viable=3971, checkGridBuilds=232)
+    // TopD(106, 106) ms=    38,928, antis=2: [( 99,  99), (  0,  54)]
+    public String toString() {
+        return String.format(Locale.ROOT, "ViabilityChecker(calls=%d, viable=%d, non_viable=%d, checkGridBuilds=%d)",
+                             viables.get() + nonViables.get(), viables.get(), nonViables.get(), emptyCreated.get());
+    }
+
+    public long getViableCount() {
+        return viables.get();
+    }
+
+    public long getNonViableCount() {
+        return nonViables.get();
     }
 }
