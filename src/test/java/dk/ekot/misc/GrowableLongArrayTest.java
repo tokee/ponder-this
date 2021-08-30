@@ -19,7 +19,7 @@ import static org.junit.Assert.*;
  *
  */
 public class GrowableLongArrayTest {
-
+/*
     @Test
     public void testTrivial() {
         GrowableByteArray la = new GrowableByteArray();
@@ -36,4 +36,6 @@ public class GrowableLongArrayTest {
         la.set(index, 89);
         assertEquals("At index " + index + " (> Integer.MAX_VALUE), the value should be correct", 89, la.get(index));
     }
+    */
+
 }
