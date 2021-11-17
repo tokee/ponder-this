@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,6 +34,42 @@ public class WalkPlannerTest extends TestCase {
             walk[i] = i;
         }
         assertWalks(width, height, Collections.singletonList(walk));
+    }
+
+    public void testSpeed() {
+        int side = 193;
+        long init = -System.currentTimeMillis();
+        WalkPlanner.Walk walk = WalkPlanner.getFullSegmentedWalk(side, side, 2);
+        init += System.currentTimeMillis();
+
+        long empty = -System.currentTimeMillis();
+        int[] reuse = new int[2];
+        int count = 0;
+        while ((reuse = walk.next(reuse)) != null) {
+            count++;
+        }
+        empty += System.currentTimeMillis();
+        System.out.println("Walking " + side + "x" + side + ", steps=" + count + ", invalids=" + walk.getInvalids() +
+                           ", init=" + init + "ms, empty=" + empty + "ms");
+
+        long oldFor = -System.currentTimeMillis();
+        reuse = new int[2];
+        count = 0;
+        int dummy = 0;
+        for (int x = 0 ; x < side*side-1 ; x++) {
+            for (int y = x+1; y < side * side; y++) {
+                reuse[0] = x;
+                reuse[1] = y;
+                dummy = reuse[0] + reuse[1];
+                count++;
+            }
+        }
+        if (dummy == 87) {
+            throw new IllegalStateException("JIT-sabotage");
+        }
+        oldFor += System.currentTimeMillis();
+        System.out.println("Old-foring " + side + "x" + side + ", steps=" + count + ", empty=" + oldFor + "ms");
+
     }
 
     public void testWalkSingleStep() {

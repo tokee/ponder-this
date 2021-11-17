@@ -17,6 +17,7 @@ package dk.ekot.ibm.Jan2021;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +51,7 @@ public class WalkPlanner {
 
         private long pos = 0; // Delivered positions
         private int pathOrigo = 0;
+        private long invalids = 0; // For debugging
 
         public Walk(int width, int height, int[][] paths, int antiCount) {
             this(width, height, Arrays.asList(paths), antiCount);
@@ -95,6 +97,10 @@ public class WalkPlanner {
 
         public long getPos() {
             return pos;
+        }
+
+        public long getInvalids() {
+            return invalids;
         }
 
         /**
@@ -146,7 +152,7 @@ public class WalkPlanner {
                 incSimple();
 //                System.out.println(" -> " + state());
             } while (!depleted && !isValid());
-            //System.out.println(" -> " + state());
+//            System.out.print(", " + state());
             //System.out.println("");
             return !depleted;
         }
@@ -164,58 +170,9 @@ public class WalkPlanner {
                     return true;
                 }
             }
-
+            ++invalids;
+            System.out.println("I: " + state() + " pathOrigo=" + pathOrigo + ", antiIndexMax=" + antiIndexMax);
             return false;
-/*            // Check for duplicates
-            for (int ai = 0 ; ai < antiCount ; ai++) {
-                for (int sub = ai+1 ; sub < antiCount ; sub++) {
-                    if (antiIndexes[sub] == antiIndexes[ai] || antiIndexes[sub] == antiIndexes[0]) {
-                        return false;
-                    }
-                }
-            }
-
-            // Check for overflow with antiMax
-            for (int ai = 1 ; ai < antiCount ; ai++) {
-                if (antiIndexes[ai] > antiIndexMax) {
-                    return false;
-                }
-            }
-
-            // Check for relation to primary if above origo
-            for (int ai = 1 ; ai < antiCount ; ai++) {
-                if (antiIndexes[ai] >= pathOrigo) {
-                    return antiIndexes[ai] > antiIndexes[0];
-                }
-            }           */
-        }
-
-        private void incSimpleOld() {
-            for (int ai = antiCount - 1; ai >= 0; ai--) {
-                ++antiIndexes[ai];
-
-                if (ai == 0) { // Primary
-                    if (antiIndexes[0] == joinedPath.length) { // EOD
-                        depleted = true;
-                        return;
-                    }
-                    if (antiIndexes[0] > antiIndexMax) { // End of segment
-                        switchToNextPath();
-                        return;
-                    }
-                    resetSecondaries(1, pathIndex == 0 ? antiIndexes[ai]+1 : 0);
-//                    System.out.print(" (" + state() + ")");
-                    return;
-                }
-
-                if (!resetSecondaries(ai+1, antiIndexes[ai]+1)) {
-                    continue;
-                }
-
-                if (antiIndexes[ai] <= antiIndexMax) {
-                    return;
-                }
-            }
         }
 
         private void incSimple() {
@@ -236,17 +193,24 @@ public class WalkPlanner {
                         //switchToNextPath();
                         //return;
                         resetSecondaries(1, 1);
+                        if (pathOrigo > antiCount) {
+                            antiIndexes[antiIndexes.length-1] = pathOrigo; // Make it valid
+                        }
                         continue;
                     }
                     
                     //resetSecondaries(1, antiIndexes[0] < pathOrigo ? pathOrigo-antiCount+2 : antiIndexes[0]+1);
                     //resetSecondaries(1, pathIndex == 0 ? antiIndexes[0]+1 : 0);
                     resetSecondaries(1, antiIndexes[0]+1);
+                    if (pathOrigo > antiCount) {
+                        antiIndexes[antiIndexes.length-1] = pathOrigo; // Make it valid
+                    }
 //                    System.out.print(" (" + state() + ")");
                     return;
                 }
 
-                if (!resetSecondaries(ai+1, antiIndexes[ai]+1)) {
+                // Just for speed up: ai != antiCount-1
+                if (ai != antiCount-1 && !resetSecondaries(ai+1, antiIndexes[ai]+1)) {
                     continue;
                 }
 
@@ -449,86 +413,101 @@ public class WalkPlanner {
     }
 
     public static int[][] getFullPrioritisedSegments(int width, int height) {
+        return getFullPrioritisedSegmentsList(width, height).toArray(new int[0][0]);
+    }
+    public static List<int[]> getFullPrioritisedSegmentsList(int width, int height) {
         boolean[] marked = new boolean[width*height];
-        int[][] full = new int[4][];
+        List<int[]> full = new ArrayList<>();
 
-        { // column 0
-            int index = 0;
-            int[] walk = new int[height];
-            for (int y = 0; y < height; y++) {
-                walk[index++] = y * width;
-                marked[y * width] = true;
-            }
-            full[0] = walk;
-            if (index != walk.length) {
-                throw new IllegalStateException("full[0] should contain " + walk.length + " positions but was " + index);
-            }
-        }
-
-        { // Bottom row
-            int index = 0;
-            int[] walk = new int[width-1];
-            for (int x = width - 1; x > 0; x--) {
-                walk[index++] = x + (height - 1) * width;
-                marked[x + (height - 1) * width] = true;
-            }
-            full[1] = walk;
-            if (index != walk.length) {
-                throw new IllegalStateException("full[1] should contain " + walk.length + " positions but was " + index);
-            }
-        }
-
-        {
-            // Top right & bottom right corners (highest priority to the positions closest to the corners)
-            // cornerWidth formula from eyeballing the result of
-            // for S in $(seq 30 60); do MAX_C0=0 MAX_RM=0 ./antis.sh -G $S ; done | grep -v :
-            int[] tmpWalk = new int[width * height];
-            int index = 0;
-            int cornerWidth = width / 4; // Not ideal if width != height
-            for (int cx = 0; cx < cornerWidth; cx++) {
-                for (int cy = 0; cy <= cx; cy++) {
-                    int br = (width - 1 - cx) + (height - 1 - cy) * width;
-                    if (!marked[br]) {
-                        tmpWalk[index++] = br;
-                        marked[br] = true;
-                    }
-                    int tr = (width - 1 - cx) + cy * width;
-                    if (!marked[tr]) {
-                        tmpWalk[index++] = tr;
-                        marked[tr] = true;
-                    }
-                }
-            }
-
-            int[] walk = new int[index];
-            System.arraycopy(tmpWalk, 0, walk, 0, index);
-            full[2] = walk;
-       }
-
-        { // Fill in the blanks Left->right, Top->Down (no real strategy yet)
-            int[] tmpWalk = new int[width * height];
-            int index = 0;
-            for (int y = 0; y < height ; y++) {
-                for (int x = 1; x < width; x++) {
-                    int pos = x + y * width;
-                    if (!marked[pos]) {
-                        tmpWalk[index++] = pos;
-                        marked[pos] = true;
-                    }
-                }
-            }
-            int[] walk = new int[index];
-            System.arraycopy(tmpWalk, 0, walk, 0, index);
-            full[3] = walk;
-        }
+        addColumn0(width, height, marked, full);
+//        addBottomRow(width, height, marked, full);
+//        addRightCorners(width, height, marked, full);
+        fillBlanksLRTD(width, height, marked, full);
 
         // Check the math
-        int allSegmentsLengths = full[0].length + full[1].length + full[2].length + full[3].length;
-        if (allSegmentsLengths != width*height) {
-            throw new IllegalStateException("Logic error: allSegmentsLengths is " + allSegmentsLengths +
-                                            " but should be " + width*height);
-        }
+        checkSize(width, height, full);
         return full;
+    }
+
+    private static void checkSize(int width, int height, List<int[]> full) {
+        int allSegmentsLengths = full.stream().map(segment -> segment.length).reduce(Integer::sum).get();
+        if (allSegmentsLengths != width * height) {
+            throw new IllegalStateException("Logic error: allSegmentsLengths is " + allSegmentsLengths +
+                                            " but should be " + width * height);
+        }
+    }
+
+    private static void fillBlanksLRTD(int width, int height, boolean[] marked, List<int[]> full) {
+        // Fill in the blanks Left->right, Top->Down (no real strategy yet)
+        int[] tmpWalk = new int[width * height];
+        int index = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 1; x < width; x++) {
+                int pos = x + y * width;
+                if (!marked[pos]) {
+                    tmpWalk[index++] = pos;
+                    marked[pos] = true;
+                }
+            }
+        }
+        int[] walk = new int[index];
+        System.arraycopy(tmpWalk, 0, walk, 0, index);
+        full.add(walk);
+    }
+
+    private static void addRightCorners(int width, int height, boolean[] marked, List<int[]> full) {
+        // Top right & bottom right corners (highest priority to the positions closest to the corners)
+        // cornerWidth formula from eyeballing the result of
+        // for S in $(seq 30 60); do MAX_C0=0 MAX_RM=0 ./antis.sh -G $S ; done | grep -v :
+        int[] tmpWalk = new int[width * height];
+        int index = 0;
+        int cornerWidth = width / 4; // Not ideal if width != height
+        for (int cx = 0; cx < cornerWidth; cx++) {
+            for (int cy = 0; cy <= cx; cy++) {
+                int br = (width - 1 - cx) + (height - 1 - cy) * width;
+                if (!marked[br]) {
+                    tmpWalk[index++] = br;
+                    marked[br] = true;
+                }
+                int tr = (width - 1 - cx) + cy * width;
+                if (!marked[tr]) {
+                    tmpWalk[index++] = tr;
+                    marked[tr] = true;
+                }
+            }
+        }
+
+        int[] walk = new int[index];
+        System.arraycopy(tmpWalk, 0, walk, 0, index);
+        full.add(walk);
+    }
+
+    private static void addBottomRow(int width, int height, boolean[] marked, List<int[]> full) {
+        // Bottom row
+        int index = 0;
+        int[] walk = new int[width - 1];
+        for (int x = width - 1; x > 0; x--) {
+            walk[index++] = x + (height - 1) * width;
+            marked[x + (height - 1) * width] = true;
+        }
+        full.add(walk);
+        if (index != walk.length) {
+            throw new IllegalStateException("walk should contain " + walk.length + " positions but was " + index);
+        }
+    }
+
+    private static void addColumn0(int width, int height, boolean[] marked, List<int[]> full) {
+        // column 0
+        int index = 0;
+        int[] walk = new int[height];
+        for (int y = 0; y < height; y++) {
+            walk[index++] = y * width;
+            marked[y * width] = true;
+        }
+        full.add(walk);
+        if (index != walk.length) {
+            throw new IllegalStateException("walk should contain " + walk.length + " positions but was " + index);
+        }
     }
 
     // Duplicate walk to all antis
