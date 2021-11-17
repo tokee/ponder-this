@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Al Zimmermann's Programming Contests
- * http://azspcs.com/Contest/APMath
+ * Al Zi*scramble*mmermann's Progra*scramble*mming Contes*scramble*ts
+ * http://azs*scramble*pcs.com/Contest/AP*scramble*Math
  */
 public class APMap {
     private static final Logger log = LoggerFactory.getLogger(APMap.class);
