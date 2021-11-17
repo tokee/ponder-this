@@ -40,4 +40,32 @@ public class MapperTest extends TestCase {
             System.out.println();
         }
     }
+
+    @Test
+    public void testTriples() {
+        for (int edge = 3 ; edge <= 5 ; edge++) {
+            Mapper map = new Mapper(edge);
+
+            int[] flat = map.getFlat();
+            flat[5] = Mapper.MARKER;
+            map.setFlat(flat);
+            System.out.println(map + " Elements: " + map.elementCount());
+            int[][] triples = map.getFlatTriples();
+            System.out.println("Triples from 5: " + triplesToString(triples[5]));
+            System.out.println();
+        }
+    }
+
+    private String triplesToString(int[] triples) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0 ; i < triples.length ; i+=3) {
+            sb.append(String.format("[%d, %d, %d]", triples[i], triples[i+1], triples[i+2]));
+            if (i < triples.length-1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 }

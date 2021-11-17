@@ -17,7 +17,9 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Transforms from and to a quadratic representation of a hexagonal board. Supports visualization.
@@ -27,15 +29,15 @@ import java.util.Arrays;
 public class Mapper {
     private static final Logger log = LoggerFactory.getLogger(Mapper.class);
 
+    static final int INVALID = -1;
     static final int NEUTRAL = 0;
     static final int MARKER = 1;
     static final int ILLEGAL = 2;
-    static final int INVALID = 3;
 
     final int edge; // Hexagonal edge
     final int width;
     final int height;
-    final int[][] quadratic; // y, x index
+    final int[][] quadratic; // y, x index. (0, 0) is top left
 
     /**
      * @param edge the edge of the hexagonal board.
@@ -57,6 +59,20 @@ public class Mapper {
                 quadratic[y][x] = NEUTRAL;
             }
         }
+    }
+
+    private Mapper(Mapper other) {
+        this.edge = other.edge;
+        this.height = other.height;
+        this.width = other.width;
+        this.quadratic = new int[height][width];
+        for (int y = 0 ; y < height ; y++) {
+            System.arraycopy(other.quadratic[y], 0, quadratic[y], 0, width);
+        }
+    }
+
+    public Mapper copy() {
+        return new Mapper(this);
     }
 
     /**
@@ -108,6 +124,98 @@ public class Mapper {
                 }
             }
         }
+    }
+
+    /**
+     * Replace regular valid entries with indices to flat representation.
+     * After this the map is no longer functioning. Use only for internal trickery!
+     */
+    private Mapper fillWithFlatIndices() {
+        int index = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (quadratic[y][x] != INVALID) {
+                    quadratic[y][x] = index++;
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Iterates all flat positions and for each generates an array of triples of flat-indices where marking all entries
+     * in any given triple would be invalid.
+     * @return {@code int[flatIndex][triple(3*flatIndex)Index]}
+     */
+    public int[][] getFlatTriples() {
+        final Mapper flatIndices = copy().fillWithFlatIndices();
+        int[][] tripless = new int[flatIndices.elementCount()][];
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (flatIndices.quadratic[y][x] != INVALID) {
+                    tripless[flatIndices.quadratic[y][x]] = flatIndices.getFlatTriples(x, y);
+                }
+            }
+        }
+        return tripless;
+    }
+
+    /**
+     * Helper method for {@link #getFlatTriples()}. Assumes that {@link #fillWithFlatIndices()} has been called.
+     * @param x quadratic origo X.
+     * @param y  quadratic origo Y.
+     * @return an array of triples of flatIndices.
+     */
+    private int[] getFlatTriples(int x, int y) {
+        if (!isValid(x, y)) {
+            throw new IllegalStateException("Called getFlatTriples(x=" + x + ", y=" + y + ") with invalid coordinates");
+        }
+        List<Integer> triples = new ArrayList<>();
+        for (int deltaX = 0 ; deltaX < width/2+1 ; deltaX++) {
+            for (int deltaY = 0 ; deltaY < height/2+1 ; deltaY++) {
+                if (deltaX == 0 && deltaY == 0) {
+                    continue;
+                }
+                if ((deltaX&1) != (deltaY&1)) { // Both must be odd or both must be even to hit only valids
+                    continue;
+                }
+                // Top left -> bottom right
+                addFlatTriplesIfValid(triples, x-deltaX*2, y-deltaY*2, x-deltaX, y-deltaY, x, y);
+                addFlatTriplesIfValid(triples, x-deltaX, y-deltaY, x, y, x+deltaX, y+deltaY);
+                addFlatTriplesIfValid(triples, x, y, x+deltaX, y+deltaY, x+deltaX*2, y+deltaY*2);
+                if (deltaY == 0) {
+                    continue; // No need to reverse y-axis if y is o
+                }
+                // Bottom left -> top right
+                addFlatTriplesIfValid(triples, x-deltaX*2, y+deltaY*2, x-deltaX, y+deltaY, x, y);
+                addFlatTriplesIfValid(triples, x-deltaX, y+deltaY, x, y, x+deltaX, y-deltaY);
+                addFlatTriplesIfValid(triples, x, y, x+deltaX, y-deltaY, x+deltaX*2, y-deltaY*2);
+            }
+
+        }
+        return triples.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /**
+     * Add the triple flatPositions iff all positions are valid.
+     */
+    private void addFlatTriplesIfValid(List<Integer> triples, int x1, int y1, int x2, int y2, int x3, int y3) {
+        if (isValid(x1, y1) && isValid(x2, y2) && isValid(x3, y3)) {
+            triples.add(quadratic[y1][x1]);
+            triples.add(quadratic[y2][x2]);
+            triples.add(quadratic[y3][x3]);
+        }
+    }
+
+    /**
+     * Checks if the coordinate has a valid entry.
+     * @param x rectangular X, can be outside of the rectangle.
+     * @param y rectangular Y, can be outside of the rectangle.
+     * @return true if the entry is valid, else false.
+     */
+    public boolean isValid(int x, int y) {
+        return x >= 0 && x < width && y >= 0 && y < height && quadratic[y][x] != INVALID;
     }
 
     public String toJSON() {
