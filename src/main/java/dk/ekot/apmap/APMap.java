@@ -30,7 +30,7 @@ public class APMap {
 
     public static void main(String[] args) {
 //        new APMap().go(3);
-        new APMap().go(4);
+        new APMap().go(5);
         //new APMap().go(11);
     }
 
@@ -89,8 +89,13 @@ public class APMap {
         }
 
         private void walk(int depth, int position, int setMarkers) {
-//            System.out.printf(Locale.ROOT, "depth=%d, pos=%d, nextNeutral=%d, markers=%d/%d\n",
-//                              depth, position, board.nextNeutral(position), setMarkers, bestMarkers);
+            if (depth <= 1) {
+                System.out.printf(Locale.ROOT, "depth=%d, pos=%d, nextNeutral=%d, markers=%d/%d, neutrals=%d\n",
+                                  depth, position, board.nextNeutral(position), setMarkers, bestMarkers,
+                                  board.neutralCount());
+            }
+//            System.out.println(board);
+//            System.out.println();
             if (setMarkers + (board.flatLength()-position) < bestMarkers) {
                 return; // We can never beat bestMarkers
             }
@@ -101,7 +106,8 @@ public class APMap {
                 if (bestMarkers < setMarkers+1) {
                     bestMarkers = setMarkers+1;
                     bestFlat = board.getFlatCopy();
-//                    System.out.println(board);
+                    System.out.println(board);
+                    System.out.println();
                 }
 
                 walk(depth+1, position+1, setMarkers+1);
@@ -115,7 +121,7 @@ public class APMap {
         }
 
         public Mapper getBestMapper() {
-            Mapper mapper = new Mapper(board.side);
+            Mapper mapper = new Mapper(board.edge);
             mapper.setFlat(bestFlat);
             return mapper;
         }
@@ -126,7 +132,7 @@ public class APMap {
         static final int MARKER = 1;
         static final int ILLEGAL = 2;
 
-        final int side;
+        final int edge;
         final Mapper mapper;
         final int[][] illegalTriples; // Never changes
         final int[] board;
@@ -136,9 +142,9 @@ public class APMap {
 
         final int[] illegalsBuffer; // To avoid re-allocating it all the time
 
-        public Board(int side) {
-            this.side = side;
-            mapper = new Mapper(side);
+        public Board(int edge) {
+            this.edge = edge;
+            mapper = new Mapper(edge);
             illegalTriples = mapper.getFlatTriples();
             board = mapper.getFlat();
             illegalsBuffer = new int[board.length*3];
@@ -213,12 +219,12 @@ public class APMap {
             Change change = changes.remove(changes.size()-1);
             board[change.marker] = NEUTRAL;
             --totalMarkers;
-            --totalNeutrals;
+            ++totalNeutrals;
 
             for (int i = 0 ; i < change.illegals.length ; i++) {
                 board[change.illegals[i]] = NEUTRAL;
             }
-            totalNeutrals -= change.illegals.length;
+            totalNeutrals += change.illegals.length;
         }
 
         /**
@@ -234,8 +240,8 @@ public class APMap {
             return -1;
         }
 
-        public int getSide() {
-            return side;
+        public int getEdge() {
+            return edge;
         }
 
         public int flatLength() {
@@ -264,9 +270,9 @@ public class APMap {
         }
 
         public String toString() {
-            Mapper mapper = new Mapper(side);
+            Mapper mapper = new Mapper(edge);
             mapper.setFlat(board);
-            return mapper + " side:" + side + ", marks:" + markerCount() + "/" + flatLength();
+            return mapper + " side:" + edge + ", marks:" + markerCount() + "/" + flatLength();
         }
     }
 
