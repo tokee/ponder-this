@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Al Zi*scramble*mmermann's Progra*scramble*mming Contes*scramble*ts
@@ -28,11 +29,24 @@ public class APMap {
     private static final Logger log = LoggerFactory.getLogger(APMap.class);
 
     public static void main(String[] args) {
-        new APMap().go();
+//        new APMap().go(3);
+        new APMap().go(4);
+        //new APMap().go(11);
     }
 
-    private void go() {
-        System.out.println("Nothing yet");
+    private void go(int edge) {
+        long initTime = -System.currentTimeMillis();
+        Board board = new Board(edge);
+        Walker walker = new Walker(board);
+        initTime += System.currentTimeMillis();
+
+        long walkTime = -System.currentTimeMillis();
+        walker.walk();
+        walkTime += System.currentTimeMillis();
+
+        System.out.printf(Locale.ROOT, "%s\nedge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds%n",
+                          walker.getBestMapper(), edge, walker.getBestMarkers(), board.flatLength(),
+                          initTime/1000, walkTime/1000);
     }
 
     /*
@@ -52,32 +66,116 @@ public class APMap {
 
     Instead of creating copies of the board, just keep track of the changes: The single marker and the list of illegals.
     With single threading, rollback is deterministic as long as marking an already illegal field as illegal is ignored.
-
+    
     How to multi thread?
     
      */
+
+    public static class Walker {
+        final Board board;
+        int bestMarkers = 0;
+        int[] bestFlat;
+
+        public Walker(Board board) {
+            this.board = board;
+            bestFlat = board.getFlatCopy();
+        }
+
+        /**
+         * Perform exhaustive walk.
+         */
+        public void walk() {
+            walk(0, 0, 0);
+        }
+
+        private void walk(int depth, int position, int setMarkers) {
+//            System.out.printf(Locale.ROOT, "depth=%d, pos=%d, nextNeutral=%d, markers=%d/%d\n",
+//                              depth, position, board.nextNeutral(position), setMarkers, bestMarkers);
+            if (setMarkers + (board.flatLength()-position) < bestMarkers) {
+                return; // We can never beat bestMarkers
+            }
+            while ((position = board.nextNeutral(position)) != -1) {
+
+                int illegalCount = board.updateIllegals(position);
+                board.change(position, board.illegalsBuffer, illegalCount);
+                if (bestMarkers < setMarkers+1) {
+                    bestMarkers = setMarkers+1;
+                    bestFlat = board.getFlatCopy();
+//                    System.out.println(board);
+                }
+
+                walk(depth+1, position+1, setMarkers+1);
+                board.rollback();
+                ++position;
+            }
+        }
+
+        public int getBestMarkers() {
+            return bestMarkers;
+        }
+
+        public Mapper getBestMapper() {
+            Mapper mapper = new Mapper(board.side);
+            mapper.setFlat(bestFlat);
+            return mapper;
+        }
+    }
 
     public static class Board {
         static final int NEUTRAL = 0;
         static final int MARKER = 1;
         static final int ILLEGAL = 2;
 
+        final int side;
+        final Mapper mapper;
+        final int[][] illegalTriples; // Never changes
         final int[] board;
         int totalMarkers = 0;
         int totalNeutrals;
         final List<Change> changes = new ArrayList<>();
 
-        public Board(int size) {
-            this.board = new int[size];
-            totalNeutrals = size;
+        final int[] illegalsBuffer; // To avoid re-allocating it all the time
+
+        public Board(int side) {
+            this.side = side;
+            mapper = new Mapper(side);
+            illegalTriples = mapper.getFlatTriples();
+            board = mapper.getFlat();
+            illegalsBuffer = new int[board.length*3];
+            totalNeutrals = board.length;
+        }
+
+        /**
+         * Update the {@link #illegalsBuffer} with the flatIndices that should be marked as illegal if a marker is set
+         * at the given flatIndex.
+         * @param origo the location of a potential marker.
+         * @return the illegalCount (number of entries to consider in {@link #illegalsBuffer}.
+         */
+        public int updateIllegals(int origo) {
+            int illegalsIndex = 0;
+            int[] illegalCandidates = illegalTriples[origo];
+            for (int i = 0 ; i < illegalCandidates.length ; i+= 3) { // Iterate triples
+                for (int ti = i ; ti < i+3 ; ti++) { // In the triple
+                    int triplePart = illegalCandidates[ti];
+                    if (triplePart != origo && board[triplePart] == MARKER) { // 1+1 = 2 markers. No more room
+                        // TODO: If we only store the single relevant illegal, we don't need the check in change(...)
+                        illegalsBuffer[illegalsIndex++] = illegalCandidates[i];
+                        illegalsBuffer[illegalsIndex++] = illegalCandidates[i+1];
+                        illegalsBuffer[illegalsIndex++] = illegalCandidates[i+2];
+                        break;
+                    }
+                }
+            }
+            return illegalsIndex;
         }
 
         /**
          * Set marker and illegals. If an illegal position is already marked as illegal, it is ignored.
          * @param marker   a marker for a set point on the board.
          * @param illegals the positions that are illegal to set.
+         * @param illegalCount the number of set entries in illegals.
          */
-        public void change(int marker, int[] illegals) {
+        public void change(int marker, int[] illegals, int illegalCount) {
             // Set the marker
             if (board[marker] != NEUTRAL) {
                 throw new IllegalStateException(
@@ -88,16 +186,13 @@ public class APMap {
             --totalNeutrals;
 
             // The state-changing illegals and keep track of them
-            final int[] changedIllegals = new int[illegals.length];
+            final int[] changedIllegals = new int[illegalCount];
             int ciPos = 0;
-            for (int i = 0 ; i < illegals.length ; i++) {
+            for (int i = 0 ; i < illegalCount ; i++) {
                 final int illegal = illegals[i];
                 if (board[illegal] == NEUTRAL) {
                     board[illegal] = ILLEGAL;
                     changedIllegals[ciPos++] = illegal;
-                } else if (board[illegal] == MARKER) {
-                    throw new IllegalStateException(
-                            "Attempting to set the position " + illegal + " as illegal while it was already marked");
                 }
             }
             totalNeutrals -= ciPos;
@@ -132,15 +227,18 @@ public class APMap {
          * @return the next neutral position or -1 if there are none.
          */
         public int nextNeutral(int pos) {
-            while (pos < board.length) {
+            for ( ; pos < board.length ; pos++)
                 if (board[pos] == NEUTRAL) {
                     return pos;
                 }
-            }
             return -1;
         }
 
-        public int size() {
+        public int getSide() {
+            return side;
+        }
+
+        public int flatLength() {
             return board.length;
         }
 
@@ -153,9 +251,23 @@ public class APMap {
         }
 
         public int getIllegals() {
-            return size()-markerCount()-neutralCount();
+            return flatLength() - markerCount() - neutralCount();
         }
 
+        /**
+         * @return a copy of the flat list of markers and illegals, for use with {@link Mapper#setFlat(int[])}.
+         */
+        public int[] getFlatCopy() {
+            int[] flat = new int[board.length];
+            System.arraycopy(board, 0, flat, 0, board.length);
+            return flat;
+        }
+
+        public String toString() {
+            Mapper mapper = new Mapper(side);
+            mapper.setFlat(board);
+            return mapper + " side:" + side + ", marks:" + markerCount() + "/" + flatLength();
+        }
     }
 
     /**

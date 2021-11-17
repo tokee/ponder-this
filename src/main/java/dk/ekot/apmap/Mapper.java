@@ -37,6 +37,7 @@ public class Mapper {
     final int edge; // Hexagonal edge
     final int width;
     final int height;
+    final int valids;
     final int[][] quadratic; // y, x index. (0, 0) is top left
 
     /**
@@ -44,27 +45,31 @@ public class Mapper {
      */
     public Mapper(int edge) {
         this.edge = edge;
-        this.width = edge*4-2;
-        this.height = edge*2-1;
+        width = edge*4-2;
+        height = edge*2-1;
         quadratic = new int[height][width];
 
         // Draw the quadratic map
         for (int y = 0 ; y < height ; y++) {
             Arrays.fill(quadratic[y], INVALID);
         }
+        int v = 0;
         for (int y = 0 ; y < height ; y++) {
             int margin = Math.abs(y-height/2);
             //System.out.println("y=" + y + ", margin=" + margin + ", side=" + side + ", x=[" + margin + ", " + (side-margin-1) + "]");
             for (int x = margin ; x < width-margin ; x+=2) {
                 quadratic[y][x] = NEUTRAL;
+                ++v;
             }
         }
+        valids = v;
     }
 
     private Mapper(Mapper other) {
         this.edge = other.edge;
         this.height = other.height;
         this.width = other.width;
+        this.valids = other.valids;
         this.quadratic = new int[height][width];
         for (int y = 0 ; y < height ; y++) {
             System.arraycopy(other.quadratic[y], 0, quadratic[y], 0, width);
@@ -76,10 +81,11 @@ public class Mapper {
     }
 
     /**
-     * @return the number of valid elements in the abstract hexagon.
+     * @return the number of valid elements in the quadratic representation (same number as the abstract hexagon).
      */
-    public int elementCount() {
-        int count = 0;
+    public int validCount() {
+        return valids; // Never changes
+/*        int count = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (quadratic[y][x] != INVALID) {
@@ -87,14 +93,14 @@ public class Mapper {
                 }
             }
         }
-        return count;
+        return count;*/
     }
 
     /**
      * @return the state of the map flattened to a single array.
      */
     public int[] getFlat() {
-        int[] flat = new int[elementCount()];
+        int[] flat = new int[validCount()];
         int index = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -111,10 +117,10 @@ public class Mapper {
      * @param flat a flattened view, similar to the one obtained by {@link #getFlat()}.
      */
     public void setFlat(int[] flat) {
-        if (flat.length != elementCount()) {
+        if (flat.length != validCount()) {
             throw new IllegalArgumentException(
                     "The length of the flat structure was " + flat.length +
-                    " while the number of vali entries in the map was " + elementCount());
+                    " while the number of vali entries in the map was " + validCount());
         }
         int index = 0;
         for (int y = 0; y < height; y++) {
@@ -149,7 +155,7 @@ public class Mapper {
      */
     public int[][] getFlatTriples() {
         final Mapper flatIndices = copy().fillWithFlatIndices();
-        int[][] tripless = new int[flatIndices.elementCount()][];
+        int[][] tripless = new int[flatIndices.validCount()][];
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {

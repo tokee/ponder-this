@@ -23,7 +23,7 @@ public class MapperTest extends TestCase {
     public void testToString() {
         for (int edge = 3 ; edge <= 5 ; edge++) {
             Mapper map = new Mapper(edge);
-            System.out.println(map + " Elements: " + map.elementCount());
+            System.out.println(map + " Elements: " + map.validCount());
             System.out.println();
         }
     }
@@ -36,7 +36,7 @@ public class MapperTest extends TestCase {
             flat[5] = Mapper.MARKER;
             flat[10] = Mapper.ILLEGAL;
             map.setFlat(flat);
-            System.out.println(map + " Elements: " + map.elementCount());
+            System.out.println(map + " Elements: " + map.validCount());
             System.out.println();
         }
     }
@@ -49,7 +49,7 @@ public class MapperTest extends TestCase {
             int[] flat = map.getFlat();
             flat[5] = Mapper.MARKER;
             map.setFlat(flat);
-            System.out.println(map + " Elements: " + map.elementCount());
+            System.out.println(map + " Elements: " + map.validCount());
             int[][] triples = map.getFlatTriples();
             System.out.println("Triples from 5: " + triplesToString(triples[5]));
             System.out.println();
