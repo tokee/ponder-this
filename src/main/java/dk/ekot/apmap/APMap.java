@@ -73,9 +73,9 @@ public class APMap {
         }
 
         /**
-         * Mark set af
-         * @param marker
-         * @param illegals
+         * Set marker and illegals. If an illegal position is already marked as illegal, it is ignored.
+         * @param marker   a marker for a set point on the board.
+         * @param illegals the positions that are illegal to set.
          */
         public void change(int marker, int[] illegals) {
             // Set the marker
@@ -95,6 +95,9 @@ public class APMap {
                 if (board[illegal] == NEUTRAL) {
                     board[illegal] = ILLEGAL;
                     changedIllegals[ciPos++] = illegal;
+                } else if (board[illegal] == MARKER) {
+                    throw new IllegalStateException(
+                            "Attempting to set the position " + illegal + " as illegal while it was already marked");
                 }
             }
             totalNeutrals -= ciPos;
@@ -121,6 +124,20 @@ public class APMap {
                 board[change.illegals[i]] = NEUTRAL;
             }
             totalNeutrals -= change.illegals.length;
+        }
+
+        /**
+         * Find the next neutral entry, starting at pos and looking forward on the board.
+         * @param pos starting position for the search for neutral entries.
+         * @return the next neutral position or -1 if there are none.
+         */
+        public int nextNeutral(int pos) {
+            while (pos < board.length) {
+                if (board[pos] == NEUTRAL) {
+                    return pos;
+                }
+            }
+            return -1;
         }
 
         public int size() {
