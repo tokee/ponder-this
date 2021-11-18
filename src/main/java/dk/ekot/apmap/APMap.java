@@ -14,12 +14,10 @@
  */
 package dk.ekot.apmap;
 
-import jdk.internal.joptsimple.internal.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -48,7 +46,7 @@ public class APMap {
                 boxed().
                 map(task -> new APMap().goQuadratic(task, 600_000)).
                 collect(Collectors.toList());
-        System.out.println(Strings.join(results, ";\n"));
+        results.forEach(s -> System.out.println(s + ";"));
     }
 
     private String goQuadratic(int edge) {
