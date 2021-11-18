@@ -103,6 +103,9 @@ public class Mapper {
         this.height = other.height;
         this.width = other.width;
         this.valids = other.valids;
+
+        this.marked = other.marked;
+        this.neutrals = other.neutrals;
         this.quadratic = new int[other.quadratic.length];
         System.arraycopy(other.quadratic, 0, quadratic, 0, quadratic.length);
         this.tripleDeltas = new int[other.tripleDeltas.length];
@@ -111,17 +114,28 @@ public class Mapper {
 
     /**
      * Find the next neutral entry, starting at the quadratic position and looking forward on the board.
-     * The coordinates need to be on the board, but does not need to be valid.
+     * The coordinates can be outside of the board, and will be moved left->right, top->down until hitting the
+     * board of falling out of the bottom.
      * @param x quadratic coordinate X.
      * @param y quadratic coordinate Y.
      * @return the next neutral position (x as the highest 32 bits, y as the lowest) or -1 if there are none.
      */
-    public final long nextNeutral(final int x, final int y) {
+    public final long nextNeutral(int x, int y) {
+        x = Math.max(0, x);
+        y = Math.max(0, y);
+        if (x >= width) {
+            x = 0 ;
+            ++y;
+        }
+        if (y >= height) {
+            return INVALID;
+        }
+
         for (int qy = y ; qy < height ; qy++) {
             for (int qx = qy == y ? x : 0 ; qx < width ; qx++) { // TODO: If we have the right start, use x+=2
                 int element = getQuadratic(qx, qy);
                 if (element == NEUTRAL) {
-                    return (((long)x)<<32) | ((long)y);
+                    return (((long)qx)<<32) | ((long)qy);
                 }
             }
         }
@@ -137,7 +151,7 @@ public class Mapper {
      * @return the element at the given coordinates or {@link #INVALID} if outside the board.
      */
     public final int getQuadratic(int x, int y) {
-        if (x < 0 || x >= width || y < 0 || y >= width) {
+        if (x < 0 || x >= width || y < 0 || y >= height) {
             return INVALID;
         }
         return quadratic[y*width+x];
@@ -181,7 +195,7 @@ public class Mapper {
                     "Attempted to mark (" + x + ", " + y + ") bit it already had state " + getQuadratic(x, y));
         }
         setQuadratic(x, y, MARKER);
-        --marked;
+        ++marked;
         --neutrals;
         for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
             final int x1 = x+tripleDeltas[i];
@@ -209,7 +223,7 @@ public class Mapper {
 
     /**
      * Mark all quadratic coordinate pairs in {@code changed[from..to]} (to is exclusive) as {@link #NEUTRAL}.
-     * This performs {@code marked--} and {@code neutrals -= (to-from)/2}.
+     * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
      * @param changed array of quadratic coordinates.
      * @param from from index in changed (inclusive).
      * @param to to index in changed (exclusive).
@@ -218,6 +232,8 @@ public class Mapper {
         for (int i = from ; i < to ; i+=2) {
             setQuadratic(changed[i], changed[i+1], NEUTRAL);
         }
+        --marked;
+        neutrals += (to-from)>>2;
     }
 
     public Mapper copy() {
