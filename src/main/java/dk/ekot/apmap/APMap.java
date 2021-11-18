@@ -50,7 +50,7 @@ public class APMap {
     }
 
     /*
-    Initial idea:
+    Initial idea 20211117:
 
     Represent the hexagonal grid as a single array of bytes (or ints if that is faster on the concrete architecture).
     Entries can one of [neutral, marker, illegal]. The board changes all the time, so efficient state change with switch
@@ -62,11 +62,57 @@ public class APMap {
     positions on the board must be set to illegal.
 
     -----------------
-    Second idea:
+    Second idea 20211117:
 
     Instead of creating copies of the board, just keep track of the changes: The single marker and the list of illegals.
     With single threading, rollback is deterministic as long as marking an already illegal field as illegal is ignored.
-    
+
+    -----------------
+    Idea #3 20211118:
+
+    There is mirroring symmetry, so if column 0 of an edge 5 has been tested with
+    X - - - -
+    X X - - -
+    X - X - -
+    X - - X -
+    X - - - X
+    - X - - -
+    - X X - -
+    - X - X -
+    - - X - -
+    then there are no need to test more column 0 permutations.
+
+    -----------------
+    Idea #4 20211118:
+
+    There is rotational symmetry, so for any full-depth check for a column 0 permutation, none of the other edges needs
+    to be checked with that permutation.
+
+    Easy enough to check if there are only 1 marker (just set an invalid at the 5 other edges), but more tricky with
+    2 markers.
+
+    -----------------
+    Idea #5 20211118:
+
+    Assume that there will always be at least 1 marker at an edge (corrolary with idea #4: In column 0), so skip
+    searching when all permutations (see idea 3) has been tested there
+
+    -----------------
+    Idea #6 20211118:
+
+    Change tracking does not need an object, only the list of changed elements, so use a shared pointer with offset.
+
+    -----------------
+    Idea #7 20211118:
+
+    When a position has been tried, all positions before it (and itself) can be considered invalid for subsequent
+    markers. Can this be used to set more invalids on subsequent positions?
+
+    -----------------
+    Idea #8 20211118:
+
+    More instrumentation (track number of full depth searches)
+
     How to multi thread?
     
      */

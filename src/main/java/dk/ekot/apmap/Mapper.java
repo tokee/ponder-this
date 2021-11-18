@@ -173,6 +173,7 @@ public class Mapper {
      * @param y  quadratic origo Y.
      * @return an array of triples of flatIndices.
      */
+    // TODO: Only the 2 coordinates besides the origo needs to be stored
     private int[] getFlatTriples(int x, int y) {
         if (!isValid(x, y)) {
             throw new IllegalStateException("Called getFlatTriples(x=" + x + ", y=" + y + ") with invalid coordinates");
