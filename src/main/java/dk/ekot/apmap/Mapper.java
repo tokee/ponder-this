@@ -24,7 +24,10 @@ import java.util.List;
 /**
  * Transforms from and to flat and quadratic representations of a hexagonal board. Supports visualization.
  *
- * Note: This implementation is not optimized for speed or low memory footprint.
+ * The primary coordinate system is quadratic and is optimized towards
+ * - Fast get/set of content at a given quadratic coordinate
+ * - Fast resolving of new quadratic coordinates given a quadratic origo and a delta
+ * - Local memory access by using a single array to hold the matrix.
  *
  * Coordinate systems:
  *
@@ -57,6 +60,7 @@ public class Mapper {
     final int height;
     final int valids;
     final int[] quadratic; // top-down, left-right. (0, 0) is top left
+    final int[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 
     /*
     final int[] flatToQuadratic;
@@ -87,13 +91,7 @@ public class Mapper {
             }
         }
         valids = v;
-    }
-
-    private void setQuadratic(int x, int y, int element) {
-        quadratic[y*width+x] = element;
-    }
-    private int getQuadratic(int x, int y) {
-        return quadratic[y*width+x];
+        tripleDeltas = getTripleDeltas();
     }
 
     private Mapper(Mapper other) {
@@ -103,6 +101,51 @@ public class Mapper {
         this.valids = other.valids;
         this.quadratic = new int[other.quadratic.length];
         System.arraycopy(other.quadratic, 0, quadratic, 0, quadratic.length);
+        this.tripleDeltas = new int[other.tripleDeltas.length];
+        System.arraycopy(other.tripleDeltas, 0, tripleDeltas, 0, tripleDeltas.length);
+    }
+
+    /**
+     * Find the next neutral entry, starting at the quadratic position and looking forward on the board.
+     * The coordinates need to be on the board, but does not need to be valid.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     * @return the next neutral position (x as the highest 32 bits, y as the lowest) or -1 if there are none.
+     */
+    public final long nextNeutral(final int x, final int y) {
+        for (int qy = y ; qy < height ; qy++) {
+            for (int qx = qy == y ? x : 0 ; qx < width ; qx++) { // TODO: If we have the right start, use x+=2
+                int element = getQuadratic(qx, qy);
+                if (element == NEUTRAL) {
+                    return (((long)x)<<32) | ((long)y);
+                }
+            }
+        }
+        return -1;
+    }
+
+
+    /**
+     * Getter that allows requests outside of the board. In that case {@link #INVALID} is returned.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     * @return the element at the given coordinates or {@link #INVALID} if outside the board.
+     */
+    public final int getQuadratic(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= width) {
+            return INVALID;
+        }
+        return quadratic[y*width+x];
+    }
+
+    /**
+     * The setter does not check if the coordinates are legal.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     * @param element the element to set at the coordinates.
+     */
+    public final void setQuadratic(int x, int y, int element) {
+        quadratic[y*width+x] = element;
     }
 
     public Mapper copy() {
@@ -229,6 +272,40 @@ public class Mapper {
                 addFlatTriplesIfValid(triples, x, y, x+deltaX, y-deltaY, x+deltaX*2, y-deltaY*2);
             }
 
+        }
+        return triples.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /**
+     * Calculate all possibly valid deltas for finding triples.
+     * Note that origo is implicit so a single triple delta is 2 delta pairs:
+     * {@code [deltaX1, deltaY1, deltaX2, deltaY2]}
+     * Since all delta triples takes up exactly 4 entries in the array, they are returned as a single
+     * concatenated array.
+     * @return all potentially valid deltas for finding triples.
+     */
+    public int[] getTripleDeltas() {
+        List<Integer> triples = new ArrayList<>();
+        for (int deltaX = 0 ; deltaX < width/2+1 ; deltaX++) {
+            for (int deltaY = 0; deltaY < height/2+1; deltaY++) {
+                if (deltaX == 0 && deltaY == 0) {
+                    continue;
+                }
+                if ((deltaX & 1) != (deltaY & 1)) { // Both must be odd or both must be even to hit only valids
+                    continue;
+                }
+                // Top left -> bottom right
+                triples.add(-deltaX*2); triples.add(-deltaY*2); triples.add(-deltaX); triples.add(-deltaY);
+                triples.add(-deltaX); triples.add(-deltaY); triples.add(deltaX); triples.add(deltaY);
+                triples.add(deltaX); triples.add(deltaY); triples.add(deltaX*2); triples.add(deltaY*2);
+                if (deltaY == 0 || deltaX == 0) {
+                    continue; // No need to rotate direction 180° if either x or y is 0
+                }
+                // Bottom left -> top right
+                triples.add(-deltaX*2); triples.add(deltaY*2); triples.add(-deltaX); triples.add(deltaY);
+                triples.add(-deltaX); triples.add(deltaY); triples.add(deltaX); triples.add(-deltaY);
+                triples.add(deltaX); triples.add(-deltaY); triples.add(deltaX*2); triples.add(-deltaY*2);
+            }
         }
         return triples.stream().mapToInt(Integer::intValue).toArray();
     }
