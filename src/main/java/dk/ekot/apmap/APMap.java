@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,25 +34,27 @@ public class APMap {
             118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
 
     public static void main(String[] args) {
-        new APMap().go(6);
+//        new APMap().go(6, 10000000);
         //new APMap().go(4);
    //     new APMap().go(5);
         //new APMap().go(11);
 //        new APMap().go(6);
   //      new APMap().go(11);
         //new APMap().go(18);
+        Arrays.stream(TASKS).forEach(task -> new APMap().go(task, 100_000_000L/(task*task)));
     }
 
-    private void go(int edge) {
+    private void go(int edge, long maxFulls) {
         log.info("Initializing...");
         long initTime = -System.currentTimeMillis();
         Board board = new Board(edge);
+        System.out.println("Board stats: " + board.getStats());
         Walker walker = new Walker(board);
         initTime += System.currentTimeMillis();
 
         log.info("Walking...");
         long walkTime = -System.currentTimeMillis();
-        walker.walk();
+        walker.walk(maxFulls);
         walkTime += System.currentTimeMillis();
 
         System.out.printf(Locale.ROOT, "%s\nedge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds\n%s\n",
@@ -136,21 +139,25 @@ public class APMap {
             this.board = board;
             bestFlat = board.getFlatCopy();
         }
+        public void walk() {
+            walk(Long.MAX_VALUE);
+        }
 
         /**
          * Perform exhaustive walk.
          */
-        public void walk() {
+        public void walk(long maxFulls) {
             AtomicLong fulls = new AtomicLong(0);
-            walk(-1, 0, 0, fulls);
+            walk(-1, 0, 0, fulls, maxFulls);
         }
 
-        private void walk(int depth, int position, int setMarkers, AtomicLong fulls) {
+        private void walk(int depth, int position, int setMarkers, AtomicLong fulls, long maxFulls) {
 //            System.out.println("ppp " + position + " edge " + ((board.edge>>2)+1));
-            if (depth == 0 && position > (board.edge>>2)+1) { // idea 3 + idea 5
+            if (fulls.get() >= maxFulls ||
+                (depth == 0 && position > (board.edge>>2)+1)) { // idea 3 + idea 5
                 return;
             }
-            if (depth <= 1 || fulls.get()%1000000 == 0) {
+            if (false && (depth <= 1 || fulls.get()%1000000 == 0)) {
                 System.out.printf(
                         Locale.ROOT,
                         "edge=%d, depth=%4d, pos=%5d, nextNeutral=%5d, markers=%d/%d/%d, neutrals=%4d, fulls=%d\n",
@@ -175,7 +182,7 @@ public class APMap {
                 //    System.out.println();
                 }
 
-                walk(depth+1, position+1, setMarkers+1, fulls);
+                walk(depth+1, position+1, setMarkers+1, fulls, maxFulls);
                 board.rollback();
                 ++position;
             }
@@ -339,6 +346,14 @@ public class APMap {
             Mapper mapper = new Mapper(edge);
             mapper.setFlat(board);
             return mapper + " side:" + edge + ", marks:" + markerCount() + "/" + flatLength();
+        }
+
+        public String getStats() {
+            long ic = 0;
+            for (int[] illegalTriple: illegalTriples) {
+                ic += illegalTriple.length;
+            }
+            return "Illegal triples: " + ic + ", board entries: " + board.length;
         }
     }
 
