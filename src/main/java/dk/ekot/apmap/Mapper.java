@@ -22,9 +22,27 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Transforms from and to a quadratic representation of a hexagonal board. Supports visualization.
+ * Transforms from and to flat and quadratic representations of a hexagonal board. Supports visualization.
  *
  * Note: This implementation is not optimized for speed or low memory footprint.
+ *
+ * Coordinate systems:
+ *
+ * hex: As defined in the assignment: Top-down row based hexagon with upper left as (0, 0)
+ *
+ * flat: The rows from the hexagon packed directly after each other.
+ *
+ * quadratic:
+ *   0:         X   X   .   X   X
+ *   1:       X   X   .   .   X   X
+ *   2:     .   .   .   X   .   .   .
+ *   3:   X   .   .   .   .   .   .   X
+ *   4: X   X   .   .   .   .   .   X   X
+ *   5:   X   .   X   .   .   X   .   X
+ *   6:     .   .   .   .   .   .   .
+ *   7:       X   X   .   .   X   X
+ *   8:         X   X   .   X   X
+ *   the hexagon represented on a quadratic board. Allows for easy delta calculations.
  */
 public class Mapper {
     private static final Logger log = LoggerFactory.getLogger(Mapper.class);
@@ -38,8 +56,16 @@ public class Mapper {
     final int width;
     final int height;
     final int valids;
-    final int[][] quadratic; // y, x index. (0, 0) is top left
+    final int[] quadratic; // top-down, left-right. (0, 0) is top left
 
+    /*
+    final int[] flatToQuadratic;
+    final int[] flatToHex;
+    final int[][] quadraticToFlat;
+    final int[][] quadraticToHex;
+    final int[][] hexToFlat;
+    final int[][] hexToQuadratic;
+      */
     /**
      * @param edge the edge of the hexagonal board.
      */
@@ -47,22 +73,27 @@ public class Mapper {
         this.edge = edge;
         width = edge*4-2;
         height = edge*2-1;
-        quadratic = new int[height][width];
+        quadratic = new int[height*width];
 
         // Draw the quadratic map
-        for (int y = 0 ; y < height ; y++) {
-            Arrays.fill(quadratic[y], INVALID);
-        }
+        Arrays.fill(quadratic, INVALID);
         int v = 0;
         for (int y = 0 ; y < height ; y++) {
             int margin = Math.abs(y-height/2);
             //System.out.println("y=" + y + ", margin=" + margin + ", side=" + side + ", x=[" + margin + ", " + (side-margin-1) + "]");
             for (int x = margin ; x < width-margin ; x+=2) {
-                quadratic[y][x] = NEUTRAL;
+                setQuadratic(x, y, NEUTRAL); //quadratic[y][x] = NEUTRAL;
                 ++v;
             }
         }
         valids = v;
+    }
+
+    private void setQuadratic(int x, int y, int element) {
+        quadratic[y*width+x] = element;
+    }
+    private int getQuadratic(int x, int y) {
+        return quadratic[y*width+x];
     }
 
     private Mapper(Mapper other) {
@@ -70,10 +101,8 @@ public class Mapper {
         this.height = other.height;
         this.width = other.width;
         this.valids = other.valids;
-        this.quadratic = new int[height][width];
-        for (int y = 0 ; y < height ; y++) {
-            System.arraycopy(other.quadratic[y], 0, quadratic[y], 0, width);
-        }
+        this.quadratic = new int[other.quadratic.length];
+        System.arraycopy(other.quadratic, 0, quadratic, 0, quadratic.length);
     }
 
     public Mapper copy() {
@@ -104,8 +133,8 @@ public class Mapper {
         int index = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (quadratic[y][x] != INVALID) {
-                    flat[index++] = quadratic[y][x];
+                if (getQuadratic(x, y) != INVALID) {
+                    flat[index++] = getQuadratic(x, y);
                 }
             }
         }
@@ -125,8 +154,8 @@ public class Mapper {
         int index = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (quadratic[y][x] != INVALID) {
-                    quadratic[y][x] = flat[index++];
+                if (getQuadratic(x, y) != INVALID) {
+                    setQuadratic(x, y, flat[index++]);
                 }
             }
         }
@@ -140,8 +169,8 @@ public class Mapper {
         int index = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (quadratic[y][x] != INVALID) {
-                    quadratic[y][x] = index++;
+                if (getQuadratic(x, y) != INVALID) {
+                    setQuadratic(x, y, index++);
                 }
             }
         }
@@ -159,8 +188,8 @@ public class Mapper {
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (flatIndices.quadratic[y][x] != INVALID) {
-                    tripless[flatIndices.quadratic[y][x]] = flatIndices.getFlatTriples(x, y);
+                if (flatIndices.getQuadratic(x, y) != INVALID) {
+                    tripless[flatIndices.getQuadratic(x, y)] = flatIndices.getFlatTriples(x, y);
                 }
             }
         }
@@ -209,9 +238,9 @@ public class Mapper {
      */
     private void addFlatTriplesIfValid(List<Integer> triples, int x1, int y1, int x2, int y2, int x3, int y3) {
         if (isValid(x1, y1) && isValid(x2, y2) && isValid(x3, y3)) {
-            triples.add(quadratic[y1][x1]);
-            triples.add(quadratic[y2][x2]);
-            triples.add(quadratic[y3][x3]);
+            triples.add(getQuadratic(x1, y1));
+            triples.add(getQuadratic(x2, y2));
+            triples.add(getQuadratic(x3, y3));
         }
     }
 
@@ -222,7 +251,7 @@ public class Mapper {
      * @return true if the entry is valid, else false.
      */
     public boolean isValid(int x, int y) {
-        return x >= 0 && x < width && y >= 0 && y < height && quadratic[y][x] != INVALID;
+        return x >= 0 && x < width && y >= 0 && y < height && getQuadratic(x, y) != INVALID;
     }
 
     public String toJSON() {
@@ -236,14 +265,14 @@ public class Mapper {
             boolean firstX = true;
             int trueX = 0;
             for (int x = 0; x < width; x++) {
-                if (quadratic[y][x] == MARKER) {
+                if (getQuadratic(x, y) == MARKER) {
                     if (!firstX) {
                         sb.append(", ");
                     }
                     sb.append(trueX);
                     firstX = false;
                 }
-                if (quadratic[y][x] != INVALID) {
+                if (getQuadratic(x, y) != INVALID) {
                     trueX++;
                 }
             }
@@ -258,7 +287,7 @@ public class Mapper {
         for (int y = 0 ; y < height ; y++) {
             sb.append((String.format("%3d: ", y)));
             for (int x = 0; x < width; x++) {
-                switch (quadratic[y][x]) {
+                switch (getQuadratic(x, y)) {
                     case NEUTRAL:
                         sb.append("O");
                         break;
@@ -272,7 +301,7 @@ public class Mapper {
                         sb.append(" ");
                         break;
                     default:
-                        throw new UnsupportedOperationException("Unknown element: " + quadratic[x][y]);
+                        throw new UnsupportedOperationException("Unknown element: " + getQuadratic(x, y));
                 }
                 sb.append(x < width-1 ? " " : "");
             }

@@ -35,15 +35,18 @@ public class APMap {
 
     public static void main(String[] args) {
 //        new APMap().go(6, 10000000);
-        //new APMap().go(4);
+        new APMap().go(4);
    //     new APMap().go(5);
         //new APMap().go(11);
 //        new APMap().go(6);
   //      new APMap().go(11);
         //new APMap().go(18);
-        Arrays.stream(TASKS).forEach(task -> new APMap().go(task, 100_000_000L/(task*task)));
+        //Arrays.stream(TASKS).forEach(task -> new APMap().go(task, 100_000_000L/(task*task)));
     }
 
+    private void go(int edge) {
+        go(edge, Long.MAX_VALUE);
+    }
     private void go(int edge, long maxFulls) {
         log.info("Initializing...");
         long initTime = -System.currentTimeMillis();
@@ -126,6 +129,20 @@ public class APMap {
 
     More instrumentation (track number of full depth searches)
 
+    -----------------
+    Idea #9 20211118:
+
+    The arrays of illegalTriples are far too large (blows memory around edge=60).
+
+    Alternatively provide fast coordinate translation between flat and quadratic so that only the deltas needs to be
+    stored. The deltas can be shared between all origos. This means wasteful checks (1 or 2 points outside of the board)
+    so maybe it is possible to have groups of deltas for a quick reduction of the number of checks?
+
+    Or maybe just skip the ongoing coordinate translations fully? Drop the flat representation?
+
+
+
+
     How to multi thread?
     
      */
@@ -157,7 +174,7 @@ public class APMap {
                 (depth == 0 && position > (board.edge>>2)+1)) { // idea 3 + idea 5
                 return;
             }
-            if (false && (depth <= 1 || fulls.get()%1000000 == 0)) {
+            if (depth <= 1 || fulls.get()%1000000 == 0) {
                 System.out.printf(
                         Locale.ROOT,
                         "edge=%d, depth=%4d, pos=%5d, nextNeutral=%5d, markers=%d/%d/%d, neutrals=%4d, fulls=%d\n",
