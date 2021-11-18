@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Al Zi*scramble*mmermann's Progra*scramble*mming Contes*scramble*ts
@@ -28,25 +29,34 @@ import java.util.Locale;
 public class APMap {
     private static final Logger log = LoggerFactory.getLogger(APMap.class);
 
+    public static final int[] TASKS = new int[]{2, 6, 11, 18, 27, 38, 50, 65, 81, 98,
+            118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
+
     public static void main(String[] args) {
-//        new APMap().go(3);
-        new APMap().go(5);
+        new APMap().go(6);
+        //new APMap().go(4);
+   //     new APMap().go(5);
         //new APMap().go(11);
+//        new APMap().go(6);
+  //      new APMap().go(11);
+        //new APMap().go(18);
     }
 
     private void go(int edge) {
+        log.info("Initializing...");
         long initTime = -System.currentTimeMillis();
         Board board = new Board(edge);
         Walker walker = new Walker(board);
         initTime += System.currentTimeMillis();
 
+        log.info("Walking...");
         long walkTime = -System.currentTimeMillis();
         walker.walk();
         walkTime += System.currentTimeMillis();
 
-        System.out.printf(Locale.ROOT, "%s\nedge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds%n",
+        System.out.printf(Locale.ROOT, "%s\nedge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds\n%s\n",
                           walker.getBestMapper(), edge, walker.getBestMarkers(), board.flatLength(),
-                          initTime/1000, walkTime/1000);
+                          initTime/1000, walkTime/1000, walker.getBestMapper().toJSON());
     }
 
     /*
@@ -131,20 +141,29 @@ public class APMap {
          * Perform exhaustive walk.
          */
         public void walk() {
-            walk(0, 0, 0);
+            AtomicLong fulls = new AtomicLong(0);
+            walk(-1, 0, 0, fulls);
         }
 
-        private void walk(int depth, int position, int setMarkers) {
-            if (depth <= 1) {
-                System.out.printf(Locale.ROOT, "depth=%d, pos=%d, nextNeutral=%d, markers=%d/%d, neutrals=%d\n",
-                                  depth, position, board.nextNeutral(position), setMarkers, bestMarkers,
-                                  board.neutralCount());
+        private void walk(int depth, int position, int setMarkers, AtomicLong fulls) {
+//            System.out.println("ppp " + position + " edge " + ((board.edge>>2)+1));
+            if (depth == 0 && position > (board.edge>>2)+1) { // idea 3 + idea 5
+                return;
+            }
+            if (depth <= 1 || fulls.get()%1000000 == 0) {
+                System.out.printf(
+                        Locale.ROOT,
+                        "edge=%d, depth=%4d, pos=%5d, nextNeutral=%5d, markers=%d/%d/%d, neutrals=%4d, fulls=%d\n",
+                        board.edge, depth, position, board.nextNeutral(position),
+                        setMarkers, bestMarkers, board.flatLength(),
+                        board.neutralCount(), fulls.get());
             }
 //            System.out.println(board);
 //            System.out.println();
             if (setMarkers + (board.flatLength()-position) < bestMarkers) {
                 return; // We can never beat bestMarkers
             }
+            // TODO: Seems we don't iterate the starting point (initial depth)!?
             while ((position = board.nextNeutral(position)) != -1) {
 
                 int illegalCount = board.updateIllegals(position);
@@ -152,14 +171,15 @@ public class APMap {
                 if (bestMarkers < setMarkers+1) {
                     bestMarkers = setMarkers+1;
                     bestFlat = board.getFlatCopy();
-                    System.out.println(board);
-                    System.out.println();
+                //    System.out.println(board + " fulls:" + fulls.get());
+                //    System.out.println();
                 }
 
-                walk(depth+1, position+1, setMarkers+1);
+                walk(depth+1, position+1, setMarkers+1, fulls);
                 board.rollback();
                 ++position;
             }
+            fulls.incrementAndGet();
         }
 
         public int getBestMarkers() {

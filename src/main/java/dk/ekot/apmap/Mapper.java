@@ -226,7 +226,31 @@ public class Mapper {
     }
 
     public String toJSON() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        StringBuilder sb = new StringBuilder(quadratic.length*2);
+        boolean firstY = true;
+        for (int y = 0 ; y < height ; y++) {
+            if (!firstY) {
+                sb.append(", ");
+            }
+            sb.append("{");
+            boolean firstX = true;
+            int trueX = 0;
+            for (int x = 0; x < width; x++) {
+                if (quadratic[y][x] == MARKER) {
+                    if (!firstX) {
+                        sb.append(", ");
+                    }
+                    sb.append(trueX);
+                    firstX = false;
+                }
+                if (quadratic[y][x] != INVALID) {
+                    trueX++;
+                }
+            }
+            sb.append("}");
+            firstY = false;
+        }
+        return sb.toString();
     }
 
     public String toString() {
