@@ -54,8 +54,8 @@ public class MapWalker {
         return bestBoard;
     }
 
-    public void walkStraight(int maxRuntimeMS, boolean showBest) {
-        final long maxNanoTime = System.nanoTime() + maxRuntimeMS*1000000L;
+    public void walkStraight(int maxStaleMS, boolean showBest) {
+        long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
         long position = board.nextNeutral(0, 0);
         int startX = (int) (position >> 32);
         int startY = (int) (position & 0xFFFFFFFFL);
@@ -83,12 +83,13 @@ public class MapWalker {
             // Change board
             changedIndices[depth + 1] = board.markAndDeltaExpand(xs[depth], ys[depth], changed, changedIndices[depth]);
             if (bestMarkers < board.getMarkedCount()) {
+                maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
                 bestBoard = board.copy();
                 if (showBest) {
   //                  System.out.println(board + " fulls:" + fulls);
-                    System.out.printf(Locale.ROOT, "edge=%d, markers=%d/%d: %s\n",
-                                      board.edge, board.marked, board.valids, board.toJSON());
+                    System.out.printf(Locale.ROOT, "edge=%d, markers=%5d/%6d/%d: %s\n",
+                                      board.edge, board.marked, board.getNeutralCount(), board.valids, board.toJSON());
                 }
             }
 

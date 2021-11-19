@@ -40,7 +40,7 @@ public class APMap {
         boolean SHOW_BEST = true;
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
         //new APMap().goFlat(4);
-        new APMap().goQuadratic(4);
+        new APMap().goQuadratic(11, 5_000, true);
         if (1==1) return;
         //new APMap().goQuadratic(2, true);
         //new APMap().goQuadratic(6, true);
@@ -66,7 +66,7 @@ public class APMap {
     private Mapper goQuadratic(int edge, boolean showBest) {
         return goQuadratic(edge, Integer.MAX_VALUE, showBest);
     }
-    private Mapper goQuadratic(int edge, int maxMS, boolean showBest) {
+    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest) {
         log.info("Initializing for edge " + edge + "...");
         long initTime = -System.currentTimeMillis();
         Mapper board = new Mapper(edge);
@@ -76,11 +76,11 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walkStraight(maxMS, showBest);
+        walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
-        System.out.printf(Locale.ROOT, "%s\nedge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds\n%s\n",
-                          walker.getBestBoard(), edge, walker.getBestBoard().getMarkedCount(), board.valids,
+        System.out.printf(Locale.ROOT, "edge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds: %s\n",
+                          edge, walker.getBestBoard().getMarkedCount(), board.valids,
                           initTime/1000, walkTime/1000, walker.getBestBoard().toJSON());
         return walker.getBestBoard();
     }
