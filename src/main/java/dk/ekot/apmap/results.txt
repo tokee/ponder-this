@@ -37,6 +37,8 @@ MapWalker straight
 edge=4, marks=18/37, initTime=0s, walkTime=44s
 {0, 1, 3}, {0, 1, 3, 4}, {4}, {0, 1, 6}, {0, 1, 3}, {3, 4}, {0, 2}
 
+ edge=4, marks=18/37, initTime=0s, walkTime=46s: {0, 1, 3}, {0, 1, 3, 4}, {4}, {0, 1, 6}, {0, 1, 3}, {3, 4}, {0, 2}
+
 
 
 

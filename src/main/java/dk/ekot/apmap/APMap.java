@@ -36,15 +36,19 @@ public class APMap {
 //        new APMap().go(6, 10000000);
 
         long startTime = System.currentTimeMillis();
-        int RUN[] = new int[]{4, 4, 4, 4};
+        //int RUN[] = new int[]{4, 4, 4, 4};
+        int RUN[] = TASKS;
         boolean SHOW_BEST = true;
+        int STALE_MS = 600_000;
+
+
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
         //new APMap().goFlat(4);
-        new APMap().goQuadratic(11, 5_000, true);
-        if (1==1) return;
+//        new APMap().goQuadratic(4, 500_000, true);
+//        if (1==1) return;
         //new APMap().goQuadratic(2, true);
         //new APMap().goQuadratic(6, true);
-        new APMap().goQuadratic(450, true);
+//        new APMap().goQuadratic(450, true);
         //new APMap().go(11);
 //        new APMap().go(6);
   //      new APMap().go(11);
@@ -52,7 +56,7 @@ public class APMap {
 
         List<String> results = Arrays.stream(RUN).parallel().
                 boxed().
-                map(task -> new APMap().goQuadratic(task, 600_000, SHOW_BEST)).
+                map(task -> new APMap().goQuadratic(task, STALE_MS, SHOW_BEST)).
                 map(Mapper::toJSON).
                 collect(Collectors.toList());
         results.forEach(s -> System.out.println(s + ";"));

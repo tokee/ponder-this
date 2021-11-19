@@ -106,6 +106,7 @@ public class MapWalker {
             // Cannot descend, rollback and either go to next position or move up
             ++fulls;
             while (true) {
+                // TODO: There is a double rollback here as neutrals goes in the zeroes
                 board.rollback(changed, changedIndices[depth], changedIndices[depth + 1]);
                 ++xs[depth];
                 long nextPosition = board.nextNeutral(xs[depth], ys[depth]);
