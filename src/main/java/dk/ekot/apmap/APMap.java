@@ -34,25 +34,39 @@ public class APMap {
 
     public static void main(String[] args) {
 //        new APMap().go(6, 10000000);
-//        new APMap().goQuadratic(578, 10_000_000);
+
+        long startTime = System.currentTimeMillis();
+        int RUN[] = new int[]{4, 4, 4, 4};
+        boolean SHOW_BEST = true;
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
         //new APMap().goFlat(4);
-   //     new APMap().go(5);
+        new APMap().goQuadratic(4);
+        if (1==1) return;
+        //new APMap().goQuadratic(2, true);
+        //new APMap().goQuadratic(6, true);
+        new APMap().goQuadratic(450, true);
         //new APMap().go(11);
 //        new APMap().go(6);
   //      new APMap().go(11);
         //new APMap().go(18);
-        List<String> results = Arrays.stream(TASKS).
+
+        List<String> results = Arrays.stream(RUN).parallel().
                 boxed().
-                map(task -> new APMap().goQuadratic(task, 600_000)).
+                map(task -> new APMap().goQuadratic(task, 600_000, SHOW_BEST)).
+                map(Mapper::toJSON).
                 collect(Collectors.toList());
         results.forEach(s -> System.out.println(s + ";"));
+
+        System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
     }
 
-    private String goQuadratic(int edge) {
-        return goQuadratic(edge, Integer.MAX_VALUE);
+    private Mapper goQuadratic(int edge) {
+        return goQuadratic(edge, Integer.MAX_VALUE, true);
     }
-    private String goQuadratic(int edge, int maxMS) {
+    private Mapper goQuadratic(int edge, boolean showBest) {
+        return goQuadratic(edge, Integer.MAX_VALUE, showBest);
+    }
+    private Mapper goQuadratic(int edge, int maxMS, boolean showBest) {
         log.info("Initializing for edge " + edge + "...");
         long initTime = -System.currentTimeMillis();
         Mapper board = new Mapper(edge);
@@ -62,13 +76,13 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walk(maxMS);
+        walker.walkStraight(maxMS, showBest);
         walkTime += System.currentTimeMillis();
 
         System.out.printf(Locale.ROOT, "%s\nedge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds\n%s\n",
                           walker.getBestBoard(), edge, walker.getBestBoard().getMarkedCount(), board.valids,
                           initTime/1000, walkTime/1000, walker.getBestBoard().toJSON());
-        return walker.getBestBoard().toJSON();
+        return walker.getBestBoard();
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -169,6 +183,23 @@ public class APMap {
 
     Or maybe just skip the ongoing coordinate translations fully? Drop the flat representation?
 
+    -----------------
+    Idea #10 20211119:
+
+    The MapWalker makes a too-deep recursion for default JVMs. It could be solved by increasing the stack, but
+    switching to non-recursive would probably be a bit faster anyway.
+
+    -----------------
+    Idea #11 20211119:
+
+    For edge 578 there are 2M delta triples, which is ~ the same amount as the number of elements on the board.
+    Each triple is checked when placing a mark, making it insanely expensive.
+
+    On the other hand, storing valid deltas for each element requires a large overhead.
+
+    Idea: Represent deltas as packed longs (4 * 2 bytes).
+          For each row and each column, store a sorted list of possible valid deltas.
+          Resolve deltas for a coordinate by finding all elements common for the row- and the column deltas.
 
 
 

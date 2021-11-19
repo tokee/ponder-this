@@ -17,9 +17,7 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * Transforms from and to flat and quadratic representations of a hexagonal board. Supports visualization.
@@ -61,6 +59,9 @@ public class Mapper {
     final int valids;
     final int[] quadratic; // top-down, left-right. (0, 0) is top left
     final int[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
+    
+//    final long[][] tripleDeltasByColumn; // [deltaX1, deltaY1, deltaX2, deltaY2]*
+//    final long[][] tripleDeltasByRow; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 
     int marked = 0;
     int neutrals;
@@ -96,6 +97,8 @@ public class Mapper {
         valids = v;
         neutrals = valids;
         tripleDeltas = getTripleDeltas();
+//        tripleDeltasByColumn = getDeltaColumns();
+//        tripleDeltasByRow = getDeltaRows();
     }
 
     private Mapper(Mapper other) {
@@ -106,10 +109,10 @@ public class Mapper {
 
         this.marked = other.marked;
         this.neutrals = other.neutrals;
-        this.quadratic = new int[other.quadratic.length];
-        System.arraycopy(other.quadratic, 0, quadratic, 0, quadratic.length);
-        this.tripleDeltas = new int[other.tripleDeltas.length];
-        System.arraycopy(other.tripleDeltas, 0, tripleDeltas, 0, tripleDeltas.length);
+        this.quadratic = Arrays.copyOf(other.quadratic, other.quadratic.length);
+        this.tripleDeltas = Arrays.copyOf(other.tripleDeltas, other.tripleDeltas.length);
+//        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
+//        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
     }
 
     /**
@@ -395,8 +398,83 @@ public class Mapper {
                 triples.add(deltaX); triples.add(-deltaY); triples.add(deltaX*2); triples.add(-deltaY*2);
             }
         }
+        log.info("edge=" + edge + ", extracted " + triples.size()/4 + " delta triples " +
+                 "(" + triples.size()*4/1024 + " KBytes)");
+/*        for (int i = 0 ; i < 1000 ; i+=4) {
+            String human = String.format(
+                    Locale.ROOT,
+                    "(%d, %d)(%d, %d)\n",
+                    triples.get(i), triples.get(i+1), triples.get(i+2), triples.get(i+3));
+            System.out.print(human);
+        }*/
         return triples.stream().mapToInt(Integer::intValue).toArray();
     }
+
+    /**
+     * @return {@code long[column(0..height)][]} og triples packed as single longs (x1, x2, y1, y2 as 2 bytes/each)
+     *         and sorted ascending.
+     */
+    private long[][] getDeltaColumns() {
+        final long[] buffer = new long[tripleDeltas.length/4];
+        final long[][] deltaColumns = new long[height][];
+        long tripleCount = 0;
+
+        for (int column = 0 ; column < width ; column++) {
+            int bufPos = 0;
+            for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
+                final int y1 = column + tripleDeltas[i+1];
+                final int y2 = column + tripleDeltas[i + 3];
+                if (y1 >= 0 && y1 < height && y2 >= 0 && y2 < height) {
+                    long packed =
+                            ((long) tripleDeltas[i]) << 48 |
+                            ((long) tripleDeltas[i + 1]) << 32 |
+                            ((long) tripleDeltas[i + 2]) << 16 |
+                            ((long) tripleDeltas[i + 3]);
+                    buffer[bufPos++] = packed;
+                }
+            }
+            //System.out.println("deltaColumns[" + column + "].length=" + bufPos);
+            deltaColumns[column] = Arrays.copyOf(buffer, bufPos);
+            Arrays.sort(deltaColumns[column]);
+            tripleCount += bufPos;
+        }
+
+        log.info("Extracted " + tripleCount + " column triples ~= " + tripleCount/8/1024 + "KBytes");
+        return deltaColumns;
+    }
+
+    /**
+     * @return {@code long[row(0..height)][]} og triples packed as single longs (x1, x2, y1, y2 as 2 bytes/each)
+     *         and sorted ascending.
+     */
+    private long[][] getDeltaRows() {
+        final long[] buffer = new long[tripleDeltas.length/4];
+        final long[][] deltaRows = new long[width][];
+        long tripleCount = 0;
+
+        for (int row = 0 ; row < height ; row++) {
+            int bufPos = 0;
+            for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
+                final int x1 = row + tripleDeltas[i];
+                final int x2 = row + tripleDeltas[i + 2];
+                if (x1 >= 0 && x1 < width && x2 >= 0 && x2 < width) {
+                    long packed =
+                            ((long) tripleDeltas[i]) << 48 |
+                            ((long) tripleDeltas[i + 1]) << 32 |
+                            ((long) tripleDeltas[i + 2]) << 16 |
+                            ((long) tripleDeltas[i + 3]);
+                    buffer[bufPos++] = packed;
+                }
+            }
+            deltaRows[row] = Arrays.copyOf(buffer, bufPos);
+            Arrays.sort(deltaRows[row]);
+            tripleCount += bufPos;
+        }
+
+        log.info("Extracted " + tripleCount + " row triples ~= " + tripleCount/8/1024 + "KBytes");
+        return deltaRows;
+    }
+
 
     /**
      * Add the triple flatPositions iff all positions are valid.
