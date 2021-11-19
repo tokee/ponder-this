@@ -32,6 +32,9 @@ public class APMap {
     public static final int[] TASKS = new int[]{2, 6, 11, 18, 27, 38, 50, 65, 81, 98,
             118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
 
+    // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
+
+
     public static void main(String[] args) {
 //        new APMap().go(6, 10000000);
 
