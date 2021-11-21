@@ -91,7 +91,8 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walkStraight(maxStaleMS, showBest);
+        walker.walkPriority(maxStaleMS, showBest);
+        //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
         System.out.printf(Locale.ROOT, "edge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds: %s\n",
@@ -223,13 +224,27 @@ public class APMap {
     This requires keeping track of untested fields for sub-levels instead of just iterating left->right, top->down.
 
     -----------------
-    Idea #13 20211121:
+    Idea #13a 20211121:
 
     When setting a mark, increment a counter for each potential triple. When selecting next mark, choose the one with
     the lowest counter.
 
-    Secondarily: Choose the one with the lowest counter, sub sorted by how many areas it effects when set.
+    -----------------
+    Idea #13b 20211121:
 
+    Choose the one with the lowest counter, sub sorted by how many areas it effects when set.
+
+
+    -----------------
+    Idea #13c 20211121:
+
+    Thought: Consider the edge 3 below. The priority 2 is a leftover which does not make sense after the rightmost
+    marker in the second row has been set. Ideally it should be reduced to 1.
+  0:     X   X   .
+  1:   X   X   .   X
+  2: .   .   .   2   1
+  3:   1   1   1   1
+  4:     1   1   1       fulls:0
 
 
     How to multi thread?

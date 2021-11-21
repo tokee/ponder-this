@@ -60,8 +60,10 @@ public class Mapper {
     final int[] quadratic; // top-down, left-right. (0, 0) is top left
     final int[] priority;  // 0-∞. Lower numbers are better (idea #13)
 
-    final int[] changed;   // Change tracker
-    final int[] changedIndexes;
+    final int[] boardChanges;   // Change tracker
+    final int[] boardChangeIndexes;
+    final int[] priorityChanges;   // Change tracker
+    final int[] priorityChangeIndexes;
 
     final short[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 
@@ -70,7 +72,7 @@ public class Mapper {
 
     int marked = 0;
     int neutrals;
-    int changedIndexesPosition = 0;
+    int changeIndexPosition = 0;
 
     /*
     final int[] flatToQuadratic;
@@ -89,8 +91,10 @@ public class Mapper {
         height = edge*2-1;
         quadratic = new int[height*width];
         priority = new int[height*width];
-        changed = new int[height*width];
-        changedIndexes = new int[height*width];
+        boardChanges = new int[height * width * 2]; // Times 2 as they are coordinates
+        boardChangeIndexes = new int[height * width];
+        priorityChanges = new int[height * width * 4]; // We store 2 coordinates each time
+        priorityChangeIndexes = new int[height * width];
 
         // Draw the quadratic map
         Arrays.fill(quadratic, INVALID);
@@ -118,12 +122,14 @@ public class Mapper {
 
         this.quadratic = Arrays.copyOf(other.quadratic, other.quadratic.length);
         this.priority = Arrays.copyOf(other.priority, other.priority.length);
-        this.changed = Arrays.copyOf(other.changed, other.changed.length);
-        this.changedIndexes = Arrays.copyOf(other.changedIndexes, other.changedIndexes.length);
+        this.boardChanges = Arrays.copyOf(other.boardChanges, other.boardChanges.length);
+        this.priorityChanges = Arrays.copyOf(other.priorityChanges, other.priorityChanges.length);
+        this.boardChangeIndexes = Arrays.copyOf(other.boardChangeIndexes, other.boardChangeIndexes.length);
+        this.priorityChangeIndexes = Arrays.copyOf(other.priorityChangeIndexes, other.priorityChangeIndexes.length);
 
         this.marked = other.marked;
         this.neutrals = other.neutrals;
-        this.changedIndexesPosition = other.changedIndexesPosition;
+        this.changeIndexPosition = other.changeIndexPosition;
 
         this.tripleDeltas = Arrays.copyOf(other.tripleDeltas, other.tripleDeltas.length);
 //        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
@@ -160,6 +166,85 @@ public class Mapper {
         return -1;
     }
 
+    /**
+     * Find the next available {@link #NEUTRAL} element after the current. Seeking is done left-right, top-down from
+     * {@code (pos.x+1, pos.y)} for {@code priority == pos.priority}. If nothing is found, a seek new left->down,
+     * top-> down seek for {@code priority lower than pos.priority, starting at {@code 0, 0} is performed. If that does
+     * not match anything, the search is considered exhausted.
+     * @param position the starting position.
+     * @return the new position if possible, else null.
+     */
+    public final PriorityPos nextPriority(PriorityPos origo) {
+        int x = Math.max(0, origo.x+1);
+        int y = Math.max(0, origo.y);
+        int p = origo.priority;
+        if (x >= width) {
+            x = 0 ;
+            ++y;
+        }
+        if (y >= height) {
+            return null;
+        }
+
+        // Search for same priority
+        for (int qy = y ; qy < height ; qy++) {
+            for (int qx = qy == y ? x : 0 ; qx < width ; qx++) { // TODO: If we have the right start, use x+=2
+                int element = getQuadratic(qx, qy);
+                if (element == NEUTRAL && p == getPriority(qx, qy)) {
+                    return new PriorityPos(qx, qy, origo.priority);
+                }
+            }
+        }
+
+        // Search for worse priority
+        int bestX = -1;
+        int bestY = -1;
+        int bestP = Integer.MAX_VALUE;
+        for (int qy = 0 ; qy < height ; qy++) {
+            for (int qx = 0 ; qx < width ; qx++) { // TODO: If we have the right start, use x+=2
+                int element = getQuadratic(qx, qy);
+                if (element == NEUTRAL) {
+                    int currentP = getPriority(qx, qy);
+                    if (p < currentP) { // Worse that original priority
+                        if (currentP < bestP) { // But better than what we have see on the seconds pass
+                            bestX = qx;
+                            bestY = qy;
+                            bestP = currentP;
+                            if (bestP == p + 1) { // Exactly 1 better than original, cannot get better
+                                return new PriorityPos(bestX, bestY, bestP);
+                            }
+                            // Room for improvement, keep searching
+                        }
+                    }
+                }
+            }
+        }
+        if (bestX == -1) {
+            return null;
+        }
+        return new PriorityPos(bestX, bestY, bestP);
+    }
+
+    final static class PriorityPos {
+        public final int x;
+        public final int y;
+        public final int priority;
+
+        public PriorityPos() {
+            this(-1, 0, 0);
+        }
+
+        public PriorityPos(int x, int y, int priority) {
+            this.x = x;
+            this.y = y;
+            this.priority = priority;
+        }
+
+        public PriorityPos copy() {
+            return new PriorityPos(x, y, priority);
+        }
+    }
+
 
     /**
      * Getter that allows requests outside of the board. In that case {@link #INVALID} is returned.
@@ -185,6 +270,34 @@ public class Mapper {
         quadratic[y*width+x] = element;
     }
 
+    /**
+     * Decrease the priority of the given field. The coordinates must be on the board.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     */
+    public final int decreasePriority(int x, int y) {
+        return ++priority[y * width + x]; // Yes, decreasing priority means a higher number
+    }
+
+    /**
+     * Increase the priority of the given field. The coordinates must be on the board.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     */
+    public final int increasePriority(int x, int y) {
+        return --priority[y * width + x]; // Yes, increasing priority means a lower number
+    }
+
+    /**
+     * Get the priority of the given field, lower numbers are better, highest priority is 0.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     * @return the priority of the given field (0-n, 0 is best/highest/preferable).
+     */
+    public final int getPriority(int x, int y) {
+        return priority[y * width + x];
+    }
+
     public int getMarkedCount() {
         return marked;
     }
@@ -193,6 +306,9 @@ public class Mapper {
         return neutrals;
     }
 
+    public final void markAndDeltaExpand(PriorityPos pos) {
+        markAndDeltaExpand(pos.x, pos.y);
+    }
     /**
      * Marks the given quadratic (x, y) and adds the coordinated to changed at changedIndex.
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
@@ -204,11 +320,12 @@ public class Mapper {
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
     public void markAndDeltaExpand(final int x, final int y) {
-        ++changedIndexesPosition;
-        changedIndexes[changedIndexesPosition] = changedIndexes[changedIndexesPosition-1];
+        ++changeIndexPosition;
+        boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
+        priorityChangeIndexes[changeIndexPosition] = priorityChangeIndexes[changeIndexPosition - 1];
 
-        changed[changedIndexes[changedIndexesPosition]++] = x;
-        changed[changedIndexes[changedIndexesPosition]++] = y;
+        boardChanges[boardChangeIndexes[changeIndexPosition]++] = x;
+        boardChanges[boardChangeIndexes[changeIndexPosition]++] = y;
         if (getQuadratic(x, y) != NEUTRAL) {
             throw new IllegalStateException(
                     "Attempted to mark (" + x + ", " + y + ") bit it already had state " + getQuadratic(x, y));
@@ -217,6 +334,7 @@ public class Mapper {
         ++marked;
         --neutrals;
         for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
+            // TODO: Make all the get & set / increase share the same calculations and checks for validity
             final int x1 = x+tripleDeltas[i];
             final int y1 = y+tripleDeltas[i+1];
             final int x2 = x+tripleDeltas[i+2];
@@ -224,16 +342,25 @@ public class Mapper {
             if (getQuadratic(x1, y1) == MARKER) {
                 if (getQuadratic(x2, y2) == NEUTRAL) {
                     setQuadratic(x2, y2, ILLEGAL);
-                    changed[changedIndexes[changedIndexesPosition]++] = x2;
-                    changed[changedIndexes[changedIndexesPosition]++] = y2;
+                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = x2;
+                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = y2;
                     --neutrals;
                 }
             } else if (getQuadratic(x2, y2) == MARKER) {
                 if (getQuadratic(x1, y1) == NEUTRAL) {
                     setQuadratic(x1, y1, ILLEGAL);
-                    changed[changedIndexes[changedIndexesPosition]++] = x1;
-                    changed[changedIndexes[changedIndexesPosition]++] = y1;
+                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = x1;
+                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = y1;
                     --neutrals;
+                }
+            } else { // Only a single marker in the triple, increment priority of the others
+                if (getQuadratic(x1, y1) == NEUTRAL && getQuadratic(x2, y2) == NEUTRAL) {
+                    decreasePriority(x1, y1);
+                    decreasePriority(x2, y2);
+                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = x1;
+                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = y1;
+                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = x2;
+                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = y2;
                 }
             }
         }
@@ -244,12 +371,15 @@ public class Mapper {
      * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
      */
     public void rollback() {
-        for (int i = changedIndexes[changedIndexesPosition-1] ; i < changedIndexes[changedIndexesPosition] ; i+=2) {
-            setQuadratic(changed[i], changed[i+1], NEUTRAL);
+        for (int i = boardChangeIndexes[changeIndexPosition - 1]; i < boardChangeIndexes[changeIndexPosition] ; i+=2) {
+            setQuadratic(boardChanges[i], boardChanges[i + 1], NEUTRAL);
+        }
+        for (int i = priorityChangeIndexes[changeIndexPosition - 1]; i < priorityChangeIndexes[changeIndexPosition] ; i+=2) {
+            increasePriority(priorityChanges[i], priorityChanges[i + 1]);
         }
         --marked;
-        neutrals += (changedIndexes[changedIndexesPosition]-changedIndexes[changedIndexesPosition-1])>>1;
-        --changedIndexesPosition;
+        neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1]) >> 1;
+        --changeIndexPosition;
     }
 
     public Mapper copy() {
@@ -587,7 +717,7 @@ public class Mapper {
             for (int x = 0; x < width; x++) {
                 switch (getQuadratic(x, y)) {
                     case NEUTRAL:
-                        sb.append("O");
+                        sb.append(getPriority(x, y) > 9 ? "∞" : getPriority(x, y));
                         break;
                     case MARKER:
                         sb.append("X");
