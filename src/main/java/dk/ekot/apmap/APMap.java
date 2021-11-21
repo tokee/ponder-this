@@ -50,7 +50,7 @@ public class APMap {
         int STALE_MS = 24*60*60*1000;
 
 //        new Mapper(118).dumpDeltaStats();
-        new APMap().goQuadratic(578, true);
+        new APMap().goQuadratic(98, true);
         if (1==1) return;
 
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
@@ -245,6 +245,11 @@ public class APMap {
   2: .   .   .   2   1
   3:   1   1   1   1
   4:     1   1   1       fulls:0
+
+    -----------------
+    Idea #13d 20211121:
+
+    Tracking the priority changes requires far too much memory. Recalculate them instead!
 
 
     How to multi thread?

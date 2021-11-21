@@ -62,8 +62,6 @@ public class Mapper {
 
     final int[] boardChanges;   // Change tracker
     final int[] boardChangeIndexes;
-    final int[] priorityChanges;   // Change tracker
-    final int[] priorityChangeIndexes;
 
     final short[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 
@@ -94,9 +92,7 @@ public class Mapper {
         boardChanges = new int[height * width]; // Times 2 as they are coordinates
         boardChangeIndexes = new int[height * width];
         log.info("Allocating rollback buffer of " + ((long) height * width * height * width) * 4 / 1024 / 1024 + " MBytes");
-        long priorityCount = Math.min((long) height * width * height * width * 4, ((long)Integer.MAX_VALUE)-50);
-        priorityChanges = new int[(int)priorityCount]; // Theoretically we can rollback everything on all moves
-        priorityChangeIndexes = new int[height * width];
+        long priorityCount = Math.min((long) height * width * height * width * 4, ((long)Integer.MAX_VALUE)/2-50);
 
         // Draw the quadratic map
         Arrays.fill(quadratic, INVALID);
@@ -126,15 +122,11 @@ public class Mapper {
         if (viewOnly) {
             this.priority = null;
             this.boardChanges = null;
-            this.priorityChanges = null;
             this.boardChangeIndexes = null;
-            this.priorityChangeIndexes = null;
         } else {
             this.priority = Arrays.copyOf(other.priority, other.priority.length);
             this.boardChanges = Arrays.copyOf(other.boardChanges, other.boardChanges.length);
-            this.priorityChanges = Arrays.copyOf(other.priorityChanges, other.priorityChanges.length);
             this.boardChangeIndexes = Arrays.copyOf(other.boardChangeIndexes, other.boardChangeIndexes.length);
-            this.priorityChangeIndexes = Arrays.copyOf(other.priorityChangeIndexes, other.priorityChangeIndexes.length);
         }
 
         this.marked = other.marked;
@@ -332,7 +324,6 @@ public class Mapper {
     public void markAndDeltaExpand(final int x, final int y) {
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
-        priorityChangeIndexes[changeIndexPosition] = priorityChangeIndexes[changeIndexPosition - 1];
 
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = x;
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = y;
@@ -349,28 +340,29 @@ public class Mapper {
             final int y1 = y+tripleDeltas[i+1];
             final int x2 = x+tripleDeltas[i+2];
             final int y2 = y+tripleDeltas[i+3];
-            if (getQuadratic(x1, y1) == MARKER) {
-                if (getQuadratic(x2, y2) == NEUTRAL) {
+            final int deltaElement1 = getQuadratic(x1, y1);
+            final int deltaElement2 = getQuadratic(x2, y2);
+
+            if (deltaElement1 == MARKER) {
+                if (deltaElement2 == NEUTRAL) {
                     setQuadratic(x2, y2, ILLEGAL);
                     boardChanges[boardChangeIndexes[changeIndexPosition]++] = x2;
                     boardChanges[boardChangeIndexes[changeIndexPosition]++] = y2;
                     --neutrals;
                 }
-            } else if (getQuadratic(x2, y2) == MARKER) {
-                if (getQuadratic(x1, y1) == NEUTRAL) {
+            } else if (deltaElement2 == MARKER) {
+                if (deltaElement1 == NEUTRAL) {
                     setQuadratic(x1, y1, ILLEGAL);
                     boardChanges[boardChangeIndexes[changeIndexPosition]++] = x1;
                     boardChanges[boardChangeIndexes[changeIndexPosition]++] = y1;
                     --neutrals;
                 }
             } else { // Only a single marker in the triple, increment priority of the others
-                if (getQuadratic(x1, y1) == NEUTRAL && getQuadratic(x2, y2) == NEUTRAL) {
+                if (deltaElement1 != INVALID) {
                     decreasePriority(x1, y1);
+                }
+                if (deltaElement2 != INVALID) {
                     decreasePriority(x2, y2);
-                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = x1;
-                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = y1;
-                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = x2;
-                    priorityChanges[priorityChangeIndexes[changeIndexPosition]++] = y2;
                 }
             }
         }
@@ -382,14 +374,32 @@ public class Mapper {
      */
     public void rollback() {
         for (int i = boardChangeIndexes[changeIndexPosition - 1]; i < boardChangeIndexes[changeIndexPosition] ; i+=2) {
-            setQuadratic(boardChanges[i], boardChanges[i + 1], NEUTRAL);
-        }
-        for (int i = priorityChangeIndexes[changeIndexPosition - 1]; i < priorityChangeIndexes[changeIndexPosition] ; i+=2) {
-            increasePriority(priorityChanges[i], priorityChanges[i + 1]);
+            final int x =  boardChanges[i];
+            final int y =  boardChanges[i+1];
+            setQuadratic(x, y, NEUTRAL);
+            increasePriorities(x, y);
         }
         --marked;
         neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1]) >> 1;
         --changeIndexPosition;
+    }
+
+    private void increasePriorities(int x, int y) {
+        for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
+            // TODO: Make all the get & set / increase share the same calculations and checks for validity
+            final int x1 = x + tripleDeltas[i];
+            final int y1 = y + tripleDeltas[i + 1];
+            final int x2 = x + tripleDeltas[i + 2];
+            final int y2 = y + tripleDeltas[i + 3];
+            final int deltaElement1 = getQuadratic(x1, y1);
+            final int deltaElement2 = getQuadratic(x2, y2);
+            if (deltaElement1 != MARKER && deltaElement1 != INVALID) {
+                increasePriority(x1, y1);
+            }
+            if (deltaElement2 != MARKER && deltaElement2 != INVALID) {
+                increasePriority(x2, y2);
+            }
+        }
     }
 
     public Mapper copy() {
