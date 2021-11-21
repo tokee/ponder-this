@@ -47,7 +47,7 @@ public class MapWalker {
         long position = board.nextNeutral(0, 0);
         int x = (int) (position >> 32);
         int y = (int) (position & 0xFFFFFFFFL);
-        walk(-1, x, y, new int[board.width*board.height], 0, fulls, System.nanoTime()+(maxMS*1000000L), showBest);
+        walk(-1, x, y, fulls, System.nanoTime()+(maxMS*1000000L), showBest);
     }
 
     public Mapper getBestBoard() {
@@ -63,8 +63,6 @@ public class MapWalker {
         int depth = 0;
         int[] xs = new int[board.valids]; xs[0] = startX;
         int[] ys = new int[board.valids]; ys[0] = startY;
-        int[] changed = new int[board.valids*4];
-        int[] changedIndices = new int[board.valids];
         long fulls = 0;
 
         // Invariants: (xs[depth], ys[depth]) are always neutral for current level
@@ -82,7 +80,7 @@ public class MapWalker {
 
             // Change board
             int before = board.neutrals;
-            changedIndices[depth + 1] = board.markAndDeltaExpand(xs[depth], ys[depth], changed, changedIndices[depth]);
+            board.markAndDeltaExpand(xs[depth], ys[depth]);
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
@@ -109,7 +107,7 @@ public class MapWalker {
             while (true) {
                 // TODO: There is a double rollback here as neutrals goes in the zeroes
                 before = board.neutrals;
-                board.rollback(changed, changedIndices[depth], changedIndices[depth + 1]);
+                board.rollback();
                 ++xs[depth];
                 long nextPosition = board.nextNeutral(xs[depth], ys[depth]);
                 if (nextPosition == -1) {
@@ -127,8 +125,7 @@ public class MapWalker {
         }
     }
 
-    private void walk(int depth, int x, int y, int[] changed, int changedIndex, AtomicLong fulls, long maxNanotime,
-                      boolean showBest) {
+    private void walk(int depth, int x, int y, AtomicLong fulls, long maxNanotime, boolean showBest) {
 //            System.out.println("ppp " + position + " edge " + ((board.edge>>2)+1));
         if (System.nanoTime() > maxNanotime || (depth == 0 && y > 0)) { // TODO: Implement idea 3
             return;
@@ -159,7 +156,7 @@ public class MapWalker {
             x = (int) (position >> 32);
             y = (int) (position & 0xFFFFFFFFL);
 
-            int afterChange = board.markAndDeltaExpand(x, y, changed, changedIndex);
+            board.markAndDeltaExpand(x, y);
 
             if (bestMarkers < board.getMarkedCount()) {
                 bestMarkers = board.getMarkedCount();
@@ -171,8 +168,8 @@ public class MapWalker {
                 }
             }
 
-            walk(depth+1, x+1, y, changed, afterChange, fulls, maxNanotime, showBest);
-            board.rollback(changed, changedIndex, afterChange);
+            walk(depth+1, x+1, y, fulls, maxNanotime, showBest);
+            board.rollback();
             ++x; // TODO: Check for width here so all the checks in nextNeutral can be skipped?
         }
         fulls.incrementAndGet();

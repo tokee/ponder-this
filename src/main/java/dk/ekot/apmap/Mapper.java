@@ -59,13 +59,18 @@ public class Mapper {
     final int valids;
     final int[] quadratic; // top-down, left-right. (0, 0) is top left
     final int[] priority;  // 0-∞. Lower numbers are better (idea #13)
+
+    final int[] changed;   // Change tracker
+    final int[] changedIndexes;
+
     final short[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
-    
+
 //    final long[][] tripleDeltasByColumn; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 //    final long[][] tripleDeltasByRow; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 
     int marked = 0;
     int neutrals;
+    int changedIndexesPosition = 0;
 
     /*
     final int[] flatToQuadratic;
@@ -84,6 +89,8 @@ public class Mapper {
         height = edge*2-1;
         quadratic = new int[height*width];
         priority = new int[height*width];
+        changed = new int[height*width];
+        changedIndexes = new int[height*width];
 
         // Draw the quadratic map
         Arrays.fill(quadratic, INVALID);
@@ -109,10 +116,14 @@ public class Mapper {
         this.width = other.width;
         this.valids = other.valids;
 
-        this.marked = other.marked;
-        this.neutrals = other.neutrals;
         this.quadratic = Arrays.copyOf(other.quadratic, other.quadratic.length);
         this.priority = Arrays.copyOf(other.priority, other.priority.length);
+        this.changed = Arrays.copyOf(other.changed, other.changed.length);
+        this.changedIndexes = Arrays.copyOf(other.changedIndexes, other.changedIndexes.length);
+
+        this.marked = other.marked;
+        this.neutrals = other.neutrals;
+        this.changedIndexesPosition = other.changedIndexesPosition;
 
         this.tripleDeltas = Arrays.copyOf(other.tripleDeltas, other.tripleDeltas.length);
 //        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
@@ -190,13 +201,14 @@ public class Mapper {
      * This updates {@link #marked} and {@link #neutrals}.
      * @param x quadratic coordinate X.
      * @param y quadratic coordinate Y.
-     * @param changed change tracking array.
-     * @param changedIndex index into the change tracking array.
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
-    public int markAndDeltaExpand(final int x, final int y, int[] changed, int changedIndex) {
-        changed[changedIndex++] = x;
-        changed[changedIndex++] = y;
+    public void markAndDeltaExpand(final int x, final int y) {
+        ++changedIndexesPosition;
+        changedIndexes[changedIndexesPosition] = changedIndexes[changedIndexesPosition-1];
+
+        changed[changedIndexes[changedIndexesPosition]++] = x;
+        changed[changedIndexes[changedIndexesPosition]++] = y;
         if (getQuadratic(x, y) != NEUTRAL) {
             throw new IllegalStateException(
                     "Attempted to mark (" + x + ", " + y + ") bit it already had state " + getQuadratic(x, y));
@@ -212,35 +224,32 @@ public class Mapper {
             if (getQuadratic(x1, y1) == MARKER) {
                 if (getQuadratic(x2, y2) == NEUTRAL) {
                     setQuadratic(x2, y2, ILLEGAL);
-                    changed[changedIndex++] = x2;
-                    changed[changedIndex++] = y2;
+                    changed[changedIndexes[changedIndexesPosition]++] = x2;
+                    changed[changedIndexes[changedIndexesPosition]++] = y2;
                     --neutrals;
                 }
             } else if (getQuadratic(x2, y2) == MARKER) {
                 if (getQuadratic(x1, y1) == NEUTRAL) {
                     setQuadratic(x1, y1, ILLEGAL);
-                    changed[changedIndex++] = x1;
-                    changed[changedIndex++] = y1;
+                    changed[changedIndexes[changedIndexesPosition]++] = x1;
+                    changed[changedIndexes[changedIndexesPosition]++] = y1;
                     --neutrals;
                 }
             }
         }
-        return changedIndex;
     }
 
     /**
      * Mark all quadratic coordinate pairs in {@code changed[from..to]} (to is exclusive) as {@link #NEUTRAL}.
      * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
-     * @param changed array of quadratic coordinates.
-     * @param from from index in changed (inclusive).
-     * @param to to index in changed (exclusive).
      */
-    public void rollback(int[] changed, int from, int to) {
-        for (int i = from ; i < to ; i+=2) {
+    public void rollback() {
+        for (int i = changedIndexes[changedIndexesPosition-1] ; i < changedIndexes[changedIndexesPosition] ; i+=2) {
             setQuadratic(changed[i], changed[i+1], NEUTRAL);
         }
         --marked;
-        neutrals += (to-from)>>1;
+        neutrals += (changedIndexes[changedIndexesPosition]-changedIndexes[changedIndexesPosition-1])>>1;
+        --changedIndexesPosition;
     }
 
     public Mapper copy() {
