@@ -58,6 +58,7 @@ public class Mapper {
     final int height;
     final int valids;
     final int[] quadratic; // top-down, left-right. (0, 0) is top left
+    final int[] priority;  // 0-∞. Lower numbers are better (idea #13)
     final short[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
     
 //    final long[][] tripleDeltasByColumn; // [deltaX1, deltaY1, deltaX2, deltaY2]*
@@ -82,6 +83,7 @@ public class Mapper {
         width = edge*4-2;
         height = edge*2-1;
         quadratic = new int[height*width];
+        priority = new int[height*width];
 
         // Draw the quadratic map
         Arrays.fill(quadratic, INVALID);
@@ -110,6 +112,8 @@ public class Mapper {
         this.marked = other.marked;
         this.neutrals = other.neutrals;
         this.quadratic = Arrays.copyOf(other.quadratic, other.quadratic.length);
+        this.priority = Arrays.copyOf(other.priority, other.priority.length);
+
         this.tripleDeltas = Arrays.copyOf(other.tripleDeltas, other.tripleDeltas.length);
 //        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
@@ -236,7 +240,7 @@ public class Mapper {
             setQuadratic(changed[i], changed[i+1], NEUTRAL);
         }
         --marked;
-        neutrals += (to-from)>>2;
+        neutrals += (to-from)>>1;
     }
 
     public Mapper copy() {

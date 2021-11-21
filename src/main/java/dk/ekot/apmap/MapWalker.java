@@ -81,6 +81,7 @@ public class MapWalker {
             }
 
             // Change board
+            int before = board.neutrals;
             changedIndices[depth + 1] = board.markAndDeltaExpand(xs[depth], ys[depth], changed, changedIndices[depth]);
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
@@ -107,6 +108,7 @@ public class MapWalker {
             ++fulls;
             while (true) {
                 // TODO: There is a double rollback here as neutrals goes in the zeroes
+                before = board.neutrals;
                 board.rollback(changed, changedIndices[depth], changedIndices[depth + 1]);
                 ++xs[depth];
                 long nextPosition = board.nextNeutral(xs[depth], ys[depth]);

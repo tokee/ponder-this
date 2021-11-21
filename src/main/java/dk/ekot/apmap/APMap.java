@@ -39,9 +39,9 @@ public class APMap {
     public static void main(String[] args) {
 //        new APMap().go(6, 10000000);
 
-        Arrays.stream(TASKS).
-                boxed().
-                forEach(task -> new Mapper(task).dumpDeltaStats());
+        //Arrays.stream(TASKS).
+          //      boxed().
+            //    forEach(task -> new Mapper(task).dumpDeltaStats());
 
         long startTime = System.currentTimeMillis();
         int RUN[] = new int[]{5, 6, 11, 18, 27, 38, 50};
@@ -50,13 +50,13 @@ public class APMap {
         int STALE_MS = 24*60*60*1000;
 
 //        new Mapper(118).dumpDeltaStats();
-//        if (1==1) return;
+        new APMap().goQuadratic(2, true);
+        if (1==1) return;
 
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
         //new APMap().goFlat(4);
 //        new APMap().goQuadratic(4, 500_000, true);
 //        if (1==1) return;
-        //new APMap().goQuadratic(2, true);
         //new APMap().goQuadratic(6, true);
 //        new APMap().goQuadratic(450, true);
         //new APMap().go(11);
@@ -229,6 +229,8 @@ public class APMap {
     the lowest counter.
 
     Secondarily: Choose the one with the lowest counter, sub sorted by how many areas it effects when set.
+
+
 
     How to multi thread?
     
