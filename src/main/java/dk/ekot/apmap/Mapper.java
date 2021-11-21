@@ -48,17 +48,17 @@ import java.util.*;
 public class Mapper {
     private static final Logger log = LoggerFactory.getLogger(Mapper.class);
 
-    static final int INVALID = -1;
-    static final int NEUTRAL = 0;
-    static final int MARKER = 1;
-    static final int ILLEGAL = 2;
+    static final int INVALID = -1; // Outside of the board
+    static final int NEUTRAL = 0;  // Valid but unset
+    static final int MARKER = 1;   // Marked
+    static final int ILLEGAL = 2;  // Cannot be set (will result in AP)
 
     final int edge; // Hexagonal edge
     final int width;
     final int height;
     final int valids;
     final int[] quadratic; // top-down, left-right. (0, 0) is top left
-    final int[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
+    final short[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
     
 //    final long[][] tripleDeltasByColumn; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 //    final long[][] tripleDeltasByRow; // [deltaX1, deltaY1, deltaX2, deltaY2]*
@@ -375,8 +375,9 @@ public class Mapper {
      * concatenated array.
      * @return all potentially valid deltas for finding triples.
      */
-    public int[] getTripleDeltas() {
+    public short[] getTripleDeltas() {
         List<Integer> triples = new ArrayList<>();
+        // TODO: Ca the width/2+1 be reduced a tiny bit? w3->1, w4->1, w5->2, w6->2, w7->3
         for (int deltaX = 0 ; deltaX < width/2+1 ; deltaX++) {
             for (int deltaY = 0; deltaY < height/2+1; deltaY++) {
                 if (deltaX == 0 && deltaY == 0) {
@@ -407,7 +408,48 @@ public class Mapper {
                     triples.get(i), triples.get(i+1), triples.get(i+2), triples.get(i+3));
             System.out.print(human);
         }*/
-        return triples.stream().mapToInt(Integer::intValue).toArray();
+        //return triples.stream().mapToInt(Integer::intValue).toArray();
+        short[] sa = new short[triples.size()];
+        for (int i = 0 ;i < sa.length ; i++) {
+            sa[i] = triples.get(i).shortValue();
+        }
+        return sa;
+    }
+
+    /**
+     * Provides stats for how the generic triples overlaps with ideal (position specific) triples
+     */
+    public void dumpDeltaStats() {
+        final long startTimeMS = System.currentTimeMillis();
+        long sum = 0;
+        long max = 0;
+        long min = Long.MAX_VALUE;
+
+        for (int x = 0 ; x < width ; x++) {
+            for (int y = 0; y < height; y++) {
+                if (getQuadratic(x, y) != INVALID) {
+                    long count = 0;
+                    for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
+                        final int x1 = x + tripleDeltas[i];
+                        final int y1 = y + tripleDeltas[i + 1];
+                        final int x2 = x + tripleDeltas[i + 2];
+                        final int y2 = y + tripleDeltas[i + 3];
+                        if (getQuadratic(x1, y1) != INVALID &&
+                            getQuadratic(x2, y2) != INVALID) {
+                            ++count;
+                        }
+                    }
+                    sum += count;
+                    max = Math.max(max, count);
+                    min = Math.min(min, count);
+                }
+            }
+        }
+        System.out.printf(
+                Locale.ROOT,
+                "edge=%d, valids=%d, uniqueDeltas=%d, sumDeltas=%d, minDeltas=%d, averageDeltas=%d, maxDeltas=%d, time=%ds",
+                          edge, valids, tripleDeltas.length/4, sum, min, sum/valids, max,
+                (System.currentTimeMillis()-startTimeMS)/1000);
     }
 
     /**
