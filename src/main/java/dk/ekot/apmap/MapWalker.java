@@ -33,7 +33,7 @@ public class MapWalker {
 
     public MapWalker(Mapper board) {
         this.board = board;
-        bestBoard = board.copy();
+        bestBoard = board.copy(true);
     }
 
     public void walk() {
@@ -85,9 +85,9 @@ public class MapWalker {
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
-                bestBoard = board.copy();
+                bestBoard = board.copy(true);
                 if (showBest) {
-                    System.out.println(board + " fulls:" + fulls);
+//                    System.out.println(board + " fulls:" + fulls);
                     System.out.printf(Locale.ROOT, "edge=%d, markers=%5d/%6d/%d: %s\n",
                                       board.edge, board.marked, board.getNeutralCount(), board.valids, board.toJSON());
                 }
@@ -150,7 +150,7 @@ public class MapWalker {
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
-                bestBoard = board.copy();
+                bestBoard = board.copy(true);
                 if (showBest) {
                     System.out.println(board + " fulls:" + fulls);
                     System.out.printf(Locale.ROOT, "edge=%d, markers=%5d/%6d/%d: %s\n",
@@ -226,7 +226,7 @@ public class MapWalker {
 
             if (bestMarkers < board.getMarkedCount()) {
                 bestMarkers = board.getMarkedCount();
-                bestBoard = board.copy();
+                bestBoard = board.copy(true);
                 if (showBest) {
                     //System.out.println(board + " fulls:" + fulls.get());
                     System.out.printf(Locale.ROOT, "edge=%d, markers=%d/%d: %s\n",

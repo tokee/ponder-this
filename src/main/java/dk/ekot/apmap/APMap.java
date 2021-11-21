@@ -50,7 +50,7 @@ public class APMap {
         int STALE_MS = 24*60*60*1000;
 
 //        new Mapper(118).dumpDeltaStats();
-        new APMap().goQuadratic(3, true);
+        new APMap().goQuadratic(578, true);
         if (1==1) return;
 
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));

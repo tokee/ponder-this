@@ -91,9 +91,11 @@ public class Mapper {
         height = edge*2-1;
         quadratic = new int[height*width];
         priority = new int[height*width];
-        boardChanges = new int[height * width * 2]; // Times 2 as they are coordinates
+        boardChanges = new int[height * width]; // Times 2 as they are coordinates
         boardChangeIndexes = new int[height * width];
-        priorityChanges = new int[height * width * 4]; // We store 2 coordinates each time
+        log.info("Allocating rollback buffer of " + ((long) height * width * height * width) * 4 / 1024 / 1024 + " MBytes");
+        long priorityCount = Math.min((long) height * width * height * width * 4, ((long)Integer.MAX_VALUE)-50);
+        priorityChanges = new int[(int)priorityCount]; // Theoretically we can rollback everything on all moves
         priorityChangeIndexes = new int[height * width];
 
         // Draw the quadratic map
@@ -114,18 +116,26 @@ public class Mapper {
 //        tripleDeltasByRow = getDeltaRows();
     }
 
-    private Mapper(Mapper other) {
+    private Mapper(Mapper other, boolean viewOnly) {
         this.edge = other.edge;
         this.height = other.height;
         this.width = other.width;
         this.valids = other.valids;
 
         this.quadratic = Arrays.copyOf(other.quadratic, other.quadratic.length);
-        this.priority = Arrays.copyOf(other.priority, other.priority.length);
-        this.boardChanges = Arrays.copyOf(other.boardChanges, other.boardChanges.length);
-        this.priorityChanges = Arrays.copyOf(other.priorityChanges, other.priorityChanges.length);
-        this.boardChangeIndexes = Arrays.copyOf(other.boardChangeIndexes, other.boardChangeIndexes.length);
-        this.priorityChangeIndexes = Arrays.copyOf(other.priorityChangeIndexes, other.priorityChangeIndexes.length);
+        if (viewOnly) {
+            this.priority = null;
+            this.boardChanges = null;
+            this.priorityChanges = null;
+            this.boardChangeIndexes = null;
+            this.priorityChangeIndexes = null;
+        } else {
+            this.priority = Arrays.copyOf(other.priority, other.priority.length);
+            this.boardChanges = Arrays.copyOf(other.boardChanges, other.boardChanges.length);
+            this.priorityChanges = Arrays.copyOf(other.priorityChanges, other.priorityChanges.length);
+            this.boardChangeIndexes = Arrays.copyOf(other.boardChangeIndexes, other.boardChangeIndexes.length);
+            this.priorityChangeIndexes = Arrays.copyOf(other.priorityChangeIndexes, other.priorityChangeIndexes.length);
+        }
 
         this.marked = other.marked;
         this.neutrals = other.neutrals;
@@ -383,7 +393,11 @@ public class Mapper {
     }
 
     public Mapper copy() {
-        return new Mapper(this);
+        return new Mapper(this, false);
+    }
+
+    public Mapper copy(boolean viewOnly) {
+        return new Mapper(this, viewOnly);
     }
 
     /**
