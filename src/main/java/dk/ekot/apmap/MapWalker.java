@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -32,7 +33,7 @@ public class MapWalker {
 
     public MapWalker(Mapper board) {
         this.board = board;
-        bestBoard = board.copy();
+        bestBoard = board.copy(true);
     }
 
     public void walk() {
@@ -47,11 +48,76 @@ public class MapWalker {
         long position = board.nextNeutral(0, 0);
         int x = (int) (position >> 32);
         int y = (int) (position & 0xFFFFFFFFL);
-        walk(-1, x, y, new int[board.width*board.height], 0, fulls, System.nanoTime()+(maxMS*1000000L), showBest);
+        walk(-1, x, y, fulls, System.nanoTime()+(maxMS*1000000L), showBest);
     }
 
     public Mapper getBestBoard() {
         return bestBoard;
+    }
+
+    public void walkPriority(int maxStaleMS, boolean showBest) {
+        long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
+        Mapper.PriorityPos zeroPos = new Mapper.PriorityPos();
+        Mapper.PriorityPos startingPos = board.nextPriority(zeroPos);
+        if (startingPos == null) {
+            throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
+        }
+        int depth = 0;
+        Mapper.PriorityPos[] positions = new Mapper.PriorityPos[board.valids];
+        positions[0] = startingPos;
+        long fulls = 0;
+
+        // Invariants: (xs[depth], ys[depth]) are always neutral for current level
+
+        while (depth < board.valids && (depth > 0 || positions[0].y == 0)) {
+//            System.out.println("--------------------------------------------------");
+//            System.out.println(board);
+//            System.out.println("depth=" + depth + ", xs[depth]==" + xs[depth] + ", xy[depth]==" + ys[depth]);
+
+            if (System.nanoTime() > maxNanoTime) {
+                log.debug("Stopping because of timeout with edge=" + board.edge +
+                          ", marked=" + board.marked + "/" + board.valids);
+                break;
+            }
+
+            // Change board
+            board.markAndDeltaExpand(positions[depth]);
+            if (bestMarkers < board.getMarkedCount()) {
+                maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
+                bestMarkers = board.getMarkedCount();
+                bestBoard = board.copy(true);
+                if (showBest) {
+//                    System.out.println(board + " fulls:" + fulls);
+                    System.out.printf(Locale.ROOT, "edge=%d, markers=%5d/%6d/%d: %s\n",
+                                      board.edge, board.marked, board.getNeutralCount(), board.valids, board.toJSON());
+                }
+            }
+
+            // Check if descending is possible with the changed board
+            Mapper.PriorityPos descendPos = board.nextPriority(zeroPos);
+            //Mapper.PriorityPos descendPos = board.nextPriority(positions[depth]);
+            if (descendPos != null) {
+                positions[depth+1] = descendPos;
+                ++depth;
+                continue;
+            }
+
+            // Cannot descend, rollback and either go to next position or move up
+            ++fulls;
+            while (true) {
+                board.rollback();
+                positions[depth] = board.nextPriority(positions[depth]);
+                if (positions[depth] == null) {
+                    // No more on this level, move up
+                    --depth;
+                    if (depth < 0) {
+                        return; // All tapped out
+                    }
+                    continue;
+                }
+                break;
+            }
+        }
     }
 
     public void walkStraight(int maxStaleMS, boolean showBest) {
@@ -63,8 +129,6 @@ public class MapWalker {
         int depth = 0;
         int[] xs = new int[board.valids]; xs[0] = startX;
         int[] ys = new int[board.valids]; ys[0] = startY;
-        int[] changed = new int[board.valids*4];
-        int[] changedIndices = new int[board.valids];
         long fulls = 0;
 
         // Invariants: (xs[depth], ys[depth]) are always neutral for current level
@@ -81,13 +145,14 @@ public class MapWalker {
             }
 
             // Change board
-            changedIndices[depth + 1] = board.markAndDeltaExpand(xs[depth], ys[depth], changed, changedIndices[depth]);
+            int before = board.neutrals;
+            board.markAndDeltaExpand(xs[depth], ys[depth]);
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
-                bestBoard = board.copy();
+                bestBoard = board.copy(true);
                 if (showBest) {
-  //                  System.out.println(board + " fulls:" + fulls);
+                    System.out.println(board + " fulls:" + fulls);
                     System.out.printf(Locale.ROOT, "edge=%d, markers=%5d/%6d/%d: %s\n",
                                       board.edge, board.marked, board.getNeutralCount(), board.valids, board.toJSON());
                 }
@@ -107,7 +172,8 @@ public class MapWalker {
             ++fulls;
             while (true) {
                 // TODO: There is a double rollback here as neutrals goes in the zeroes
-                board.rollback(changed, changedIndices[depth], changedIndices[depth + 1]);
+                before = board.neutrals;
+                board.rollback();
                 ++xs[depth];
                 long nextPosition = board.nextNeutral(xs[depth], ys[depth]);
                 if (nextPosition == -1) {
@@ -125,8 +191,7 @@ public class MapWalker {
         }
     }
 
-    private void walk(int depth, int x, int y, int[] changed, int changedIndex, AtomicLong fulls, long maxNanotime,
-                      boolean showBest) {
+    private void walk(int depth, int x, int y, AtomicLong fulls, long maxNanotime, boolean showBest) {
 //            System.out.println("ppp " + position + " edge " + ((board.edge>>2)+1));
         if (System.nanoTime() > maxNanotime || (depth == 0 && y > 0)) { // TODO: Implement idea 3
             return;
@@ -157,11 +222,11 @@ public class MapWalker {
             x = (int) (position >> 32);
             y = (int) (position & 0xFFFFFFFFL);
 
-            int afterChange = board.markAndDeltaExpand(x, y, changed, changedIndex);
+            board.markAndDeltaExpand(x, y);
 
             if (bestMarkers < board.getMarkedCount()) {
                 bestMarkers = board.getMarkedCount();
-                bestBoard = board.copy();
+                bestBoard = board.copy(true);
                 if (showBest) {
                     //System.out.println(board + " fulls:" + fulls.get());
                     System.out.printf(Locale.ROOT, "edge=%d, markers=%d/%d: %s\n",
@@ -169,8 +234,8 @@ public class MapWalker {
                 }
             }
 
-            walk(depth+1, x+1, y, changed, afterChange, fulls, maxNanotime, showBest);
-            board.rollback(changed, changedIndex, afterChange);
+            walk(depth+1, x+1, y, fulls, maxNanotime, showBest);
+            board.rollback();
             ++x; // TODO: Check for width here so all the checks in nextNeutral can be skipped?
         }
         fulls.incrementAndGet();

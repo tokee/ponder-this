@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -38,18 +39,24 @@ public class APMap {
     public static void main(String[] args) {
 //        new APMap().go(6, 10000000);
 
-        long startTime = System.currentTimeMillis();
-        //int RUN[] = new int[]{4, 4, 4, 4};
-        int RUN[] = TASKS;
-        boolean SHOW_BEST = true;
-        int STALE_MS = 600_000;
+        //Arrays.stream(TASKS).
+          //      boxed().
+            //    forEach(task -> new Mapper(task).dumpDeltaStats());
 
+        long startTime = System.currentTimeMillis();
+        int RUN[] = new int[]{5, 6, 11, 18, 27, 38, 50};
+  //      int RUN[] = TASKS;
+        boolean SHOW_BEST = true;
+        int STALE_MS = 24*60*60*1000;
+
+//        new Mapper(118).dumpDeltaStats();
+        new APMap().goQuadratic(578, true);
+        if (1==1) return;
 
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
         //new APMap().goFlat(4);
 //        new APMap().goQuadratic(4, 500_000, true);
 //        if (1==1) return;
-        //new APMap().goQuadratic(2, true);
         //new APMap().goQuadratic(6, true);
 //        new APMap().goQuadratic(450, true);
         //new APMap().go(11);
@@ -57,12 +64,13 @@ public class APMap {
   //      new APMap().go(11);
         //new APMap().go(18);
 
-        List<String> results = Arrays.stream(RUN).parallel().
+        List<Mapper> results = Arrays.stream(RUN).parallel().
                 boxed().
                 map(task -> new APMap().goQuadratic(task, STALE_MS, SHOW_BEST)).
-                map(Mapper::toJSON).
                 collect(Collectors.toList());
-        results.forEach(s -> System.out.println(s + ";"));
+        System.out.println();
+        results.forEach(s -> System.out.println(s + "\n\n"));
+        results.forEach(s -> System.out.println("edge=" + s.edge + ", marks=" + s.marked + ":\n" + s.toJSON() + ";"));
 
         System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
     }
@@ -83,7 +91,8 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walkStraight(maxStaleMS, showBest);
+        walker.walkPriority(maxStaleMS, showBest);
+        //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
         System.out.printf(Locale.ROOT, "edge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds: %s\n",
@@ -208,6 +217,39 @@ public class APMap {
           For each row and each column, store a sorted list of possible valid deltas.
           Resolve deltas for a coordinate by finding all elements common for the row- and the column deltas.
 
+    -----------------
+    Idea #12 20211120:
+
+    Select sub-level positional order based on how many neutrals the marker leaves on the board.
+    This requires keeping track of untested fields for sub-levels instead of just iterating left->right, top->down.
+
+    -----------------
+    Idea #13a 20211121:
+
+    When setting a mark, increment a counter for each potential triple. When selecting next mark, choose the one with
+    the lowest counter.
+
+    -----------------
+    Idea #13b 20211121:
+
+    Choose the one with the lowest counter, sub sorted by how many areas it effects when set.
+
+
+    -----------------
+    Idea #13c 20211121:
+
+    Thought: Consider the edge 3 below. The priority 2 is a leftover which does not make sense after the rightmost
+    marker in the second row has been set. Ideally it should be reduced to 1.
+  0:     X   X   .
+  1:   X   X   .   X
+  2: .   .   .   2   1
+  3:   1   1   1   1
+  4:     1   1   1       fulls:0
+
+    -----------------
+    Idea #13d 20211121:
+
+    Tracking the priority changes requires far too much memory. Recalculate them instead!
 
 
     How to multi thread?
