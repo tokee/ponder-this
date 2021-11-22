@@ -17,10 +17,8 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 /**
@@ -30,8 +28,23 @@ import java.util.stream.Collectors;
 public class APMap {
     private static final Logger log = LoggerFactory.getLogger(APMap.class);
 
-    public static final int[] TASKS = new int[]{2, 6, 11, 18, 27, 38, 50, 65, 81, 98,
-            118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
+    public static final int[] TASKS = new int[]{
+            2, 6, 11, 18, 27, 38, 50, 65, 81, 98,
+            118, 139, 162, 187,
+            214, 242, 273,
+            305, 338, 374,
+            411, 450, 491,
+            534, 578};
+
+    public static final int[][] BESTS = new int[][]{
+            // edge, local, global,
+            {2, 6, 6}, {6, 31, 33}, {11, 70, 80}, {18, 123, 153}, {27, 207, 266}, {38, 325, 420},
+            {50, 454, 621}, {65, 768, 884}, {81, 794, 1193}, {98, 952, 1512},
+            {118, 1086, 1973}, {139, 1615, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
+            {214, 3072, 4198}, {242, 3085, 4922}, {273, 3353, 5736},
+            {305, 3379, 6648}, {338, 3379, 7691}, {374, 3379, 8962},
+            {411, 3379, 10060}, {450, 7077, 11123}, {491, 3379, 12534},
+            {534, 7239, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
@@ -46,15 +59,22 @@ public class APMap {
           //      boxed().
             //    forEach(task -> new Mapper(task).dumpDeltaStats());
 
+        new APMap().goQuadratic(50, 120_000, true);
+        
+        processRemaining(1_000);
+
+        if (1==1) return;
+
         long startTime = System.currentTimeMillis();
-        int RUN[] = new int[]{5, 6, 11, 18, 27, 38, 50};
-  //      int RUN[] = TASKS;
+        int RUN[] = new int[]{305, 338, 374, 411, 491};
+        //      int RUN[] = TASKS;
         boolean SHOW_BEST = true;
-        int STALE_MS = 24*60*60*1000;
+        int STALE_MS = 120*1000; // 2 min
 
 //        new Mapper(118).dumpDeltaStats();
-        new APMap().goQuadratic(3, true);
-        if (1==1) return;
+//        new APMap().goQuadratic(534, 120_000, true);
+        //new APMap().goQuadratic(3, 120_000, true, 10_000);
+//        if (1==1) return;
 
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
         //new APMap().goFlat(4);
@@ -72,8 +92,48 @@ public class APMap {
                 map(task -> new APMap().goQuadratic(task, STALE_MS, SHOW_BEST)).
                 collect(Collectors.toList());
         System.out.println();
-        results.forEach(s -> System.out.println(s + "\n\n"));
-        results.forEach(s -> System.out.println("edge=" + s.edge + ", marks=" + s.marked + ":\n" + s.toJSON() + ";"));
+//        results.forEach(s -> System.out.println(s + "\n\n"));
+        results.forEach(s -> System.out.printf(
+                "edge=%d, marks=%d/%d, walkTime=%ds, completed=%b: %s\n",
+                s.edge, s.getMarkedCount(), s.valids, s.getWalkTimeMS()/1000, s.isCompleted(), s.toJSON()));
+
+        System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
+    }
+
+    public static void processRemaining(int maxStaleMS) {
+        long startTime = System.currentTimeMillis();
+
+        List<Integer> tests = Arrays.stream(BESTS). // edge, local, global
+                filter(b -> b[1] < b[2]). // local worse than global
+                map(b -> b[0]) // Only edges
+                .collect(Collectors.toList());
+        log.info("Processing {}/{} edges with maxStaleMS=={}: {}", tests.size(), BESTS.length, maxStaleMS, tests);
+
+        List<Mapper> results = new ArrayList<>(tests.size());
+        ForkJoinPool customThreadPool = new ForkJoinPool(3); // Seems to fit in default JVM heap allocation
+        customThreadPool.submit(() -> {
+            results.addAll(tests.parallelStream().
+                                   map(task -> new APMap().goQuadratic(task, maxStaleMS, true)).
+                                   collect(Collectors.toList()));
+
+        }).join();
+        
+        System.out.println();
+//        results.forEach(s -> System.out.println(s + "\n\n"));
+        System.out.println("All results:");
+        results.forEach(s -> System.out.printf(
+                "edge=%d, marks=%d/%d, walkTime=%ds, completed=%b: %s\n",
+                s.edge, s.getMarkedCount(), s.valids, s.getWalkTimeMS()/1000, s.isCompleted(), s.toJSON()));
+
+        System.out.println("Improvements:");
+        Map<Integer, Integer> localBest = Arrays.stream(BESTS).
+                map(b -> Arrays.copyOf(b, 2)).
+                collect(Collectors.toMap(b -> b[0], b -> b[1]));
+        results.stream().
+                filter(board -> board.marked > localBest.get(board.edge)).
+                forEach(s -> System.out.printf(
+                        "edge=%d, marks=%d/%d, walkTime=%ds, completed=%b: %s\n",
+                        s.edge, s.getMarkedCount(), s.valids, s.getWalkTimeMS()/1000, s.isCompleted(), s.toJSON()));
 
         System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
     }
@@ -94,12 +154,15 @@ public class APMap {
     }
 
     private Mapper goQuadratic(int edge) {
-        return goQuadratic(edge, Integer.MAX_VALUE, true);
+        return goQuadratic(edge, Integer.MAX_VALUE, true, Integer.MAX_VALUE);
     }
     private Mapper goQuadratic(int edge, boolean showBest) {
-        return goQuadratic(edge, Integer.MAX_VALUE, showBest);
+        return goQuadratic(edge, Integer.MAX_VALUE, showBest, Integer.MAX_VALUE);
     }
     private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest) {
+        return goQuadratic(edge, maxStaleMS, showBest, Integer.MAX_VALUE);
+    }
+    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, int showBoardIntervalMS) {
         log.info("Initializing for edge " + edge + "...");
         long initTime = -System.currentTimeMillis();
         Mapper board = new Mapper(edge);
@@ -109,13 +172,14 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walkPriority(maxStaleMS, showBest);
+        walker.walkPriority(maxStaleMS, showBest, showBoardIntervalMS);
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
-        System.out.printf(Locale.ROOT, "edge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds: %s\n",
+        System.out.printf(Locale.ROOT, "edge=%d, marks=%d/%d, initTime=%ds, walkTime=%ds, completed=%b: %s\n",
                           edge, walker.getBestBoard().getMarkedCount(), board.valids,
-                          initTime/1000, walkTime/1000, walker.getBestBoard().toJSON());
+                          initTime/1000, walkTime/1000, walker.getBestBoard().isCompleted(),
+                          walker.getBestBoard().toJSON());
         return walker.getBestBoard();
     }
 

@@ -71,6 +71,8 @@ public class Mapper {
     int marked = 0;
     int neutrals;
     int changeIndexPosition = 0;
+    boolean completed = false;
+    long walkTimeMS = 0;
 
     /*
     final int[] flatToQuadratic;
@@ -132,6 +134,7 @@ public class Mapper {
         this.marked = other.marked;
         this.neutrals = other.neutrals;
         this.changeIndexPosition = other.changeIndexPosition;
+        this.completed = other.completed;
 
         this.tripleDeltas = Arrays.copyOf(other.tripleDeltas, other.tripleDeltas.length);
 //        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
@@ -314,6 +317,22 @@ public class Mapper {
         return priority[y * width + x];
     }
 
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
+    }
+
+    public long getWalkTimeMS() {
+        return walkTimeMS;
+    }
+
+    public void setWalkTimeMS(long walkTimeMS) {
+        this.walkTimeMS = walkTimeMS;
+    }
+
     public int getMarkedCount() {
         return marked;
     }
@@ -409,7 +428,7 @@ public class Mapper {
             final int deltaElement1 = getQuadratic(x1, y1);
             final int deltaElement2 = getQuadratic(x2, y2);
             if (deltaElement1 == INVALID || deltaElement2 == INVALID) {
-                continue; // Only valid triples
+                continue; // Only adjust priorities for valid triples
             }
             // TODO: Is it cheaper to just adjust even when there is a marker?
             if (deltaElement1 != MARKER) {

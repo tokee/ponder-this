@@ -36,26 +36,13 @@ public class MapWalker {
         bestBoard = board.copy(true);
     }
 
-    public void walk() {
-        walk(Integer.MAX_VALUE, true);
-    }
-
-    /**
-     * Perform exhaustive walk.
-     */
-    public void walk(int maxMS, boolean showBest) {
-        AtomicLong fulls = new AtomicLong(0);
-        long position = board.nextNeutral(0, 0);
-        int x = (int) (position >> 32);
-        int y = (int) (position & 0xFFFFFFFFL);
-        walk(-1, x, y, fulls, System.nanoTime()+(maxMS*1000000L), showBest);
-    }
-
     public Mapper getBestBoard() {
         return bestBoard;
     }
 
-    public void walkPriority(int maxStaleMS, boolean showBest) {
+    public void walkPriority(int maxStaleMS, boolean showBest, int showBoardIntervalMS) {
+        final long startTime = System.currentTimeMillis();
+
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
         Mapper.PriorityPos zeroPos = new Mapper.PriorityPos();
         Mapper.PriorityPos startingPos = board.nextPriority(zeroPos);
@@ -66,6 +53,7 @@ public class MapWalker {
         Mapper.PriorityPos[] positions = new Mapper.PriorityPos[board.valids];
         positions[0] = startingPos;
         long fulls = 0;
+        long nextShow = System.currentTimeMillis() + showBoardIntervalMS;
 
         // Invariants: (xs[depth], ys[depth]) are always neutral for current level
 
@@ -74,10 +62,17 @@ public class MapWalker {
 //            System.out.println(board);
 //            System.out.println("depth=" + depth + ", xs[depth]==" + xs[depth] + ", xy[depth]==" + ys[depth]);
 
+            if (System.currentTimeMillis() > nextShow) {
+                System.out.println(board + " time triggered show, depth=" + depth);
+                System.out.println("---------------------------");
+                nextShow = System.currentTimeMillis()+showBoardIntervalMS;
+            }
+
             if (System.nanoTime() > maxNanoTime) {
                 log.debug("Stopping because of timeout with edge=" + board.edge +
                           ", marked=" + board.marked + "/" + board.valids);
-                break;
+                bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
+                return;
             }
 
             // Change board
@@ -113,6 +108,7 @@ public class MapWalker {
                     // No more on this level, move up
                     --depth;
                     if (depth < 0) {
+                        bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
                         return; // All tapped out
                     }
                     continue;
@@ -120,6 +116,8 @@ public class MapWalker {
                 break;
             }
         }
+        bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
+        bestBoard.setCompleted(true);
     }
 
     public void walkStraight(int maxStaleMS, boolean showBest) {
@@ -192,6 +190,21 @@ public class MapWalker {
                 break;
             }
         }
+    }
+
+    public void walk() {
+        walk(Integer.MAX_VALUE, true);
+    }
+
+    /**
+     * Perform exhaustive walk.
+     */
+    public void walk(int maxMS, boolean showBest) {
+        AtomicLong fulls = new AtomicLong(0);
+        long position = board.nextNeutral(0, 0);
+        int x = (int) (position >> 32);
+        int y = (int) (position & 0xFFFFFFFFL);
+        walk(-1, x, y, fulls, System.nanoTime()+(maxMS*1000000L), showBest);
     }
 
     private void walk(int depth, int x, int y, AtomicLong fulls, long maxNanotime, boolean showBest) {
