@@ -93,8 +93,6 @@ public class Mapper {
         priority = new int[height*width];
         boardChanges = new int[height * width]; // Times 2 as they are coordinates
         boardChangeIndexes = new int[height * width];
-        log.info("Allocating rollback buffer of " + ((long) height * width * height * width) * 4 / 1024 / 1024 + " MBytes");
-        long priorityCount = Math.min((long) height * width * height * width * 4, ((long)Integer.MAX_VALUE)/2-50);
 
         // Draw the quadratic map
         Arrays.fill(quadratic, INVALID);

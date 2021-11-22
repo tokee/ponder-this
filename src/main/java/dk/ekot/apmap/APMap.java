@@ -39,11 +39,11 @@ public class APMap {
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
             {2, 6, 6}, {6, 31, 33}, {11, 70, 80}, {18, 123, 153}, {27, 207, 266}, {38, 325, 420},
-            {50, 454, 621}, {65, 768, 884}, {81, 794, 1193}, {98, 952, 1512},
-            {118, 1086, 1973}, {139, 1615, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
+            {50, 454, 621}, {65, 768, 884}, {81, 794, 1193}, {98, 1010, 1512},
+            {118, 1246, 1973}, {139, 1615, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
             {214, 3072, 4198}, {242, 3085, 4922}, {273, 3353, 5736},
-            {305, 3379, 6648}, {338, 3379, 7691}, {374, 3379, 8962},
-            {411, 3379, 10060}, {450, 7077, 11123}, {491, 3379, 12534},
+            {305, 3915, 6648}, {338, 4380, 7691}, {374, 4778, 8962},
+            {411, 5422, 10060}, {450, 7077, 11123}, {491, 6632, 12534},
             {534, 7239, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
@@ -58,9 +58,10 @@ public class APMap {
         //Arrays.stream(TASKS).
           //      boxed().
             //    forEach(task -> new Mapper(task).dumpDeltaStats());
+        new Mapper(578).dumpDeltaStats(); if (1==1) return;
 
         new APMap().goQuadratic(50, 120_000, true);
-        
+
         processRemaining(1_000);
 
         if (1==1) return;
@@ -332,6 +333,29 @@ public class APMap {
     Idea #13d 20211121:
 
     Tracking the priority changes requires far too much memory. Recalculate them instead!
+
+    -----------------
+    Idea #14a 20211122:
+
+    Observation: Most of the time is spent calling getRectangular(x, y) to check deltas.
+                 The getQuadratic computes quadratic[y*width+x].
+    Idea: Round width up to nearest power of 2 and use shift and or to get the array index: quadratic[y<<4|x]
+          This spares the multiplication.
+
+    Idea #14a 20211122:
+
+    Revisit idea #11 and couple it with #14a: For each row, store an array of possibly valid deltas, but instead
+    of storing (x, y), store only the direct offset in quadratic[]. Out of bounds needs to be checked, but
+    there is no wrapping offset problem as the row is given for the concrete deltas. There are (2*edge)^2 valid
+    elements, 2*edge rows and (overshooting a lot here) the same amount of possible deltas for each element.
+    Each delta needs to be able to hold numbers up to (2*edge)^2.
+    For the edge 578, this means (2*578)^2 = 1.3M global deltas and thus (2*576)*1.3M ~=  1.5G row deltas.
+    As each deltas must hold numbers up to 1.3M and there are 2 of them, this is 2 * 1.3M integers (4 bytes)
+    or about 10GB.
+
+    Moderation: 10GB is unrealistically high due to not all rows having all possible deltas. TODO: Extract real stats
+    Still, just half of that is quite heavy. Maybe pack deltas multi-dimensionally as an int[column] for each row?
+
 
 
     How to multi thread?
