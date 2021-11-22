@@ -37,7 +37,10 @@ public class APMap {
 
 
     public static void main(String[] args) {
-//        new APMap().go(6, 10000000);
+       // testMarking();
+        //if (1==1) return;
+
+        //        new APMap().go(6, 10000000);
 
         //Arrays.stream(TASKS).
           //      boxed().
@@ -50,7 +53,7 @@ public class APMap {
         int STALE_MS = 24*60*60*1000;
 
 //        new Mapper(118).dumpDeltaStats();
-        new APMap().goQuadratic(578, true);
+        new APMap().goQuadratic(3, true);
         if (1==1) return;
 
 //        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
@@ -73,6 +76,21 @@ public class APMap {
         results.forEach(s -> System.out.println("edge=" + s.edge + ", marks=" + s.marked + ":\n" + s.toJSON() + ";"));
 
         System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
+    }
+
+    private static void testMarking() {
+        Mapper board = new Mapper(3);
+        Mapper.PriorityPos pos = new Mapper.PriorityPos(2, 0, 0);
+        System.out.println("***********************************");
+        System.out.println(board + " setting " + pos);
+        board.markAndDeltaExpand(pos);
+        System.out.println("-----------------------------------");
+        System.out.println(board + " after marking");
+        board.rollback();
+        System.out.println("-----------------------------------");
+        System.out.println(board + " after rollback");
+        board.markAndDeltaExpand(pos);
+        System.out.println("***********************************");
     }
 
     private Mapper goQuadratic(int edge) {

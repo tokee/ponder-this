@@ -82,6 +82,8 @@ public class MapWalker {
 
             // Change board
             board.markAndDeltaExpand(positions[depth]);
+
+            // Check is a new max has been found
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
@@ -145,8 +147,9 @@ public class MapWalker {
             }
 
             // Change board
-            int before = board.neutrals;
+
             board.markAndDeltaExpand(xs[depth], ys[depth]);
+
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
@@ -160,6 +163,7 @@ public class MapWalker {
 
             // Check if descending is possible with the changed board
             long descendPosition = board.nextNeutral(xs[depth] + 1, ys[depth]);
+
             if (descendPosition != -1) {
                 // All OK, commence descend
                 xs[depth + 1] = (int) (descendPosition >> 32);
@@ -172,7 +176,6 @@ public class MapWalker {
             ++fulls;
             while (true) {
                 // TODO: There is a double rollback here as neutrals goes in the zeroes
-                before = board.neutrals;
                 board.rollback();
                 ++xs[depth];
                 long nextPosition = board.nextNeutral(xs[depth], ys[depth]);

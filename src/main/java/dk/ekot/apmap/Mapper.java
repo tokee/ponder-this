@@ -295,6 +295,16 @@ public class Mapper {
     }
 
     /**
+     * Increase the priority of the given field. The coordinates must be on the board.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     * @param priorityDelta the adjustment.
+     */
+    public final int adjustPriority(int x, int y, int priorityDelta) {
+        return priority[y * width + x] += priorityDelta;
+    }
+
+    /**
      * Get the priority of the given field, lower numbers are better, highest priority is 0.
      * @param x quadratic coordinate X.
      * @param y quadratic coordinate Y.
@@ -340,10 +350,10 @@ public class Mapper {
         --neutrals;
         for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
             // TODO: Make all the get & set / increase share the same calculations and checks for validity
-            final int x1 = x+tripleDeltas[i];
-            final int y1 = y+tripleDeltas[i+1];
-            final int x2 = x+tripleDeltas[i+2];
-            final int y2 = y+tripleDeltas[i+3];
+            final int x1 = x + tripleDeltas[i];
+            final int y1 = y + tripleDeltas[i + 1];
+            final int x2 = x + tripleDeltas[i + 2];
+            final int y2 = y + tripleDeltas[i + 3];
             final int deltaElement1 = getQuadratic(x1, y1);
             final int deltaElement2 = getQuadratic(x2, y2);
 
@@ -361,15 +371,9 @@ public class Mapper {
                     boardChanges[boardChangeIndexes[changeIndexPosition]++] = y1;
                     --neutrals;
                 }
-            } else { // Only a single marker in the triple, increment priority of the others
-                if (deltaElement1 != INVALID) {
-                    decreasePriority(x1, y1);
-                }
-                if (deltaElement2 != INVALID) {
-                    decreasePriority(x2, y2);
-                }
             }
         }
+        adjustPriorities(x, y, 1);
     }
 
     /**
@@ -377,18 +381,25 @@ public class Mapper {
      * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
      */
     public void rollback() {
+
+        boolean first = true;
         for (int i = boardChangeIndexes[changeIndexPosition - 1]; i < boardChangeIndexes[changeIndexPosition] ; i+=2) {
             final int x =  boardChanges[i];
             final int y =  boardChanges[i+1];
+            if (first) {
+                adjustPriorities(x, y, -1); // First pos is the marker
+                first = false;
+            }
+            // Order below is important. Must be reverse of markandDeltaExpand
             setQuadratic(x, y, NEUTRAL);
-            increasePriorities(x, y);
         }
         --marked;
         neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1]) >> 1;
         --changeIndexPosition;
     }
 
-    private void increasePriorities(int x, int y) {
+    private void adjustPriorities(int x, int y, int priorityDelta) {
+        //log.debug("adjustPriorities({}, {}, delta={}) called", x, y, priorityDelta);
         for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
             // TODO: Make all the get & set / increase share the same calculations and checks for validity
             final int x1 = x + tripleDeltas[i];
@@ -397,14 +408,19 @@ public class Mapper {
             final int y2 = y + tripleDeltas[i + 3];
             final int deltaElement1 = getQuadratic(x1, y1);
             final int deltaElement2 = getQuadratic(x2, y2);
-            if (deltaElement1 != MARKER && deltaElement1 != INVALID) {
-                increasePriority(x1, y1);
+            if (deltaElement1 == INVALID || deltaElement2 == INVALID) {
+                continue; // Only valid triples
             }
-            if (deltaElement2 != MARKER && deltaElement2 != INVALID) {
-                increasePriority(x2, y2);
+            // TODO: Is it cheaper to just adjust even when there is a marker?
+            if (deltaElement1 != MARKER) {
+                adjustPriority(x1, y1, priorityDelta);
+            }
+            if (deltaElement2 != MARKER) {
+                adjustPriority(x2, y2, priorityDelta);
             }
         }
     }
+
 
     public Mapper copy() {
         return new Mapper(this, false);
