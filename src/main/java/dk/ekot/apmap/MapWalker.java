@@ -57,8 +57,9 @@ public class MapWalker {
 
     public void walkPriority(int maxStaleMS, boolean showBest) {
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
-        Mapper.PriorityPos startingPos = new Mapper.PriorityPos();
-        if ((startingPos = board.nextPriority(startingPos)) == null) {
+        Mapper.PriorityPos zeroPos = new Mapper.PriorityPos();
+        Mapper.PriorityPos startingPos = board.nextPriority(zeroPos);
+        if (startingPos == null) {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
         int depth = 0;
@@ -80,7 +81,6 @@ public class MapWalker {
             }
 
             // Change board
-            int before = board.neutrals;
             board.markAndDeltaExpand(positions[depth]);
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
@@ -94,7 +94,8 @@ public class MapWalker {
             }
 
             // Check if descending is possible with the changed board
-            Mapper.PriorityPos descendPos = board.nextPriority(positions[depth]);
+            Mapper.PriorityPos descendPos = board.nextPriority(zeroPos);
+            //Mapper.PriorityPos descendPos = board.nextPriority(positions[depth]);
             if (descendPos != null) {
                 positions[depth+1] = descendPos;
                 ++depth;
@@ -105,8 +106,8 @@ public class MapWalker {
             ++fulls;
             while (true) {
                 board.rollback();
-                Mapper.PriorityPos nextPos = board.nextPriority(positions[depth]);
-                if (nextPos == null) {
+                positions[depth] = board.nextPriority(positions[depth]);
+                if (positions[depth] == null) {
                     // No more on this level, move up
                     --depth;
                     if (depth < 0) {
@@ -114,7 +115,6 @@ public class MapWalker {
                     }
                     continue;
                 }
-                positions[depth] = nextPos;
                 break;
             }
         }

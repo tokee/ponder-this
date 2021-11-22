@@ -245,6 +245,10 @@ public class Mapper {
         public PriorityPos copy() {
             return new PriorityPos(x, y, priority);
         }
+
+        public String toString() {
+            return "(" + x + ", " + y + ": " + priority + ")";
+        }
     }
 
 
