@@ -581,7 +581,7 @@ public class Mapper {
      */
     public short[] getTripleDeltas() {
         List<Integer> triples = new ArrayList<>();
-        // TODO: Ca the width/2+1 be reduced a tiny bit? w3->1, w4->1, w5->2, w6->2, w7->3
+        // TODO: Can the width/2+1 be reduced a tiny bit? w3->1, w4->1, w5->2, w6->2, w7->3
         for (int deltaX = 0 ; deltaX < width/2+1 ; deltaX++) {
             for (int deltaY = 0; deltaY < height/2+1; deltaY++) {
                 if (deltaX == 0 && deltaY == 0) {
@@ -655,6 +655,53 @@ public class Mapper {
                 "edge=%d, valids=%d, uniqueDeltas=%d, sumDeltas=%d, minDeltas=%d, averageDeltas=%d, maxDeltas=%d, time=%ds",
                           edge, valids, tripleDeltas.length/4, sum, min, sum/valids, max,
                 (System.currentTimeMillis()-startTimeMS)/1000);
+    }
+
+    /**
+     * Iterate all triples connected to origo.
+     * @param origoX start X in the quadratic coordinate system.
+     * @param origoY start Y in the quadratic coordinate system.
+     */
+    public void visitTriples(final int origoX, final int origoY, VisitCallback callback) {
+        final int origo = origoY*width+origoX;
+
+        final int leftSpace = (origoX & 1) == 1 ? 1 : 0; // Only consider evens
+        final int deltaAXStart = origoX < 4 ? 0 : leftSpace-origoY;
+        int rightSpace = width-origoX;
+        if ((rightSpace&1) == 1) {
+            --rightSpace;
+        }
+        final int deltaAXEnd = rightSpace < 4 ? 0 : rightSpace-origoX;
+
+        final int topSpace =  (origoY & 1) == 1 ? 1 : 0;
+        final int bottomSpace = ((height-origoY) & 1) == 1 ? (height-origoY-1) : (height-origoY);
+
+        System.out.printf("width=%d, height=%d\n", width, height);
+        System.out.printf("ox=%d, oy=%d, l=%d, t=%d, r=%d, b=%d\n", origoX, origoY, leftSpace, topSpace, rightSpace, bottomSpace);
+        System.out.printf("daxs=%d, daxe=%d\n", deltaAXStart, deltaAXEnd);
+        System.out.printf("for (dy = %d, dy < %d, dy += %d)\n", (topSpace-origoY)*width , (bottomSpace-origoY)*width , width);
+
+        for (int deltaA_Y = (topSpace-origoY)*width ; deltaA_Y < (bottomSpace-origoY)*width ; deltaA_Y += width) {
+            for (int deltaA_X = deltaAXStart ; deltaA_X < deltaAXEnd ; deltaA_X += 4) { // 4 as the quadratic board is double width
+                final int tripleA = origo + deltaA_X + deltaA_Y;
+                final int tripleB = origo + (deltaA_X>>1) + (deltaA_Y>>1);
+                if (tripleA == origo) { // triples need to be distanced
+                    continue;
+                }
+                callback.processValid(tripleA, tripleB);
+            }
+        }
+    }
+
+    @FunctionalInterface
+    public interface VisitCallback {
+        /**
+         * Called for every triple where each triple entry is on the quadratic board.
+         * Note: It is not guaranteed that each triple is valid!
+         * @param pos1 primary triple entry.
+         * @param pos2 secondary triple entry.
+         */
+        void processValid(int pos1, int pos2);
     }
 
     /**

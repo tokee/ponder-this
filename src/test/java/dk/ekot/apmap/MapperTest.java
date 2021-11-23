@@ -3,6 +3,8 @@ package dk.ekot.apmap;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import java.util.Locale;
+
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -67,5 +69,25 @@ public class MapperTest extends TestCase {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    @Test
+    public void testVisitTriples2() {
+        dumpVisitTriples(2, 2, 1);
+    }
+    @Test
+    public void testVisitTriples3() {
+        dumpVisitTriples(3, 2, 1);
+    }
+    public void dumpVisitTriples(int edge, int x, int y) {
+        Mapper board = new Mapper(edge);
+        board.setQuadratic(x, y, Mapper.MARKER);
+        board.visitTriples(x, y, (posA, posB) -> {
+            board.quadratic[posA] = Mapper.ILLEGAL;
+            board.quadratic[posB] = Mapper.ILLEGAL;
+            board.priority[posA] = 1;
+            board.priority[posB] = 1;
+        });
+        System.out.println(board);
     }
 }

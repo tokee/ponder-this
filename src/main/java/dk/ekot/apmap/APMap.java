@@ -58,7 +58,11 @@ public class APMap {
         //Arrays.stream(TASKS).
           //      boxed().
             //    forEach(task -> new Mapper(task).dumpDeltaStats());
-        new Mapper(578).dumpDeltaStats(); if (1==1) return;
+        new Mapper(140).dumpDeltaStats(); if (1==1) return;
+        // edge=100, valids=29701, uniqueDeltas=59550, sumDeltas=330772500, minDeltas=7354, averageDeltas=11136, maxDeltas=22200, time=6s
+        // edge=120, valids=42841, uniqueDeltas=85860, sumDeltas=688208400, minDeltas=10624, averageDeltas=16064, maxDeltas=32040, time=14s
+        // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
+
 
         new APMap().goQuadratic(50, 120_000, true);
 
