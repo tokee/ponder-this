@@ -356,6 +356,20 @@ public class APMap {
     Moderation: 10GB is unrealistically high due to not all rows having all possible deltas. TODO: Extract real stats
     Still, just half of that is quite heavy. Maybe pack deltas multi-dimensionally as an int[column] for each row?
 
+    -----------------
+    Idea #15a 20211123 (Thomas):
+
+    Have a few hot spots where the priority penalties are stacked, when selecting fields.
+
+    -----------------
+    Idea #15b 20211123:
+
+    Calculate the number of fields which will have their priority changed if a mark is placed, to determine which
+    mark costs less.
+
+    Addon: Consider the concrete priorities changed by the potential mark: If some has a poor priority it does not
+    matter mich if they are changed.
+
 
 
     How to multi thread?

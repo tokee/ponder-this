@@ -622,6 +622,7 @@ public class Mapper {
 
     /**
      * Provides stats for how the generic triples overlaps with ideal (position specific) triples
+     * edge=578, valids=1000519, uniqueDeltas=2001903, sumDeltas=375388224777, minDeltas=249700, averageDeltas=375193, maxDeltas=749955, time=18681s
      */
     public void dumpDeltaStats() {
         final long startTimeMS = System.currentTimeMillis();
