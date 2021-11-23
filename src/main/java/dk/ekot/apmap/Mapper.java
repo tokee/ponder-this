@@ -87,7 +87,7 @@ public class Mapper {
      */
     public Mapper(int edge) {
         this.edge = edge;
-        width = edge*4-2;
+        width = edge*4-3;
         height = edge*2-1;
         quadratic = new int[height*width];
         priority = new int[height*width];
@@ -835,7 +835,7 @@ public class Mapper {
                         sb.append(".");
                         break;
                     case INVALID:
-                        sb.append(" ");
+                        sb.append("-");
                         break;
                     default:
                         throw new UnsupportedOperationException("Unknown element: " + getQuadratic(x, y));

@@ -53,22 +53,23 @@ public class APMap {
        // testMarking();
         //if (1==1) return;
 
+        //System.out.println(new Mapper(8)); if (1==1) return;
         //        new APMap().go(6, 10000000);
 
         //Arrays.stream(TASKS).
           //      boxed().
             //    forEach(task -> new Mapper(task).dumpDeltaStats());
-        new Mapper(140).dumpDeltaStats(); if (1==1) return;
+        //new Mapper(140).dumpDeltaStats(); if (1==1) return;
         // edge=100, valids=29701, uniqueDeltas=59550, sumDeltas=330772500, minDeltas=7354, averageDeltas=11136, maxDeltas=22200, time=6s
         // edge=120, valids=42841, uniqueDeltas=85860, sumDeltas=688208400, minDeltas=10624, averageDeltas=16064, maxDeltas=32040, time=14s
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
 
-        new APMap().goQuadratic(50, 120_000, true);
-
-        processRemaining(1_000);
+        new APMap().goQuadratic(3, 2_000, true);
 
         if (1==1) return;
+        processRemaining(1_000);
+
 
         long startTime = System.currentTimeMillis();
         int RUN[] = new int[]{305, 338, 374, 411, 491};
