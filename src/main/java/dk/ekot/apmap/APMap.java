@@ -53,7 +53,7 @@ public class APMap {
        // testMarking();
         //if (1==1) return;
 
-        //System.out.println(new Mapper(8)); if (1==1) return;
+        //System.out.println(new Mapper(20)); if (1==1) return;
         //        new APMap().go(6, 10000000);
 
         //Arrays.stream(TASKS).
