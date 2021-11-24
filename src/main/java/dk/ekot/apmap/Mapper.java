@@ -663,6 +663,49 @@ public class Mapper {
      * @param origoY start Y in the quadratic coordinate system.
      */
     public void visitTriples(final int origoX, final int origoY, VisitCallback callback) {
+        // edge 5/7: offsets=(0, 0), (2, 0)
+
+        int offsetX = 0;//(origoX&2);
+        int offsetY = origoY&1;
+        System.out.printf("origo(%d, %d), Offsets (%d, %d)\n", origoX, offsetY, offsetX, offsetY);
+        boolean shift = (origoX&2) != 0;
+        for (int y1 = offsetY ; y1 < height ; y1 += 2) {
+            shift = !shift;
+            int shiftDelta = shift ? 2 : 0;
+            int marginX = Math.abs(y1-height/2);
+            for (int x1 = shiftDelta-(edge&1)-((y1+1)&1) ; x1 <= width-marginX ; x1 += 4) {
+                if (x1 < marginX) {
+                    continue;
+                }
+                if (x1 == origoX && y1 == origoY) {
+                    continue;
+                }
+                final int x2 = x1;
+                final int y2 = y1;
+//                System.out.printf("origo(%d, %d), pos1(%d, %d), pos2(%d, %d), marginX=%d, board(%d, %d)\n",
+//                                  origoX, origoY, x1, y1, x2, y2, marginX, width, height);
+                callback.processValid(y1*width+x1, y2*width+x2);
+            }
+        }
+    }
+    public void visitTriplesOK3_2_0(final int origoX, final int origoY, VisitCallback callback) {
+        final int offsetX = origoX&1;
+        final int offsetY = origoY&1;
+        for (int y1 = offsetY ; y1 < height ; y1 += 2) {
+            int marginX = Math.abs(y1-height/2);
+            for (int x1 = marginX + offsetX ; x1 <= width-marginX ; x1 += 4) {
+                if (x1 == origoX && y1 == origoY) {
+                    continue;
+                }
+                final int x2 = x1;
+                final int y2 = y1;
+                System.out.printf("origo(%d, %d), pos1(%d, %d), pos2(%d, %d), marginX=%d, board(%d, %d)\n",
+                                  origoX, origoY, x1, y1, x2, y2, marginX, width, height);
+                callback.processValid(y1*width+x1, y2*width+x2);
+            }
+        }
+    }
+    public void visitTriplesInner(final int origoX, final int origoY, VisitCallback callback) {
         System.out.printf("for (deltaY=%d ; deltaY <= %d ; deltaY++) height=%d\n", 0, ((height-origoY)>>1), height);
         for (int deltaY = 0 ; deltaY <= (height-origoY)>>1; deltaY++) {
             int marginX = Math.abs((origoY+(deltaY>>1))-height/2);
