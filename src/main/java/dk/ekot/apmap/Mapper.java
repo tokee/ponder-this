@@ -665,6 +665,8 @@ public class Mapper {
     public void visitTriples(final int origoX, final int origoY, VisitCallback callback) {
         // edge 5/7: offsets=(0, 0), (2, 0)
 
+        final int origo = origoY*width+origoX;
+
         int offsetX = 1 + (origoX&3);
         int offsetY = origoY&1;
 
@@ -675,29 +677,31 @@ public class Mapper {
         }
         boolean shift = true;
 
-        offsetX -= 8; // TODO: Find proper minimum instead of just compensating with no-op steps
+        offsetX -= 8;
 
 //        System.out.printf("origo(%d, %d), Offsets (%d, %d)\n", origoX, offsetY, offsetX, offsetY);
+        int y1ArrayIndex = offsetY*width;
         for (int y1 = offsetY ; y1 < height ; y1 += 2) {
             shift = !shift;
             int shiftDelta = shift ? 2 : 0;
             int marginX = Math.abs(y1-(height>>1));
-            for (int x1 = offsetX + shiftDelta-((y1+1)&1) ; x1 <= width-marginX ; x1 += 4) {
-                if (x1 < 0) {
-                    continue; // TODO: Remove this by avoiding negative starting conditions
-                }
-                if (x1 < marginX) {
-                    continue;
-                }
+            int startX = offsetX + shiftDelta-((y1+1)&1);
+            while (startX < marginX) { // TODO: Make a no-conditionals "round to nearest mod 4 >= marginX"
+                startX += 4;
+            }
+            for (int x1 = startX ; x1 <= width-marginX ; x1 += 4) {
                 if (x1 == origoX && y1 == origoY) {
                     continue;
                 }
-                final int x2 = x1;
-                final int y2 = y1;
+                final int pos1 = y1ArrayIndex+x1;
+                final int pos2 = (origo+pos1)>>1;
+
 //                System.out.printf("origo(%d, %d), pos1(%d, %d), pos2(%d, %d), marginX=%d, board(%d, %d)\n",
 //                                  origoX, origoY, x1, y1, x2, y2, marginX, width, height);
-                callback.processValid(y1*width+x1, y2*width+x2);
+                //callback.processValid(y1*width+x1, y2*width+x2);
+                callback.processValid(pos1, pos2);
             }
+            y1ArrayIndex += width<<1;
         }
     }
 
