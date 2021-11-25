@@ -65,7 +65,7 @@ public class APMap {
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
 
-        System.out.println(new APMap().goQuadratic(2, 2_000, true));
+        System.out.println(new APMap().goQuadratic(6, 2_000, true));
 
         if (1==1) return;
         processRemaining(1_000);

@@ -351,7 +351,6 @@ public class Mapper {
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
     public void markAndDeltaExpand(final int x, final int y) {
-        System.out.printf("Mark(%d, %d) already has %d\n", x, y, getQuadratic(x, y));
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
         final int origoPos = y*width+x;
@@ -369,14 +368,11 @@ public class Mapper {
             final int pos1Element = quadratic[pos1];
             final int pos2Element = quadratic[pos2];
 
-            if (pos1Element == MARKER) {
-                if (quadratic[pos2] == INVALID) {
-                    System.out.println("***************** Oh noes! 2");
-                }
+            if (pos1Element == MARKER && pos2Element == NEUTRAL) {
                 quadratic[pos2] = ILLEGAL;
                 boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos2;
                 --neutrals;
-            } else if (pos2Element == MARKER) {
+            } else if (pos2Element == MARKER && pos1Element == NEUTRAL) {
                 if (quadratic[pos1] == INVALID) {
                     System.out.println("***************** Oh noes! 1");
                 }
@@ -398,7 +394,7 @@ public class Mapper {
 
         final int x =  boardChanges[start++];
         final int y =  boardChanges[start++];
-        System.out.printf("popping(%d, %d) from %d\n", x, y, boardChangeIndexes[changeIndexPosition-1]);
+//        System.out.printf("popping(%d, %d) from %d\n", x, y, boardChangeIndexes[changeIndexPosition-1]);
         adjustPriorities(x, y, -1); // Must be before the clearing of the marker below
         setQuadratic(x, y, NEUTRAL);
 
