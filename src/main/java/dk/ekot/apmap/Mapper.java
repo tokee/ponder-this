@@ -351,10 +351,10 @@ public class Mapper {
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
     public void markAndDeltaExpand(final int x, final int y) {
+        System.out.printf("Mark(%d, %d) already has %d\n", x, y, getQuadratic(x, y));
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
         final int origoPos = y*width+x;
-        System.out.printf("marking(%d, %d) at %d\n", x, y, boardChangeIndexes[changeIndexPosition]);
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = x;
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = y;
         if (quadratic[origoPos] != NEUTRAL) {
@@ -370,10 +370,16 @@ public class Mapper {
             final int pos2Element = quadratic[pos2];
 
             if (pos1Element == MARKER) {
+                if (quadratic[pos2] == INVALID) {
+                    System.out.println("***************** Oh noes! 2");
+                }
                 quadratic[pos2] = ILLEGAL;
                 boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos2;
                 --neutrals;
             } else if (pos2Element == MARKER) {
+                if (quadratic[pos1] == INVALID) {
+                    System.out.println("***************** Oh noes! 1");
+                }
                 quadratic[pos1] = ILLEGAL;
                 boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos1;
                 --neutrals;
@@ -397,6 +403,9 @@ public class Mapper {
         setQuadratic(x, y, NEUTRAL);
 
         for (int i = start; i < boardChangeIndexes[changeIndexPosition] ; i++) {
+            if (quadratic[boardChanges[i]] == INVALID) {
+                System.out.println("***************** Oh noes!");
+            }
             quadratic[boardChanges[i]] = NEUTRAL;
         }
         --marked;
@@ -666,6 +675,8 @@ public class Mapper {
 
         if ((origoY&3) == 1) {
             offsetX += 3;
+        } else if ((origoY&3) == 2) {
+            offsetX += 2;
         } else if ((origoY&3) == 3) {
             offsetX += 1;
         }
