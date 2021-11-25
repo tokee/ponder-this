@@ -82,8 +82,31 @@ public class MapperTest extends TestCase {
     }
     @Test
     public void testVisitTriplesExperiment() {
-        dumpVisitTriples(5, 3, 1);
-        dumpVisitTriples(5, 4, 0);
+        dumpVisitTriples(3, 4, 0);
+        dumpVisitTriples(3, 2, 0);
+        dumpVisitTriples(4, 3, 0);
+        dumpVisitTriples(4, 5, 0);
+        System.out.println("***********************");
+        dumpVisitTriples(3, 3, 1);
+        dumpVisitTriples(3, 5, 1);
+        dumpVisitTriples(4, 4, 1);
+        dumpVisitTriples(4, 6, 1);
+        dumpVisitTriples(4, 6, 3);
+        //dumpVisitTriples(3, 6, 0);
+        //dumpVisitTriples(4, 3, 0);
+        //dumpVisitTriples(4, 5, 0);
+
+        // Works
+        //dumpVisitTriples(3, 0, 0);
+        //dumpVisitTriples(3, 2, 2);
+        //dumpVisitTriples(4, 3, 0);
+        //dumpVisitTriples(4, 5, 2);
+        //dumpVisitTriples(4, 9, 6);
+
+//        dumpVisitTriples(5, 4, 0);
+
+//        dumpVisitTriples(5, 4, 2);
+
         //dumpVisitTriples(7, 5, 1);
 
         //dumpVisitTriples(6, 5, 0);

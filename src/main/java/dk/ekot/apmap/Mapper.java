@@ -665,15 +665,27 @@ public class Mapper {
     public void visitTriples(final int origoX, final int origoY, VisitCallback callback) {
         // edge 5/7: offsets=(0, 0), (2, 0)
 
-        int offsetX = 0;//(origoX&2);
+        int offsetX = 1 + (origoX&3);
         int offsetY = origoY&1;
-        System.out.printf("origo(%d, %d), Offsets (%d, %d)\n", origoX, offsetY, offsetX, offsetY);
-        boolean shift = (origoX&2) != 0;
+
+        if ((origoY&3) == 1) {
+            offsetX += 3;
+        } else if ((origoY&3) == 3) {
+            offsetX += 1;
+        }
+        boolean shift = true;
+
+        offsetX -= 8; // TODO: Find proper minimum instead of just compensating with no-op steps
+
+//        System.out.printf("origo(%d, %d), Offsets (%d, %d)\n", origoX, offsetY, offsetX, offsetY);
         for (int y1 = offsetY ; y1 < height ; y1 += 2) {
             shift = !shift;
             int shiftDelta = shift ? 2 : 0;
-            int marginX = Math.abs(y1-height/2);
-            for (int x1 = shiftDelta-(edge&1)-((y1+1)&1) ; x1 <= width-marginX ; x1 += 4) {
+            int marginX = Math.abs(y1-(height>>1));
+            for (int x1 = offsetX + shiftDelta-((y1+1)&1) ; x1 <= width-marginX ; x1 += 4) {
+                if (x1 < 0) {
+                    continue; // TODO: Remove this by avoiding negative starting conditions
+                }
                 if (x1 < marginX) {
                     continue;
                 }
@@ -685,77 +697,6 @@ public class Mapper {
 //                System.out.printf("origo(%d, %d), pos1(%d, %d), pos2(%d, %d), marginX=%d, board(%d, %d)\n",
 //                                  origoX, origoY, x1, y1, x2, y2, marginX, width, height);
                 callback.processValid(y1*width+x1, y2*width+x2);
-            }
-        }
-    }
-    public void visitTriplesOK3_2_0(final int origoX, final int origoY, VisitCallback callback) {
-        final int offsetX = origoX&1;
-        final int offsetY = origoY&1;
-        for (int y1 = offsetY ; y1 < height ; y1 += 2) {
-            int marginX = Math.abs(y1-height/2);
-            for (int x1 = marginX + offsetX ; x1 <= width-marginX ; x1 += 4) {
-                if (x1 == origoX && y1 == origoY) {
-                    continue;
-                }
-                final int x2 = x1;
-                final int y2 = y1;
-                System.out.printf("origo(%d, %d), pos1(%d, %d), pos2(%d, %d), marginX=%d, board(%d, %d)\n",
-                                  origoX, origoY, x1, y1, x2, y2, marginX, width, height);
-                callback.processValid(y1*width+x1, y2*width+x2);
-            }
-        }
-    }
-    public void visitTriplesInner(final int origoX, final int origoY, VisitCallback callback) {
-        System.out.printf("for (deltaY=%d ; deltaY <= %d ; deltaY++) height=%d\n", 0, ((height-origoY)>>1), height);
-        for (int deltaY = 0 ; deltaY <= (height-origoY)>>1; deltaY++) {
-            int marginX = Math.abs((origoY+(deltaY>>1))-height/2);
-            System.out.printf("for (deltaX=%d ; deltaX <= %d ; deltaX++), width=%d, margin=%d\n", 0, ((width-marginX-origoX)>>1), width, marginX);
-            for (int deltaX = deltaY == origoY ? 1 : 0; deltaX <= ((width-marginX-origoX)>>1) ; deltaX++) {
-                if ((deltaX & 1) != (deltaY & 1)) { // Both must be odd or both must be even to hit only valids
-                    continue;
-                }
-
-                final int x1 = origoX+deltaX;
-                final int y1 = origoY+deltaY;
-                final int x2 = origoX+(deltaX<<1);
-                final int y2 = origoY+(deltaY<<1);
-                System.out.printf("origo(%d, %d), delta(%d, %d), pos1(%d, %d), pos2(%d, %d)\n",
-                                  origoX, origoY, deltaX, deltaY, x1, y1, x2, y2);
-                callback.processValid(y1*width+x1, y2*width+x2);
-            }
-        }
-    }
-    public void visitTriplesOld(final int origoX, final int origoY, VisitCallback callback) {
-        final int origo = origoY*width+origoX;
-
-        final int leftSpace = (origoX & 1) == 1 ? 1 : 0; // Only consider evens
-        final int deltaAXStart = origoX < 4 ? 0 : leftSpace-origoY;
-        int rightSpace = width-origoX;
-        if ((rightSpace&1) == 1) {
-            --rightSpace;
-        }
-        final int deltaAXEnd = rightSpace < 4 ? 0 : rightSpace-origoX;
-
-        final int topSpace =  (origoY & 1) == 1 ? 1 : 0;
-        final int bottomSpace = ((height-origoY) & 1) == 1 ? (height-origoY-1) : (height-origoY);
-
-        System.out.printf("width=%d, height=%d\n", width, height);
-        System.out.printf("ox=%d, oy=%d, l=%d, t=%d, r=%d, b=%d\n", origoX, origoY, leftSpace, topSpace, rightSpace, bottomSpace);
-        System.out.printf("daxs=%d, daxe=%d\n", deltaAXStart, deltaAXEnd);
-        System.out.printf("for (dy = %d, dy < %d, dy += %d)\n", (topSpace-origoY)*width , (bottomSpace-origoY)*width , width<<1);
-        System.out.printf("for (dx = %d, dx < %d, dx += %d)\n", deltaAXStart , deltaAXEnd , 2);
-
-        for (int deltaA_Y = (topSpace-origoY)*width ; deltaA_Y <= (bottomSpace-origoY)*width ; deltaA_Y += width<<1) {
-            for (int deltaA_X = deltaAXStart ; deltaA_X <= deltaAXEnd ; deltaA_X += 2) { // 4 as the quadratic board is double width
-                System.out.printf("deltaA=(%d, %d), pos=(%d, %d)\n", deltaA_X, deltaA_Y, origoX+deltaA_X, origoY+deltaA_Y);
-                final int tripleA = origo + deltaA_X + deltaA_Y;
-                final int tripleB = origo + (deltaA_X>>1) + (deltaA_Y>>1);
-                if (tripleA == origo) { // triples need to be distanced
-                    System.out.println("Skipping origo");
-                    continue;
-                }
-                callback.processValid(tripleA, tripleB);
-
             }
         }
     }
