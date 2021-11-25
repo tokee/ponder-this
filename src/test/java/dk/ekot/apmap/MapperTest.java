@@ -82,6 +82,7 @@ public class MapperTest extends TestCase {
     }
     @Test
     public void testVisitTriplesExperiment() {
+        dumpVisitTriples(2, 1, 0);
         dumpVisitTriples(3, 4, 0);
         dumpVisitTriples(3, 2, 0);
         dumpVisitTriples(4, 3, 0);
@@ -126,12 +127,25 @@ public class MapperTest extends TestCase {
         board.setQuadratic(x, y, Mapper.MARKER);
 //        System.out.println(board);
         board.visitTriples(x, y, (posA, posB) -> {
-            board.quadratic[posA] = Mapper.ILLEGAL;
-            board.quadratic[posB] = Mapper.ILLEGAL;
+            //board.quadratic[posA] = Mapper.ILLEGAL;
             //board.quadratic[posB] = Mapper.ILLEGAL;
-            board.priority[posA] = 1;
-            board.priority[posB] = 1;
+            //board.quadratic[posB] = Mapper.ILLEGAL;
+            ++board.priority[posA];
+            ++board.priority[posB];
         });
         System.out.println(board);
     }
+
+    public void testVisitAll() {
+        dumpVisitAll(2);
+        dumpVisitAll(3);
+        dumpVisitAll(4);
+    }
+
+    private void dumpVisitAll(int edge) {
+        Mapper board = new Mapper(edge);
+        board.visitAll(pos -> ++board.priority[pos]);
+        System.out.println(board);
+    }
+
 }

@@ -50,7 +50,7 @@ public class MapWalker {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
         int depth = 0;
-        Mapper.PriorityPos[] positions = new Mapper.PriorityPos[board.valids];
+        Mapper.PriorityPos[] positions = new Mapper.PriorityPos[board.valids+1];
         positions[0] = startingPos;
         long fulls = 0;
         long nextShow = System.currentTimeMillis() + showBoardIntervalMS;
@@ -82,7 +82,7 @@ public class MapWalker {
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
                 bestMarkers = board.getMarkedCount();
-                bestBoard = board.copy(true);
+                bestBoard = board.copy(false);
                 if (showBest) {
 //                    System.out.println(board + " fulls:" + fulls);
                     System.out.printf(Locale.ROOT, "edge=%d, markers=%5d/%6d/%d: %s\n",

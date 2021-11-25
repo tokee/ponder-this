@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * Transforms from and to flat and quadratic representations of a hexagonal board. Supports visualization.
@@ -91,21 +93,17 @@ public class Mapper {
         height = edge*2-1;
         quadratic = new int[height*width];
         priority = new int[height*width];
-        boardChanges = new int[height * width]; // Times 2 as they are coordinates
+        boardChanges = new int[height * width * 2]; // Times 2 as they are coordinates
         boardChangeIndexes = new int[height * width];
 
         // Draw the quadratic map
         Arrays.fill(quadratic, INVALID);
-        int v = 0;
-        for (int y = 0 ; y < height ; y++) {
-            int margin = Math.abs(y-height/2);
-            //System.out.println("y=" + y + ", margin=" + margin + ", side=" + side + ", x=[" + margin + ", " + (side-margin-1) + "]");
-            for (int x = margin ; x < width-margin ; x+=2) {
-                setQuadratic(x, y, NEUTRAL); //quadratic[y][x] = NEUTRAL;
-                ++v;
-            }
-        }
-        valids = v;
+        final AtomicInteger v = new AtomicInteger(0);
+        visitAll(pos -> {
+            quadratic[pos] = NEUTRAL;
+            v.incrementAndGet();
+        });
+        valids = v.get();
         neutrals = valids;
         tripleDeltas = getTripleDeltas();
 //        tripleDeltasByColumn = getDeltaColumns();
@@ -355,41 +353,32 @@ public class Mapper {
     public void markAndDeltaExpand(final int x, final int y) {
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
-
+        final int origoPos = y*width+x;
+        System.out.printf("marking(%d, %d) at %d\n", x, y, boardChangeIndexes[changeIndexPosition]);
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = x;
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = y;
-        if (getQuadratic(x, y) != NEUTRAL) {
+        if (quadratic[origoPos] != NEUTRAL) {
             throw new IllegalStateException(
-                    "Attempted to mark (" + x + ", " + y + ") bit it already had state " + getQuadratic(x, y));
+                    "Attempted to mark (" + x + ", " + y + ") bit it already had state " + quadratic[origoPos]);
         }
-        setQuadratic(x, y, MARKER);
+
+        quadratic[origoPos] = MARKER;
         ++marked;
         --neutrals;
-        for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
-            // TODO: Make all the get & set / increase share the same calculations and checks for validity
-            final int x1 = x + tripleDeltas[i];
-            final int y1 = y + tripleDeltas[i + 1];
-            final int x2 = x + tripleDeltas[i + 2];
-            final int y2 = y + tripleDeltas[i + 3];
-            final int deltaElement1 = getQuadratic(x1, y1);
-            final int deltaElement2 = getQuadratic(x2, y2);
+        visitTriples(x, y, (pos1, pos2) -> {
+            final int pos1Element = quadratic[pos1];
+            final int pos2Element = quadratic[pos2];
 
-            if (deltaElement1 == MARKER) {
-                if (deltaElement2 == NEUTRAL) {
-                    setQuadratic(x2, y2, ILLEGAL);
-                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = x2;
-                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = y2;
-                    --neutrals;
-                }
-            } else if (deltaElement2 == MARKER) {
-                if (deltaElement1 == NEUTRAL) {
-                    setQuadratic(x1, y1, ILLEGAL);
-                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = x1;
-                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = y1;
-                    --neutrals;
-                }
+            if (pos1Element == MARKER) {
+                quadratic[pos2] = ILLEGAL;
+                boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos2;
+                --neutrals;
+            } else if (pos2Element == MARKER) {
+                quadratic[pos1] = ILLEGAL;
+                boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos1;
+                --neutrals;
             }
-        }
+        });
         adjustPriorities(x, y, 1);
     }
 
@@ -397,45 +386,35 @@ public class Mapper {
      * Mark all quadratic coordinate pairs in {@code changed[from..to]} (to is exclusive) as {@link #NEUTRAL}.
      * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
      */
-    public void rollback() {
 
-        boolean first = true;
-        for (int i = boardChangeIndexes[changeIndexPosition - 1]; i < boardChangeIndexes[changeIndexPosition] ; i+=2) {
-            final int x =  boardChanges[i];
-            final int y =  boardChanges[i+1];
-            if (first) {
-                adjustPriorities(x, y, -1); // First pos is the marker
-                first = false;
-            }
-            // Order below is important. Must be reverse of markandDeltaExpand
-            setQuadratic(x, y, NEUTRAL);
+    public void rollback() {
+        int start = boardChangeIndexes[changeIndexPosition - 1];
+
+        final int x =  boardChanges[start++];
+        final int y =  boardChanges[start++];
+        System.out.printf("popping(%d, %d) from %d\n", x, y, boardChangeIndexes[changeIndexPosition-1]);
+        adjustPriorities(x, y, -1); // Must be before the clearing of the marker below
+        setQuadratic(x, y, NEUTRAL);
+
+        for (int i = start; i < boardChangeIndexes[changeIndexPosition] ; i++) {
+            quadratic[boardChanges[i]] = NEUTRAL;
         }
         --marked;
-        neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1]) >> 1;
+        neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1])-1;
         --changeIndexPosition;
     }
 
+
     private void adjustPriorities(int x, int y, int priorityDelta) {
-        //log.debug("adjustPriorities({}, {}, delta={}) called", x, y, priorityDelta);
-        for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
-            // TODO: Make all the get & set / increase share the same calculations and checks for validity
-            final int x1 = x + tripleDeltas[i];
-            final int y1 = y + tripleDeltas[i + 1];
-            final int x2 = x + tripleDeltas[i + 2];
-            final int y2 = y + tripleDeltas[i + 3];
-            final int deltaElement1 = getQuadratic(x1, y1);
-            final int deltaElement2 = getQuadratic(x2, y2);
-            if (deltaElement1 == INVALID || deltaElement2 == INVALID) {
-                continue; // Only adjust priorities for valid triples
+        visitTriples(x, y, (pos1, pos2) -> {
+            // TODO: Can't one just adjust even when there is a marker?
+            if (quadratic[pos1] != MARKER) {
+                priority[pos1] += priorityDelta;
             }
-            // TODO: Is it cheaper to just adjust even when there is a marker?
-            if (deltaElement1 != MARKER) {
-                adjustPriority(x1, y1, priorityDelta);
+            if (quadratic[pos2] != MARKER) {
+                priority[pos2] += priorityDelta;
             }
-            if (deltaElement2 != MARKER) {
-                adjustPriority(x2, y2, priorityDelta);
-            }
-        }
+        });
     }
 
 
@@ -658,11 +637,26 @@ public class Mapper {
     }
 
     /**
+     * Visit all valid positions on the hexagon represented as quadrativ.
+     * @param callback delivers the indices in {@link #quadratic} for each valid element, left->right, top->down
+     */
+    public void visitAll(Consumer<Integer> callback) {
+        int yMul = 0;
+        for (int y = 0 ; y < height ; y++) {
+            int margin = Math.abs(y-(height>>1));
+            for (int x = margin ; x < width-margin ; x+=2) {
+                callback.accept(yMul+x);
+            }
+            yMul += width;
+        }
+    }
+
+    /**
      * Iterate all triples connected to origo.
      * @param origoX start X in the quadratic coordinate system.
      * @param origoY start Y in the quadratic coordinate system.
      */
-    public void visitTriples(final int origoX, final int origoY, VisitCallback callback) {
+    public void visitTriples(final int origoX, final int origoY, TripleCallback callback) {
         // edge 5/7: offsets=(0, 0), (2, 0)
 
         final int origo = origoY*width+origoX;
@@ -706,7 +700,7 @@ public class Mapper {
     }
 
     @FunctionalInterface
-    public interface VisitCallback {
+    public interface TripleCallback {
         /**
          * Called for every triple where each triple entry is on the quadratic board.
          * Note: It is not guaranteed that each triple is valid!
@@ -839,8 +833,8 @@ public class Mapper {
                 switch (getQuadratic(x, y)) {
                     case NEUTRAL:
 
-                        sb.append("O");
-                        //sb.append(getPriority(x, y) > 9 ? "∞" : getPriority(x, y));
+//                        sb.append("O");
+                        sb.append(getPriority(x, y) > 9 ? "∞" : getPriority(x, y));
                         break;
                     case MARKER:
                         sb.append("X");
