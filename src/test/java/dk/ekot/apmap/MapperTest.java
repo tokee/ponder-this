@@ -3,8 +3,6 @@ package dk.ekot.apmap;
 import junit.framework.TestCase;
 import org.junit.Test;
 
-import java.util.Locale;
-
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -148,8 +146,12 @@ public class MapperTest extends TestCase {
 
     public void dumpVisitTriples(int edge, int x, int y) {
         Mapper board = new Mapper(edge);
+        if (board.getQuadratic(x, y) == Mapper.INVALID) {
+            throw new IllegalArgumentException("Position(" + x + ", " + y + ") is not valid");
+        }
         board.setQuadratic(x, y, Mapper.MARKER);
         System.out.println(board);
+        System.out.println("----");
         board.visitTriples(x, y, (posA, posB) -> {
             //board.quadratic[posA] = Mapper.ILLEGAL;
             //board.quadratic[posB] = Mapper.ILLEGAL;
@@ -170,6 +172,31 @@ public class MapperTest extends TestCase {
         Mapper board = new Mapper(edge);
         board.visitAll(pos -> ++board.priority[pos]);
         System.out.println(board);
+    }
+    public void testVisitAllIntersecting() {
+        dumpVisitIntersecting(5);
+
+    }
+    private void dumpVisitIntersecting(int edge) {
+        Mapper board = new Mapper(edge);
+        System.out.println(board);
+        board.visitAllXY((x, y) -> {
+            dumpIntersecting(edge, x, y);
+        });
+    }
+
+    public void testSpecificIntersecting3() {
+        dumpIntersecting(3, 5, 1);
+    }
+
+    private void dumpIntersecting(int edge, int x, int y) {
+        Mapper b2 = new Mapper(edge);
+        b2.setQuadratic(x, y, Mapper.MARKER);
+        b2.visitTriplesIntersecting(x, y, (pos1, pos2) -> {
+            ++b2.priority[pos1];
+            ++b2.priority[pos2];
+        });
+        System.out.println(b2 + " start(" + x + ", " + y + ")");
     }
 
 

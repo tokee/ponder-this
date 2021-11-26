@@ -359,7 +359,7 @@ public class Mapper {
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
     public void markAndDeltaExpand(final int x, final int y) {
-        System.out.println(this);
+        //System.out.println(this);
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
         final int origoPos = y*width+x;
@@ -404,7 +404,7 @@ public class Mapper {
         //  2:   1   1
         //---- marked(2, 1)
 
-        System.out.printf("\n%s\n---- marked(%d, %d)\n", this, x, y);
+        //System.out.printf("\n%s\n---- marked(%d, %d)\n", this, x, y);
     }
 
     /**
@@ -413,7 +413,7 @@ public class Mapper {
      */
 
     public void rollback() {
-        System.out.println(this);
+        //System.out.println(this);
         int start = boardChangeIndexes[changeIndexPosition - 1];
 
         final int x =  boardChanges[start++];
@@ -428,7 +428,7 @@ public class Mapper {
         --marked;
         neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1])-1;
         --changeIndexPosition;
-        System.out.printf("\n%s\n---- rollbacked(%d, %d)\n", this, x, y);
+        //System.out.printf("\n%s\n---- rollbacked(%d, %d)\n", this, x, y);
     }
 
 
@@ -714,21 +714,36 @@ public class Mapper {
         final int maxDistY = Math.min(origoY, height-origoY-1);
         int y1ArrayIndex = (origoY - maxDistY)*width;
         //System.out.println(this);
-        System.out.printf("origo(%d, %d), maxDistY=%d\n", origoX, origoY, maxDistY);
+//        System.out.printf("origo(%d, %d), maxDistY=%d\n", origoX, origoY, maxDistY);
         // Only visit upper half, including origoY, as the bottom half is mirrored
         for (int y1 = origoY - maxDistY ; y1 <= origoY ; y1++) {
-            int marginX = Math.abs(y1-(height>>1));
-            System.out.println("--- y " + y1 +  " marginX" + marginX);
-            final int maxDistX = Math.min(origoX-marginX, width-origoX-marginX);
-            System.out.printf("origoX-marginX=%d, width=%d, origoX=%d, marginX=%d, maxDistX=%d\n", origoX-marginX, width, origoX, marginX, maxDistX);
-            int x1Max = y1 == origoY ? origoX : origoX + maxDistX;
-            for (int x1 = origoX - maxDistX ; x1 <= x1Max ; x1+=2) {
+
+            // MarginX for the topmost and the bottommost point in the triple with origo in the middle
+            int marginXTop = Math.abs(y1-(height>>1));
+            int marginXBottom= Math.abs(origoY+(origoY-y1)-(height>>1));
+
+            final int maxDeltaLeft = Math.min(origoX-marginXTop, width-marginXBottom-origoX);
+            final int maxDeltaRight = Math.min(width-marginXTop-origoX, origoX-marginXBottom);
+
+            int startX = origoX - maxDeltaLeft;
+            if ((startX&1) != (marginXTop&1)) { // TODO:Replace with with some XOR + MASK magic: (startX^marginXTop)&1 ?
+                ++startX;
+            }
+            int endX = origoX + maxDeltaRight;
+            if (y1 == origoY) {
+                endX = origoX;
+            }
+            
+  //          System.out.printf("y1=%d  marginX:[%d %d], maxDelta[%d %d], x[%d %d]\n",
+    //                          y1, marginXTop, marginXBottom, maxDeltaLeft, maxDeltaRight, startX, endX);
+
+            for (int x1 = startX ; x1 <= endX ; x1+=2) {
                 final int pos1 = y1ArrayIndex+x1;
                 if (pos1 == origo) {
                     continue;
                 }
                 final int pos2 = origo + (origo-pos1); // 2*origo-pos1 !? Seems suspicious
-                System.out.printf("  pos1(%d, %d)=%d, origo=%s=%d, pos2=%s=%d\n", x1, y1, pos1, toXY(origo), origo, toXY(pos2), pos2);
+      //          System.out.printf("  pos1(%d, %d)=%d, origo=%s=%d, pos2=%s=%d\n", x1, y1, pos1, toXY(origo), origo, toXY(pos2), pos2);
                 callback.processValid(pos1, pos2);
             }
             y1ArrayIndex += width;
@@ -801,71 +816,6 @@ public class Mapper {
     @FunctionalInterface
     public interface CoordinateCallback {
         void accept(int x, int y);
-    }
-
-    /**
-     * @return {@code long[column(0..height)][]} og triples packed as single longs (x1, x2, y1, y2 as 2 bytes/each)
-     *         and sorted ascending.
-     */
-    private long[][] getDeltaColumns() {
-        final long[] buffer = new long[tripleDeltas.length/4];
-        final long[][] deltaColumns = new long[height][];
-        long tripleCount = 0;
-
-        for (int column = 0 ; column < width ; column++) {
-            int bufPos = 0;
-            for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
-                final int y1 = column + tripleDeltas[i+1];
-                final int y2 = column + tripleDeltas[i + 3];
-                if (y1 >= 0 && y1 < height && y2 >= 0 && y2 < height) {
-                    long packed =
-                            ((long) tripleDeltas[i]) << 48 |
-                            ((long) tripleDeltas[i + 1]) << 32 |
-                            ((long) tripleDeltas[i + 2]) << 16 |
-                            ((long) tripleDeltas[i + 3]);
-                    buffer[bufPos++] = packed;
-                }
-            }
-            //System.out.println("deltaColumns[" + column + "].length=" + bufPos);
-            deltaColumns[column] = Arrays.copyOf(buffer, bufPos);
-            Arrays.sort(deltaColumns[column]);
-            tripleCount += bufPos;
-        }
-
-        log.info("Extracted " + tripleCount + " column triples ~= " + tripleCount/8/1024 + "KBytes");
-        return deltaColumns;
-    }
-
-    /**
-     * @return {@code long[row(0..height)][]} og triples packed as single longs (x1, x2, y1, y2 as 2 bytes/each)
-     *         and sorted ascending.
-     */
-    private long[][] getDeltaRows() {
-        final long[] buffer = new long[tripleDeltas.length/4];
-        final long[][] deltaRows = new long[width][];
-        long tripleCount = 0;
-
-        for (int row = 0 ; row < height ; row++) {
-            int bufPos = 0;
-            for (int i = 0 ; i < tripleDeltas.length ; i+=4) {
-                final int x1 = row + tripleDeltas[i];
-                final int x2 = row + tripleDeltas[i + 2];
-                if (x1 >= 0 && x1 < width && x2 >= 0 && x2 < width) {
-                    long packed =
-                            ((long) tripleDeltas[i]) << 48 |
-                            ((long) tripleDeltas[i + 1]) << 32 |
-                            ((long) tripleDeltas[i + 2]) << 16 |
-                            ((long) tripleDeltas[i + 3]);
-                    buffer[bufPos++] = packed;
-                }
-            }
-            deltaRows[row] = Arrays.copyOf(buffer, bufPos);
-            Arrays.sort(deltaRows[row]);
-            tripleCount += bufPos;
-        }
-
-        log.info("Extracted " + tripleCount + " row triples ~= " + tripleCount/8/1024 + "KBytes");
-        return deltaRows;
     }
 
 
