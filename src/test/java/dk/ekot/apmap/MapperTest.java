@@ -58,6 +58,29 @@ public class MapperTest extends TestCase {
         }
     }
 
+    public void testMarkAndRollback() {
+        Mapper board = new Mapper(3);
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.markAndDeltaExpand(2, 0);
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.markAndDeltaExpand(2, 2);
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.markAndDeltaExpand(3, 1);
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.markAndDeltaExpand(5, 1);
+//        board.markAndDeltaExpand(3, 3);
+        System.out.println("-------------------------------------------------------------------");
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.rollback();
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.rollback();
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.rollback();
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+        board.rollback();
+        System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
+    }
+
     private String triplesToString(int[] triples) {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
@@ -83,9 +106,18 @@ public class MapperTest extends TestCase {
     @Test
     public void testVisitTriplesProblem() {
         dumpVisitTriples(2, 2, 1);
+        dumpVisitTriples(2, 1, 0);
         dumpVisitTriples(4, 6, 3);
+        dumpVisitTriples(4, 5, 2);
 
     }
+    @Test
+    public void testVisitTriplesAll2() {
+        //dumpVisitTriplesAll(2);
+        dumpVisitTriplesAll(2);
+//        dumpVisitTriplesAll(4);
+    }
+
     @Test
     public void testVisitTriplesExperiment2() {
         dumpVisitTriples(2, 1, 0);
@@ -99,50 +131,25 @@ public class MapperTest extends TestCase {
     }
     @Test
     public void testVisitTriplesExperiment() {
-
-        dumpVisitTriples(3, 2, 2);
-        dumpVisitTriples(3, 2, 4);
-        dumpVisitTriples(4, 3, 0);
-        dumpVisitTriples(4, 3, 2);
+        dumpVisitTriples(2, 3, 2);
 //        System.out.println("***********************");
-//        dumpVisitTriples(3, 3, 1);
-//        dumpVisitTriples(3, 5, 1);
-//        dumpVisitTriples(4, 4, 1);
-//        dumpVisitTriples(4, 6, 1);
-//        dumpVisitTriples(4, 6, 3);
-        //dumpVisitTriples(3, 6, 0);
-        //dumpVisitTriples(4, 3, 0);
-        //dumpVisitTriples(4, 5, 0);
-
-        // Works
-        //dumpVisitTriples(3, 0, 0);
-        //dumpVisitTriples(3, 2, 2);
-        //dumpVisitTriples(4, 3, 0);
-        //dumpVisitTriples(4, 5, 2);
-        //dumpVisitTriples(4, 9, 6);
-
-//        dumpVisitTriples(5, 4, 0);
-
-//        dumpVisitTriples(5, 4, 2);
-
-        //dumpVisitTriples(7, 5, 1);
-
-        //dumpVisitTriples(6, 5, 0);
-        //dumpVisitTriples(6, 6, 1); // offsets 2, 1
-        //dumpVisitTriples(8, 6, 1); // offsets 2, 1 (dots ok)
-        //dumpVisitTriples(6, 9, 0);
-
-        //dumpVisitTriples(4, 5, 0);
-    //    dumpVisitTriples(3, 3, 1);
     }
     @Test
     public void testVisitTriples5() {
         dumpVisitTriples(5, 4, 0);
     }
+    private void dumpVisitTriplesAll(int edge) {
+        Mapper board = new Mapper(edge);
+        board.visitAllXY((x, y) -> {
+            System.out.printf("Triples for (%d, %d)\n", x, y);
+            dumpVisitTriples(edge, x, y);
+        });
+    }
+
     public void dumpVisitTriples(int edge, int x, int y) {
         Mapper board = new Mapper(edge);
         board.setQuadratic(x, y, Mapper.MARKER);
-//        System.out.println(board);
+        System.out.println(board);
         board.visitTriples(x, y, (posA, posB) -> {
             //board.quadratic[posA] = Mapper.ILLEGAL;
             //board.quadratic[posB] = Mapper.ILLEGAL;
@@ -165,4 +172,24 @@ public class MapperTest extends TestCase {
         System.out.println(board);
     }
 
+
+    @Test
+    public void testVisitTriples3problem() {
+        dumpVisitTriples(3, 7, 3);
+    }
+    public void testMargins() {
+//        testMargin(2);
+        testMargin(3);
+//        testMargin(4);
+    }
+    public void testMargin(int edge) {
+        System.out.println("---");
+        Mapper board = new Mapper(edge);
+        System.out.println(board);
+        for (int y = 0 ; y < board.height ; y++) {
+            int marginX = Math.abs(y - (board.height>>1));
+//            System.out.printf("origoX-marginX=%d, width=%d, origoX=%d, marginX=%d, maxDistX=%d\n", origoX-marginX, width, origoX, marginX, maxDistX);
+            System.out.printf("y=%d, margin=%d\n", y, marginX);
+        }
+    }
 }

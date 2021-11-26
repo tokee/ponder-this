@@ -359,6 +359,7 @@ public class Mapper {
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
     public void markAndDeltaExpand(final int x, final int y) {
+        System.out.println(this);
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
         final int origoPos = y*width+x;
@@ -374,7 +375,13 @@ public class Mapper {
         --neutrals;
         visitTriples(x, y, (pos1, pos2) -> {
             final int pos1Element = quadratic[pos1];
-            final int pos2Element = quadratic[pos2];
+            int pos2Element;
+            try {
+                pos2Element = quadratic[pos2];
+            } catch (Exception e) {
+                throw new IllegalStateException(String.format(
+                        Locale.ROOT, "Ouch: origo(%d, %d)", x, y), e);
+            }
 
             if (pos1Element == MARKER && pos2Element == NEUTRAL) {
                 quadratic[pos2] = ILLEGAL;
@@ -387,7 +394,17 @@ public class Mapper {
             }
         });
         adjustPriorities(x, y, 1);
-        System.out.printf("---- marked(%d, %d)\n%s\n", x, y, this);
+
+        //  0:   X   X
+        //  1: X   3   1
+        //  2:   1   1
+        //
+        //  0:   X   X
+        //  1: X   X   1
+        //  2:   1   1
+        //---- marked(2, 1)
+
+        System.out.printf("\n%s\n---- marked(%d, %d)\n", this, x, y);
     }
 
     /**
@@ -396,6 +413,7 @@ public class Mapper {
      */
 
     public void rollback() {
+        System.out.println(this);
         int start = boardChangeIndexes[changeIndexPosition - 1];
 
         final int x =  boardChanges[start++];
@@ -410,7 +428,7 @@ public class Mapper {
         --marked;
         neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1])-1;
         --changeIndexPosition;
-        System.out.printf("---- rollback(%d, %d)\n%s\n", x, y, this);
+        System.out.printf("\n%s\n---- rollbacked(%d, %d)\n", this, x, y);
     }
 
 
@@ -646,9 +664,10 @@ public class Mapper {
     }
 
     /**
-     * Visit all valid positions on the hexagon represented as quadrativ.
+     * Visit all valid positions on the hexagon represented as quadratic.
      * @param callback delivers the indices in {@link #quadratic} for each valid element, left->right, top->down
      */
+    @SuppressWarnings("SuspiciousNameCombination")
     public void visitAll(Consumer<Integer> callback) {
         int yMul = 0;
         for (int y = 0 ; y < height ; y++) {
@@ -661,11 +680,69 @@ public class Mapper {
     }
 
     /**
-     * Iterate all triples connected to origo.
+     * Visit all valid positions on the hexagon represented as quadratic.
+     * @param callback delivers the coordinates  in {@link #quadratic} for each valid element, left->right, top->down
+     */
+    public void visitAllXY(CoordinateCallback callback) {
+        for (int y = 0 ; y < height ; y++) {
+            int margin = Math.abs(y-(height>>1));
+            for (int x = margin ; x < width-margin ; x+=2) {
+                callback.accept(x, y);
+            }
+        }
+    }
+
+    /**
+     * Iterate all triples connected to origo. This is equivalent to calling
+     * {@link #visitTriplesIntersecting(int, int, TripleCallback)} and
+     * {@link #visitTriplesRadial(int, int, TripleCallback)}.
      * @param origoX start X in the quadratic coordinate system.
      * @param origoY start Y in the quadratic coordinate system.
      */
     public void visitTriples(final int origoX, final int origoY, TripleCallback callback) {
+       visitTriplesIntersecting(origoX, origoY, callback);
+       visitTriplesRadial(origoX, origoY, callback);
+    }
+    /**
+     * Iterate all triples where origo is in the middle of the triple.
+     * @param origoX start X in the quadratic coordinate system.
+     * @param origoY start Y in the quadratic coordinate system.
+     */
+    @SuppressWarnings("SuspiciousNameCombination")
+    public void visitTriplesIntersecting(final int origoX, final int origoY, TripleCallback callback) {
+        final int origo = origoY*width+origoX;
+        final int maxDistY = Math.min(origoY, height-origoY-1);
+        int y1ArrayIndex = (origoY - maxDistY)*width;
+        //System.out.println(this);
+        System.out.printf("origo(%d, %d), maxDistY=%d\n", origoX, origoY, maxDistY);
+        // Only visit upper half, including origoY, as the bottom half is mirrored
+        for (int y1 = origoY - maxDistY ; y1 <= origoY ; y1++) {
+            int marginX = Math.abs(y1-(height>>1));
+            System.out.println("--- y " + y1 +  " marginX" + marginX);
+            final int maxDistX = Math.min(origoX-marginX, width-origoX-marginX);
+            System.out.printf("origoX-marginX=%d, width=%d, origoX=%d, marginX=%d, maxDistX=%d\n", origoX-marginX, width, origoX, marginX, maxDistX);
+            int x1Max = y1 == origoY ? origoX : origoX + maxDistX;
+            for (int x1 = origoX - maxDistX ; x1 <= x1Max ; x1+=2) {
+                final int pos1 = y1ArrayIndex+x1;
+                if (pos1 == origo) {
+                    continue;
+                }
+                final int pos2 = origo + (origo-pos1); // 2*origo-pos1 !? Seems suspicious
+                System.out.printf("  pos1(%d, %d)=%d, origo=%s=%d, pos2=%s=%d\n", x1, y1, pos1, toXY(origo), origo, toXY(pos2), pos2);
+                callback.processValid(pos1, pos2);
+            }
+            y1ArrayIndex += width;
+        }
+    }
+    private String toXY(int pos) {
+        return String.format(Locale.ROOT, "(%d, %d)", pos/width, pos%width);
+    }
+    /**
+     * Iterate all triples radiating out from origo.
+     * @param origoX start X in the quadratic coordinate system.
+     * @param origoY start Y in the quadratic coordinate system.
+     */
+    public void visitTriplesRadial(final int origoX, final int origoY, TripleCallback callback) {
         // edge 5/7: offsets=(0, 0), (2, 0)
 
         final int origo = origoY*width+origoX;
@@ -719,6 +796,11 @@ public class Mapper {
          * @param pos2 secondary triple entry.
          */
         void processValid(int pos1, int pos2);
+    }
+
+    @FunctionalInterface
+    public interface CoordinateCallback {
+        void accept(int x, int y);
     }
 
     /**
