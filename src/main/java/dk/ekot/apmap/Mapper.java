@@ -197,6 +197,14 @@ public class Mapper {
             }
         }
 
+        //  0:   X   X
+        //  1: X   X   1
+        //  2:   1   1
+        //neutralB(4, 1)
+        //  0:   X   X
+        //  1: X   X   X
+        //  2:   1   1
+
         // Search for worse priority
         int bestX = -1;
         int bestY = -1;
@@ -373,15 +381,13 @@ public class Mapper {
                 boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos2;
                 --neutrals;
             } else if (pos2Element == MARKER && pos1Element == NEUTRAL) {
-                if (quadratic[pos1] == INVALID) {
-                    System.out.println("***************** Oh noes! 1");
-                }
                 quadratic[pos1] = ILLEGAL;
                 boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos1;
                 --neutrals;
             }
         });
         adjustPriorities(x, y, 1);
+        System.out.printf("---- marked(%d, %d)\n%s\n", x, y, this);
     }
 
     /**
@@ -399,14 +405,12 @@ public class Mapper {
         setQuadratic(x, y, NEUTRAL);
 
         for (int i = start; i < boardChangeIndexes[changeIndexPosition] ; i++) {
-            if (quadratic[boardChanges[i]] == INVALID) {
-                System.out.println("***************** Oh noes!");
-            }
             quadratic[boardChanges[i]] = NEUTRAL;
         }
         --marked;
         neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1])-1;
         --changeIndexPosition;
+        System.out.printf("---- rollback(%d, %d)\n%s\n", x, y, this);
     }
 
 
