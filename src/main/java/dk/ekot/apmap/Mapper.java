@@ -511,6 +511,9 @@ public class Mapper {
         }
     }
 
+    public void markAndDeltaExpand(final int pos) {
+        markAndDeltaExpand(pos%width, pos/width); // TODO: Avoid this as it is very slow
+    }
     /**
      * Marks the given quadratic (x, y) and adds the coordinated to changed at changedIndex.
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause

@@ -58,11 +58,11 @@ public class MapWalker {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
         int depth = 0;
-        List<List<Mapper.LazyPos>> positions = IntStream.range(0, board.valids+1).boxed().map(
-                i -> (List<Mapper.LazyPos>)null).collect(Collectors.toList());
+        List<int[]> positions = IntStream.range(0, board.valids+1).boxed().map(
+                i -> (int[])null).collect(Collectors.toList());
         //positions.set(0, board.getPositions(walkPrioritizer));
 
-        positions.set(0, board.makeLazy(board.getTopLeftPositions()));
+        positions.set(0, board.getTopLeftPositions().stream().mapToInt(Integer::intValue).toArray());
         int[] posIndex = new int[board.valids+1];
 
         long nextShow = System.currentTimeMillis() + showBoardIntervalMS;
@@ -89,7 +89,7 @@ public class MapWalker {
 
             // Change board
 //            System.out.printf("m: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
-            board.markAndDeltaExpand(positions.get(depth).get(posIndex[depth]));
+            board.markAndDeltaExpand(positions.get(depth)[posIndex[depth]]);
 
             // Check is a new max has been found
             if (bestMarkers < board.getMarkedCount()) {
@@ -108,7 +108,7 @@ public class MapWalker {
             if (!descendPos.isEmpty()) {
                 // Descend
                 ++depth;
-                positions.set(depth, descendPos);
+                positions.set(depth, descendPos.stream().mapToInt(lazy -> lazy.pos).toArray());
                 posIndex[depth] = 0;
 //                System.out.printf("s: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 continue;
@@ -120,7 +120,7 @@ public class MapWalker {
                 board.rollback();
 //                System.out.printf("-: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 // Attempt to move to next position at the current depth
-                if (++posIndex[depth] == positions.get(depth).size()) {
+                if (++posIndex[depth] == positions.get(depth).length) {
 //                    System.out.printf("r: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                     // No more on this level, move up
                     --depth;
@@ -132,8 +132,8 @@ public class MapWalker {
                     continue;
                 }
                 // There was another position, mark the previous position as visited and start over with the new position
-                final Mapper.LazyPos previousPos = positions.get(depth).get(posIndex[depth]-1);
-                board.addVisitedToCurrent(previousPos.pos);
+                int previousPos = positions.get(depth)[posIndex[depth]-1];
+                board.addVisitedToCurrent(previousPos);
 
 //                System.out.printf("b: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 break;
