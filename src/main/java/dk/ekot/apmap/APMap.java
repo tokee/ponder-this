@@ -38,7 +38,7 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 70, 80}, {18, 123, 153}, {27, 207, 266}, {38, 325, 420},
+            {2, 6, 6}, {6, 32, 33}, {11, 70, 80}, {18, 123, 153}, {27, 209, 266}, {38, 325, 420},
             {50, 454, 621}, {65, 768, 884}, {81, 794, 1193}, {98, 1010, 1512},
             {118, 1246, 1973}, {139, 1615, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
             {214, 3072, 4198}, {242, 3085, 4922}, {273, 3353, 5736},
@@ -65,8 +65,8 @@ public class APMap {
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
 
-        //new APMap().goQuadratic(534, 30*60_000, true);
-        System.out.println(new APMap().goQuadratic(4, 10_000, true, 1_000));
+        new APMap().goQuadratic(374, 30*60_000, true);
+        //        System.out.println(new APMap().goQuadratic(4, 10_000, true, 1_000));
 
         if (1==1) return;
         processRemaining(1_000);

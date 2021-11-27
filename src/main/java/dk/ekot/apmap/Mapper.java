@@ -463,7 +463,7 @@ public class Mapper {
     public void addVisitedRotated(int x, int y) {
         // https://gamedev.stackexchange.com/questions/15237/how-do-i-rotate-a-structure-of-hexagonal-tiles-on-a-hexagonal-grid
         // https://www.redblobgames.com/grids/hexagons/#rotation
-        System.out.printf("x=%d, y=%d\n", x, y);
+//        System.out.printf("x=%d, y=%d\n", x, y);
 
         // Translate quadratical coordinates so that they are relative to center
         int centerX = width/2;
@@ -475,7 +475,7 @@ public class Mapper {
         // Adjust horizontal coordinates to be without gaps
         relX = relX>>1; // TODO: Should probably do some trickery every other line here
 
-        System.out.printf("relX=%d, relY=%d\n", relX, relY);
+//        System.out.printf("relX=%d, relY=%d\n", relX, relY);
 
         // Translate to hex coordinates
         int xx = relX - (relY - (relY&1)) / 2;
@@ -505,7 +505,7 @@ public class Mapper {
             x = relX+centerX;
             y = relY+centerY;
 
-            System.out.printf("x=%d, y=%d\n", x, y);
+            //System.out.printf("x=%d, y=%d\n", x, y);
 
             setQuadratic(x, y, VISITED);
         }

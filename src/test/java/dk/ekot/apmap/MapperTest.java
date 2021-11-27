@@ -246,12 +246,16 @@ public class MapperTest extends TestCase {
     }
 
     public void testRotate() {
-        testRotate(3, 2, 0);
+        //testRotate(3, 2, 0);
+        testRotate(3, 4, 0);
+        //testRotate(3, 3, 1);
+        //testRotate(3, 6, 0);
     }
     public void testRotate(int edge, int x, int y) {
+        System.out.println("----");
         Mapper board = new Mapper(edge);
         board.setQuadratic(x, y, Mapper.MARKER);
-        System.out.println(board);
+    //    System.out.println(board);
         board.addVisitedRotated(x, y);
         System.out.println(board);
 
