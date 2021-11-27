@@ -66,7 +66,7 @@ public class APMap {
 
 
         //new APMap().goQuadratic(534, 30*60_000, true);
-        System.out.println(new APMap().goQuadratic(18, 10_000, true, 1_000));
+        System.out.println(new APMap().goQuadratic(4, 10_000, true, 1_000));
 
         if (1==1) return;
         processRemaining(1_000);
@@ -376,10 +376,17 @@ public class APMap {
     Addon: Consider the concrete priorities changed by the potential mark: If some has a poor priority it does not
     matter mich if they are changed.
 
+    -----------------
+    Idea #16 20211127:
+
+    Expanding on idea #4
+
+    There is rotational symmetry, so when any given position has been fully checked, neither that position, nor any of
+    its 5 rotational twins, needs to be tried for any sub-walks.
+
+    Extending addVisitedToCurrent to also set the rotational twins to VISITED seemt to be the way.
 
 
-    How to multi thread?
-    
      */
 
 }

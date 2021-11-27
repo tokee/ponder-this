@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -137,6 +138,15 @@ public class Mapper {
         this.tripleDeltas = Arrays.copyOf(other.tripleDeltas, other.tripleDeltas.length);
 //        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
+    }
+
+    /**
+     * Turn the given positions into lazy positions.
+     * @param positions valid positions on the board.
+     * @return the positions represented af lazy positions.
+     */
+    public List<LazyPos> makeLazy(List<Integer> positions) {
+        return positions.stream().map(LazyPos::new).collect(Collectors.toList());
     }
 
     /**
@@ -774,6 +784,22 @@ public class Mapper {
             }
             yMul += width;
         }
+    }
+
+    /**
+     * Locates the positions for the entries in the top row that are {@code <= edge/2}, rounded up.
+     * @return the topleft positions.
+     */
+    public List<Integer> getTopLeftPositions() {
+        List<Integer> topleft = new ArrayList<>((edge+1)/2);
+        int margin = Math.abs(height>>1);
+        for (int x = margin ; x < width-margin ; x+=2) {
+            topleft.add(x);
+            if (topleft.size() == (edge+1)/2) {
+                break;
+            }
+        }
+        return topleft;
     }
 
     /**

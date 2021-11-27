@@ -60,8 +60,9 @@ public class MapWalker {
         int depth = 0;
         List<List<Mapper.LazyPos>> positions = IntStream.range(0, board.valids+1).boxed().map(
                 i -> (List<Mapper.LazyPos>)null).collect(Collectors.toList());
-        // TODO: replace this with only the first half (rounding up) of the first row for depth=0
-        positions.set(0, board.getPositions(walkPrioritizer));
+        //positions.set(0, board.getPositions(walkPrioritizer));
+
+        positions.set(0, board.makeLazy(board.getTopLeftPositions()));
         int[] posIndex = new int[board.valids+1];
 
         long nextShow = System.currentTimeMillis() + showBoardIntervalMS;

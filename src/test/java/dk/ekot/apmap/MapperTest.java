@@ -237,4 +237,11 @@ public class MapperTest extends TestCase {
         });
         System.out.printf("edge=%d, time=%dms", edge, tSum.get()/1000000L);
     }
+
+    public void testTopleft() {
+        assertEquals("Expected correct count for edge=2", 1, new Mapper(2).getTopLeftPositions().size());
+        assertEquals("Expected correct count for edge=3", 2, new Mapper(3).getTopLeftPositions().size());
+        assertEquals("Expected correct count for edge=4", 2, new Mapper(4).getTopLeftPositions().size());
+        assertEquals("Expected correct count for edge=5", 3, new Mapper(5).getTopLeftPositions().size());
+    }
 }
