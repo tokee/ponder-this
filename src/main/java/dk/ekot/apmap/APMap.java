@@ -66,7 +66,7 @@ public class APMap {
 
 
         //new APMap().goQuadratic(534, 30*60_000, true);
-        System.out.println(new APMap().goQuadratic(3, 20_000, true, 1_000));
+        System.out.println(new APMap().goQuadratic(4, 20_000, true, 1_000));
 
         if (1==1) return;
         processRemaining(1_000);
@@ -179,7 +179,7 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS);
+        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityComparator());
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 

@@ -14,11 +14,13 @@
  */
 package dk.ekot.apmap;
 
+import com.ibm.icu.impl.ValidIdentifiers;
 import org.apache.commons.lang.math.IntRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +47,8 @@ public class MapWalker {
         return bestBoard;
     }
 
-    public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS) {
+    public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS,
+                             Comparator<Mapper.LazyPos> walkPrioritizer) {
         final long startTime = System.currentTimeMillis();
 
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
@@ -58,7 +61,7 @@ public class MapWalker {
         List<List<Mapper.LazyPos>> positions = IntStream.range(0, board.valids+1).boxed().map(
                 i -> (List<Mapper.LazyPos>)null).collect(Collectors.toList());
         // TODO: replace this with only the first half (rounding up) of the first row for depth=0
-        positions.set(0, board.getPositionsByPriority());
+        positions.set(0, board.getPositions(walkPrioritizer));
         int[] posIndex = new int[board.valids+1];
 
         long nextShow = System.currentTimeMillis() + showBoardIntervalMS;
@@ -84,7 +87,6 @@ public class MapWalker {
             }
 
             // Change board
-            // TODO: Check for EOD
 //            System.out.printf("m: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
             board.markAndDeltaExpand(positions.get(depth).get(posIndex[depth]));
 
@@ -101,7 +103,7 @@ public class MapWalker {
             }
 
             // Check if descending is possible with the changed board
-            List<Mapper.LazyPos> descendPos = board.getPositionsByPriority();
+            List<Mapper.LazyPos> descendPos = board.getPositions(walkPrioritizer);
             if (!descendPos.isEmpty()) {
                 // Descend
                 ++depth;
@@ -116,16 +118,22 @@ public class MapWalker {
             while (true) {
                 board.rollback();
 //                System.out.printf("-: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
+                // Attempt to move to next position at the current depth
                 if (++posIndex[depth] == positions.get(depth).size()) {
 //                    System.out.printf("r: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                     // No more on this level, move up
                     --depth;
                     if (depth < 0) {
                         bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
+                        bestBoard.setCompleted(true);
                         return; // All tapped out
                     }
                     continue;
                 }
+                // There was another position, mark the previous position as visited and start over with the new position
+                final Mapper.LazyPos previousPos = positions.get(depth).get(posIndex[depth]-1);
+                board.addVisitedToCurrent(previousPos.pos);
+
 //                System.out.printf("b: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 break;
             }

@@ -55,6 +55,7 @@ public class Mapper {
     static final int NEUTRAL = 0;  // Valid but unset
     static final int MARKER = 1;   // Marked
     static final int ILLEGAL = 2;  // Cannot be set (will result in AP)
+    static final int VISITED = 3;  // Previously visited in this descend tree (do not mark again)
 
     final int edge; // Hexagonal edge
     final int width;
@@ -169,18 +170,16 @@ public class Mapper {
     }
 
     /**
-     * Fast positions delivery by only comparing positions and priority. Sort order:
+     * Fast positions ordering by only comparing positions and priority. Sort order:
      * 1) Priority (lower is better)
      * 2) Position (lower is better)
-     * @return all neutral positions, sorted by priority.
+     * @return a comparator with the described characteristica.
      */
-    public List<LazyPos> getPositionsByPriority() {
-        return getPositions(
-                (lazy1, lazy2) ->
-                        lazy1.posPriority < lazy2.posPriority ? -1 :
-                                lazy1.posPriority > lazy2.posPriority ? 1 :
-                                        Integer.compare(lazy1.pos, lazy2.pos)
-        );
+    public static Comparator<LazyPos> getPriorityComparator() {
+        return (lazy1, lazy2) ->
+                lazy1.posPriority < lazy2.posPriority ? -1 :
+                        lazy1.posPriority > lazy2.posPriority ? 1 :
+                                Integer.compare(lazy1.pos, lazy2.pos);
     }
     /**
      * Get all positions that are neutral, sorted by the given comparator.
@@ -440,6 +439,17 @@ public class Mapper {
     public final void markAndDeltaExpand(LazyPos pos) {
         markAndDeltaExpand(pos.getX(), pos.getY()); // TODO: Make this fast. Maye with x & y as first class?
     }
+
+    /**
+     * Set the given pos to VISITED and add the position to the current rollback-list.
+     * Performing a rollback after this will rollback whatever was on the rollback list plus the newly added pos.
+     * @param pos an index into {@link #quadratic} which will be set to visited.
+     */
+    public void addVisitedToCurrent(final int pos) {
+        quadratic[pos] = VISITED;
+        boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos;
+    }
+
     /**
      * Marks the given quadratic (x, y) and adds the coordinated to changed at changedIndex.
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
@@ -454,6 +464,7 @@ public class Mapper {
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
         final int origoPos = y*width+x;
+        // TODO: Simplify so that boardChanges is only indexes, not a mix of (x, y) and indexes
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = x;
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = y;
         if (quadratic[origoPos] != NEUTRAL) {
@@ -974,6 +985,9 @@ public class Mapper {
                         break;
                     case INVALID:
                         sb.append(" ");
+                        break;
+                    case VISITED:
+                        sb.append(",");
                         break;
                     default:
                         throw new UnsupportedOperationException("Unknown element: " + getQuadratic(x, y));
