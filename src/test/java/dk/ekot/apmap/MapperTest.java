@@ -61,23 +61,23 @@ public class MapperTest extends TestCase {
     public void testMarkAndRollback() {
         Mapper board = new Mapper(3);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.markAndDeltaExpand(2, 0);
+        board.markAndDeltaExpand(2, 0, true);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.markAndDeltaExpand(2, 2);
+        board.markAndDeltaExpand(2, 2, true);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.markAndDeltaExpand(3, 1);
+        board.markAndDeltaExpand(3, 1, true);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.markAndDeltaExpand(5, 1);
+        board.markAndDeltaExpand(5, 1, true);
 //        board.markAndDeltaExpand(3, 3);
         System.out.println("-------------------------------------------------------------------");
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.rollback();
+        board.rollback(true);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.rollback();
+        board.rollback(true);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.rollback();
+        board.rollback(true);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
-        board.rollback();
+        board.rollback(true);
         System.out.printf("%s\nMarked=%d, neutrals=%d\n", board, board.marked, board.neutrals);
     }
 
@@ -247,17 +247,37 @@ public class MapperTest extends TestCase {
 
     public void testRotate() {
         //testRotate(3, 2, 0);
-        testRotate(3, 4, 0);
+        testRotate(5, 7, 1);
+        //testRotate(3, 3, 1);
         //testRotate(3, 3, 1);
         //testRotate(3, 6, 0);
     }
     public void testRotate(int edge, int x, int y) {
         System.out.println("----");
         Mapper board = new Mapper(edge);
-        board.setQuadratic(x, y, Mapper.MARKER);
     //    System.out.println(board);
         board.addVisitedRotated(x, y);
+        board.setQuadratic(x, y, Mapper.MARKER);
         System.out.println(board);
 
+    }
+
+    public void testTranslate() {
+        int edge = 3;
+        Mapper board = new Mapper(edge);
+        board.setQuadratic(4, 2, Mapper.MARKER);
+        System.out.println(board);
+        board.visitAllXY((x, y) -> {
+            int centerX = board.width/2;
+            int centerY = board.height/2;
+
+            int relX = x-centerX;
+            int relY = y-centerY;
+
+            // Adjust horizontal coordinates to be without gaps
+            relX = relX>>1; // TODO: Should probably do some trickery every other line here
+
+            System.out.printf("center(%d, %d), pos(%d, %d) -> pos(%d, %d)\n", centerX, centerY, x, y, relX, relY);
+        });
     }
 }

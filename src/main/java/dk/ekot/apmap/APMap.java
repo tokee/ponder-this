@@ -38,8 +38,8 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 70, 80}, {18, 123, 153}, {27, 209, 266}, {38, 325, 420},
-            {50, 454, 621}, {65, 768, 884}, {81, 794, 1193}, {98, 1010, 1512},
+            {2, 6, 6}, {6, 32, 33}, {11, 70, 80}, {18, 123, 153}, {27, 213, 266}, {38, 370, 420},
+            {50, 470, 621}, {65, 768, 884}, {81, 813, 1193}, {98, 1010, 1512},
             {118, 1246, 1973}, {139, 1615, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
             {214, 3072, 4198}, {242, 3085, 4922}, {273, 3353, 5736},
             {305, 3915, 6648}, {338, 4380, 7691}, {374, 4778, 8962},
@@ -53,6 +53,8 @@ public class APMap {
        // testMarking();
         //if (1==1) return;
 
+        goFlat(6); if (1 == 1) return;
+
         //System.out.println(new Mapper(20)); if (1==1) return;
         //        new APMap().go(6, 10000000);
 
@@ -65,15 +67,15 @@ public class APMap {
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
 
-        new APMap().goQuadratic(374, 30*60_000, true);
-        //        System.out.println(new APMap().goQuadratic(4, 10_000, true, 1_000));
+        //new APMap().goQuadratic(50, 30_000, true);
+        System.out.println(new APMap().goQuadratic(4, 10_000, true, 2_000));
 
         if (1==1) return;
-        processRemaining(1_000);
+        //processRemaining(1_000);
 
 
         long startTime = System.currentTimeMillis();
-        int RUN[] = new int[]{305, 338, 374, 411, 491};
+        int RUN[] = new int[]{27, 38, 65, 81};
         //      int RUN[] = TASKS;
         boolean SHOW_BEST = true;
         int STALE_MS = 120*1000; // 2 min
@@ -107,6 +109,15 @@ public class APMap {
         System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
     }
 
+    private static void doFlatWalk(int edge) {
+        FlatBoard board = new FlatBoard(edge);
+        FlatWalker walker = new FlatWalker(board);
+        walker.walk(Integer.MAX_VALUE);
+        Mapper best = walker.getBestMapper();
+        System.out.println(best);
+        System.out.printf("edge=%d, marks=%d: %s\n", edge, best.getMarkedCount(), best.toJSON());
+    }
+
     public static void processRemaining(int maxStaleMS) {
         long startTime = System.currentTimeMillis();
 
@@ -122,7 +133,6 @@ public class APMap {
             results.addAll(tests.parallelStream().
                                    map(task -> new APMap().goQuadratic(task, maxStaleMS, true)).
                                    collect(Collectors.toList()));
-
         }).join();
         
         System.out.println();
@@ -150,13 +160,13 @@ public class APMap {
         Mapper.PriorityPos pos = new Mapper.PriorityPos(2, 0, 0);
         System.out.println("***********************************");
         System.out.println(board + " setting " + pos);
-        board.markAndDeltaExpand(pos);
+        board.markAndDeltaExpand(pos, true);
         System.out.println("-----------------------------------");
         System.out.println(board + " after marking");
-        board.rollback();
+        board.rollback(true);
         System.out.println("-----------------------------------");
         System.out.println(board + " after rollback");
-        board.markAndDeltaExpand(pos);
+        board.markAndDeltaExpand(pos, true);
         System.out.println("***********************************");
     }
 
@@ -179,7 +189,9 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityComparator());
+        //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Comparator.comparing(Mapper.LazyPos::getPriorityChanges).thenComparing(Mapper.LazyPos::getPos),true);
+        //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityChangesComparator(), true);
+        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPositionComparator(), false);
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
@@ -192,10 +204,10 @@ public class APMap {
 
     // -----------------------------------------------------------------------------------------------------------------
 
-    private void goFlat(int edge) {
+    private static void goFlat(int edge) {
         goFlat(edge, Long.MAX_VALUE);
     }
-    private void goFlat(int edge, long maxFulls) {
+    private static void goFlat(int edge, long maxFulls) {
         log.info("Initializing...");
         long initTime = -System.currentTimeMillis();
         FlatBoard board = new FlatBoard(edge);

@@ -21,7 +21,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Transforms from and to flat and quadratic representations of a hexagonal board. Supports visualization.
@@ -180,6 +179,15 @@ public class Mapper {
     }
 
     /**
+     * Extremely fast positions ordering by only comparing positions. Sort order:
+     * 1) Position (lower is better)
+     * @return a comparator with the described characteristica.
+     */
+    public static Comparator<LazyPos> getPositionComparator() {
+        return Comparator.comparing(LazyPos::getPos);
+    }
+
+    /**
      * Fast positions ordering by only comparing positions and priority. Sort order:
      * 1) Priority (lower is better)
      * 2) Position (lower is better)
@@ -190,6 +198,19 @@ public class Mapper {
                 lazy1.posPriority < lazy2.posPriority ? -1 :
                         lazy1.posPriority > lazy2.posPriority ? 1 :
                                 Integer.compare(lazy1.pos, lazy2.pos);
+    }
+    /**
+     * Slow priorityChanges ordering by only comparing positions and priority. Sort order:
+     * 1) Priority (lower is better)
+     * 2) Priority changes (lower is better)
+     * 2) Position (lower is better)
+     * @return a comparator with the described characteristica.
+     */
+    public static Comparator<LazyPos> getPriorityChangesComparator() {
+        return Comparator.
+                comparing(LazyPos::getPosPriority).
+                thenComparing(LazyPos::getPriorityChanges).
+                thenComparing(LazyPos::getPos);
     }
     /**
      * Get all positions that are neutral, sorted by the given comparator.
@@ -242,6 +263,14 @@ public class Mapper {
          */
         public int getY() {
             return pos/width;
+        }
+
+        public int getPos() {
+            return pos;
+        }
+
+        public int getPosPriority() {
+            return posPriority;
         }
 
         /**
@@ -443,11 +472,11 @@ public class Mapper {
         return neutrals;
     }
 
-    public final void markAndDeltaExpand(PriorityPos pos) {
-        markAndDeltaExpand(pos.x, pos.y);
+    public final void markAndDeltaExpand(PriorityPos pos, boolean updatePriorities) {
+        markAndDeltaExpand(pos.x, pos.y, updatePriorities); // TODO: Make this fast. Maye with x & y as first class?
     }
-    public final void markAndDeltaExpand(LazyPos pos) {
-        markAndDeltaExpand(pos.getX(), pos.getY()); // TODO: Make this fast. Maye with x & y as first class?
+    public final void markAndDeltaExpand(LazyPos pos, boolean updatePriorities) {
+        markAndDeltaExpand(pos.getX(), pos.getY(), updatePriorities); // TODO: Make this fast. Maye with x & y as first class?
     }
 
     /**
@@ -464,6 +493,7 @@ public class Mapper {
         // https://gamedev.stackexchange.com/questions/15237/how-do-i-rotate-a-structure-of-hexagonal-tiles-on-a-hexagonal-grid
         // https://www.redblobgames.com/grids/hexagons/#rotation
 //        System.out.printf("x=%d, y=%d\n", x, y);
+        setQuadratic(x, y, VISITED);
 
         // Translate quadratical coordinates so that they are relative to center
         int centerX = width/2;
@@ -495,11 +525,11 @@ public class Mapper {
             zz = -yyO;
 
             // Translate back to center-relative quadratic coordinates
-            relX = xx + (zz - (zz & 1)) / 2;
+            relX = xx + (zz - (zz&1)) / 2;
             relY = zz;
 
             // Expand horizontal coordinates to the space oriented format
-            relX = relX<<1; // TODO: Should probably do some trickery every other line here
+            relX = (relX<<1) + (relY&1); // relY&1 to compensate for eneven offset
             
             // Translate center-relative to plain rectangular coordinates.
             x = relX+centerX;
@@ -511,8 +541,8 @@ public class Mapper {
         }
     }
 
-    public void markAndDeltaExpand(final int pos) {
-        markAndDeltaExpand(pos%width, pos/width); // TODO: Avoid this as it is very slow
+    public void markAndDeltaExpand(final int pos, boolean updatePriorities) {
+        markAndDeltaExpand(pos%width, pos/width, updatePriorities); // TODO: Avoid this as it is very slow
     }
     /**
      * Marks the given quadratic (x, y) and adds the coordinated to changed at changedIndex.
@@ -522,9 +552,10 @@ public class Mapper {
      * This updates {@link #marked} and {@link #neutrals}.
      * @param x quadratic coordinate X.
      * @param y quadratic coordinate Y.
+     * @param updatePriorities
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
-    public void markAndDeltaExpand(final int x, final int y) {
+    public void markAndDeltaExpand(final int x, final int y, boolean updatePriorities) {
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
         final int origoPos = y*width+x;
@@ -554,7 +585,9 @@ public class Mapper {
             }
         });
         // TODO: Make this part of the visitTriples above
-        adjustPriorities(x, y, 1);
+        if (updatePriorities) {
+            adjustPriorities(x, y, 1);
+        }
 
         //  0:   X   X
         //  1: X   3   1
@@ -573,14 +606,16 @@ public class Mapper {
      * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
      */
 
-    public void rollback() {
+    public void rollback(boolean updatePriorities) {
         //System.out.println(this);
         int start = boardChangeIndexes[changeIndexPosition - 1];
 
         final int x =  boardChanges[start++];
         final int y =  boardChanges[start++];
 //        System.out.printf("popping(%d, %d) from %d\n", x, y, boardChangeIndexes[changeIndexPosition-1]);
-        adjustPriorities(x, y, -1); // Must be before the clearing of the marker below
+        if (updatePriorities) {
+            adjustPriorities(x, y, -1); // Must be before the clearing of the marker below
+        }
         setQuadratic(x, y, NEUTRAL);
 
         for (int i = start; i < boardChangeIndexes[changeIndexPosition] ; i++) {

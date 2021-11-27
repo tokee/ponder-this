@@ -14,16 +14,12 @@
  */
 package dk.ekot.apmap;
 
-import com.ibm.icu.impl.ValidIdentifiers;
-import org.apache.commons.lang.math.IntRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,7 +44,7 @@ public class MapWalker {
     }
 
     public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS,
-                             Comparator<Mapper.LazyPos> walkPrioritizer) {
+                             Comparator<Mapper.LazyPos> walkPrioritizer, boolean updatePriorities) {
         final long startTime = System.currentTimeMillis();
 
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
@@ -89,7 +85,7 @@ public class MapWalker {
 
             // Change board
 //            System.out.printf("m: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
-            board.markAndDeltaExpand(positions.get(depth)[posIndex[depth]]);
+            board.markAndDeltaExpand(positions.get(depth)[posIndex[depth]], updatePriorities);
 
             // Check is a new max has been found
             if (bestMarkers < board.getMarkedCount()) {
@@ -117,7 +113,7 @@ public class MapWalker {
             // Cannot descend, rollback and either go to next position or move up
 //            System.out.printf("R: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
             while (true) {
-                board.rollback();
+                board.rollback(updatePriorities);
 //                System.out.printf("-: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 // Attempt to move to next position at the current depth
                 if (++posIndex[depth] == positions.get(depth).length) {
@@ -179,7 +175,7 @@ public class MapWalker {
             }
 
             // Change board
-            board.markAndDeltaExpand(positions[depth]);
+            board.markAndDeltaExpand(positions[depth], true);
 
             // Check is a new max has been found
             if (bestMarkers < board.getMarkedCount()) {
@@ -205,7 +201,7 @@ public class MapWalker {
             // Cannot descend, rollback and either go to next position or move up
             ++fulls;
             while (true) {
-                board.rollback();
+                board.rollback(true);
                 positions[depth] = board.nextPriority(positions[depth]);
                 if (positions[depth] == null) {
                     // No more on this level, move up
@@ -249,7 +245,7 @@ public class MapWalker {
 
             // Change board
 
-            board.markAndDeltaExpand(xs[depth], ys[depth]);
+            board.markAndDeltaExpand(xs[depth], ys[depth], false);
 
             if (bestMarkers < board.getMarkedCount()) {
                 maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
@@ -277,7 +273,7 @@ public class MapWalker {
             ++fulls;
             while (true) {
                 // TODO: There is a double rollback here as neutrals goes in the zeroes
-                board.rollback();
+                board.rollback(false);
                 ++xs[depth];
                 long nextPosition = board.nextNeutral(xs[depth], ys[depth]);
                 if (nextPosition == -1) {
@@ -341,7 +337,7 @@ public class MapWalker {
             x = (int) (position >> 32);
             y = (int) (position & 0xFFFFFFFFL);
 
-            board.markAndDeltaExpand(x, y);
+            board.markAndDeltaExpand(x, y, false);
 
             if (bestMarkers < board.getMarkedCount()) {
                 bestMarkers = board.getMarkedCount();
@@ -354,7 +350,7 @@ public class MapWalker {
             }
 
             walk(depth+1, x+1, y, fulls, maxNanotime, showBest);
-            board.rollback();
+            board.rollback(false);
             ++x; // TODO: Check for width here so all the checks in nextNeutral can be skipped?
         }
         fulls.incrementAndGet();

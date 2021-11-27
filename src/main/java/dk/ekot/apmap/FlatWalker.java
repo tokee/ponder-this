@@ -14,6 +14,7 @@
  */
 package dk.ekot.apmap;
 
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -48,7 +49,7 @@ public class FlatWalker {
             (depth == 0 && position > (board.edge >> 2) + 1)) { // idea 3 + idea 5
             return;
         }
-        if (depth <= 1 || fulls.get() % 1000000 == 0) {
+        if (depth <= 1 || fulls.get() % 10000000 == 0) {
             System.out.printf(
                     Locale.ROOT,
                     "edge=%d, depth=%4d, pos=%5d, nextNeutral=%5d, markers=%d/%d/%d, neutrals=%4d, fulls=%d\n",
@@ -69,8 +70,17 @@ public class FlatWalker {
             if (bestMarkers < setMarkers + 1) {
                 bestMarkers = setMarkers + 1;
                 bestFlat = board.getFlatCopy();
-                //    System.out.println(board + " fulls:" + fulls.get());
-                //    System.out.println();
+                Mapper printer = new Mapper(board.edge);
+                printer.setFlat(bestFlat);
+                System.out.printf(
+                        Locale.ROOT,
+                        "edge=%d, depth=%4d, pos=%5d, nextNeutral=%5d, markers=%d/%d/%d, neutrals=%4d, fulls=%d: %s\n",
+                        board.edge, depth, position, board.nextNeutral(position),
+                        setMarkers, bestMarkers, board.flatLength(),
+                        board.neutralCount(), fulls.get(), printer.toJSON());
+
+                    //System.out.println(board + " fulls:" + fulls.get());
+                    //System.out.println();
             }
 
             walk(depth + 1, position + 1, setMarkers + 1, fulls, maxFulls);
@@ -86,6 +96,7 @@ public class FlatWalker {
 
     public Mapper getBestMapper() {
         Mapper mapper = new Mapper(board.edge);
+        mapper.marked = (int) Arrays.stream(bestFlat).filter(e -> e == Mapper.MARKER).count();
         mapper.setFlat(bestFlat);
         return mapper;
     }
