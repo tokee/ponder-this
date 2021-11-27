@@ -460,6 +460,57 @@ public class Mapper {
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos;
     }
 
+    public void addVisitedRotated(int x, int y) {
+        // https://gamedev.stackexchange.com/questions/15237/how-do-i-rotate-a-structure-of-hexagonal-tiles-on-a-hexagonal-grid
+        // https://www.redblobgames.com/grids/hexagons/#rotation
+        System.out.printf("x=%d, y=%d\n", x, y);
+
+        // Translate quadratical coordinates so that they are relative to center
+        int centerX = width/2;
+        int centerY = height/2;
+
+        int relX = x-centerX;
+        int relY = y-centerY;
+
+        // Adjust horizontal coordinates to be without gaps
+        relX = relX>>1; // TODO: Should probably do some trickery every other line here
+
+        System.out.printf("relX=%d, relY=%d\n", relX, relY);
+
+        // Translate to hex coordinates
+        int xx = relX - (relY - (relY&1)) / 2;
+        int zz = relY;
+        int yy = -xx - zz;
+//        System.out.printf("xx=%d, yy=%d, zz=%d\n", xx, yy, zz);
+
+        for (int i = 0 ; i < 5 ; i++) {
+            // Rotate 60°
+
+            int xxO = xx;
+            int yyO = yy;
+            int zzO = zz;
+
+            xx = -zzO;
+            yy = -xxO;
+            zz = -yyO;
+
+            // Translate back to center-relative quadratic coordinates
+            relX = xx + (zz - (zz & 1)) / 2;
+            relY = zz;
+
+            // Expand horizontal coordinates to the space oriented format
+            relX = relX<<1; // TODO: Should probably do some trickery every other line here
+            
+            // Translate center-relative to plain rectangular coordinates.
+            x = relX+centerX;
+            y = relY+centerY;
+
+            System.out.printf("x=%d, y=%d\n", x, y);
+
+            setQuadratic(x, y, VISITED);
+        }
+    }
+
     /**
      * Marks the given quadratic (x, y) and adds the coordinated to changed at changedIndex.
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause

@@ -255,6 +255,8 @@ public class APMap {
     Easy enough to check if there are only 1 marker (just set an invalid at the 5 other edges), but more tricky with
     2 markers.
 
+    Addendum: See idea #16 for an expansion on this.
+
     -----------------
     Idea #5 20211118:
 

@@ -244,4 +244,16 @@ public class MapperTest extends TestCase {
         assertEquals("Expected correct count for edge=4", 2, new Mapper(4).getTopLeftPositions().size());
         assertEquals("Expected correct count for edge=5", 3, new Mapper(5).getTopLeftPositions().size());
     }
+
+    public void testRotate() {
+        testRotate(3, 2, 0);
+    }
+    public void testRotate(int edge, int x, int y) {
+        Mapper board = new Mapper(edge);
+        board.setQuadratic(x, y, Mapper.MARKER);
+        System.out.println(board);
+        board.addVisitedRotated(x, y);
+        System.out.println(board);
+
+    }
 }
