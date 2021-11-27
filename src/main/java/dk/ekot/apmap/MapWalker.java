@@ -14,12 +14,17 @@
  */
 package dk.ekot.apmap;
 
+import org.apache.commons.lang.math.IntRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Walker based on a quadratic the board using {@link Mapper} directly.
@@ -38,6 +43,95 @@ public class MapWalker {
 
     public Mapper getBestBoard() {
         return bestBoard;
+    }
+
+    public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS) {
+        final long startTime = System.currentTimeMillis();
+
+        long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
+        Mapper.PriorityPos zeroPos = new Mapper.PriorityPos();
+        Mapper.PriorityPos startingPos = board.nextPriority(zeroPos);
+        if (startingPos == null) {
+            throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
+        }
+        int depth = 0;
+        List<List<Mapper.LazyPos>> positions = IntStream.range(0, board.valids+1).boxed().map(
+                i -> (List<Mapper.LazyPos>)null).collect(Collectors.toList());
+        // TODO: replace this with only the first half (rounding up) of the first row for depth=0
+        positions.set(0, board.getPositionsByPriority());
+        int[] posIndex = new int[board.valids+1];
+
+        long nextShow = System.currentTimeMillis() + showBoardIntervalMS;
+
+        // Invariants: (xs[depth], ys[depth]) are always neutral for current level
+
+        while (depth < board.valids) {
+//            System.out.println("--------------------------------------------------");
+//            System.out.println(board);
+//            System.out.println("depth=" + depth + ", xs[depth]==" + xs[depth] + ", xy[depth]==" + ys[depth]);
+
+            if (System.currentTimeMillis() > nextShow) {
+                System.out.println(board + " time triggered show, depth=" + depth);
+                System.out.println("---------------------------");
+                nextShow = System.currentTimeMillis()+showBoardIntervalMS;
+            }
+
+            if (System.nanoTime() > maxNanoTime) {
+                log.debug("Stopping because of timeout with edge=" + board.edge +
+                          ", marked=" + board.marked + "/" + board.valids);
+                bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
+                return;
+            }
+
+            // Change board
+            // TODO: Check for EOD
+//            System.out.printf("m: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
+            board.markAndDeltaExpand(positions.get(depth).get(posIndex[depth]));
+
+            // Check is a new max has been found
+            if (bestMarkers < board.getMarkedCount()) {
+                maxNanoTime = System.nanoTime() + maxStaleMS*1000000L; // Reset timeout
+                bestMarkers = board.getMarkedCount();
+                bestBoard = board.copy(false);
+                if (showBest) {
+//                    System.out.println(board + " fulls:" + fulls);
+                    System.out.printf(Locale.ROOT, "edge=%d, markers=%5d/%6d/%d: %s\n",
+                                      board.edge, board.marked, board.getNeutralCount(), board.valids, board.toJSON());
+                }
+            }
+
+            // Check if descending is possible with the changed board
+            List<Mapper.LazyPos> descendPos = board.getPositionsByPriority();
+            if (!descendPos.isEmpty()) {
+                // Descend
+                ++depth;
+                positions.set(depth, descendPos);
+                posIndex[depth] = 0;
+//                System.out.printf("s: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
+                continue;
+            }
+
+            // Cannot descend, rollback and either go to next position or move up
+//            System.out.printf("R: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
+            while (true) {
+                board.rollback();
+//                System.out.printf("-: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
+                if (++posIndex[depth] == positions.get(depth).size()) {
+//                    System.out.printf("r: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
+                    // No more on this level, move up
+                    --depth;
+                    if (depth < 0) {
+                        bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
+                        return; // All tapped out
+                    }
+                    continue;
+                }
+//                System.out.printf("b: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
+                break;
+            }
+        }
+        bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
+        bestBoard.setCompleted(true);
     }
 
     public void walkPriority(int maxStaleMS, boolean showBest, int showBoardIntervalMS) {

@@ -3,6 +3,8 @@ package dk.ekot.apmap;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -218,5 +220,21 @@ public class MapperTest extends TestCase {
 //            System.out.printf("origoX-marginX=%d, width=%d, origoX=%d, marginX=%d, maxDistX=%d\n", origoX-marginX, width, origoX, marginX, maxDistX);
             System.out.printf("y=%d, margin=%d\n", y, marginX);
         }
+    }
+
+    public void testSpeed() {
+        testSpeed(100);
+    }
+    public void testSpeed(int edge) {
+        Mapper board = new Mapper(edge);
+        AtomicLong sum = new AtomicLong(0);
+        AtomicLong tSum = new AtomicLong(0);
+        board.visitAllXY((x, y) -> {
+            Mapper inner = new Mapper(edge);
+            final long startTime = System.nanoTime();
+            inner.visitTriples(x, y, (pos1, pos2) -> sum.addAndGet(pos1+pos2));
+            tSum.addAndGet(System.nanoTime()-startTime);
+        });
+        System.out.printf("edge=%d, time=%dms", edge, tSum.get()/1000000L);
     }
 }

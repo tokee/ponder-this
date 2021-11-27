@@ -65,7 +65,8 @@ public class APMap {
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
 
-        System.out.println(new APMap().goQuadratic(3, 2_000, true));
+        //new APMap().goQuadratic(534, 30*60_000, true);
+        System.out.println(new APMap().goQuadratic(3, 20_000, true, 1_000));
 
         if (1==1) return;
         processRemaining(1_000);
@@ -178,7 +179,7 @@ public class APMap {
 
         log.info("Walking for edge " + edge + "...");
         long walkTime = -System.currentTimeMillis();
-        walker.walkPriority(maxStaleMS, showBest, showBoardIntervalMS);
+        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS);
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 

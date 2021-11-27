@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Transforms from and to flat and quadratic representations of a hexagonal board. Supports visualization.
@@ -64,7 +65,7 @@ public class Mapper {
 
     final int[] boardChanges;   // Change tracker
     final int[] boardChangeIndexes;
-
+    // TODO: Remove this
     final short[] tripleDeltas; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 
 //    final long[][] tripleDeltasByColumn; // [deltaX1, deltaY1, deltaX2, deltaY2]*
@@ -168,6 +169,93 @@ public class Mapper {
     }
 
     /**
+     * Fast positions delivery by only comparing positions and priority. Sort order:
+     * 1) Priority (lower is better)
+     * 2) Position (lower is better)
+     * @return all neutral positions, sorted by priority.
+     */
+    public List<LazyPos> getPositionsByPriority() {
+        return getPositions(
+                (lazy1, lazy2) ->
+                        lazy1.posPriority < lazy2.posPriority ? -1 :
+                                lazy1.posPriority > lazy2.posPriority ? 1 :
+                                        Integer.compare(lazy1.pos, lazy2.pos)
+        );
+    }
+    /**
+     * Get all positions that are neutral, sorted by the given comparator.
+     * @param comparator determines the order of the result.
+     * @return all neutral (aka free) positions, sorted by comparator.
+     */
+    public List<LazyPos> getPositions(Comparator<LazyPos> comparator) {
+        List<LazyPos> positions = new ArrayList<>(valids);
+        visitAll(pos -> {
+            if (quadratic[pos] == NEUTRAL) {
+                positions.add(new LazyPos(pos));
+            }
+        });
+        positions.sort(comparator);
+        return positions;
+    }
+
+    /**
+     * Position with the special property {@link LazyPos#priorityChanges} which is only evaluated if requested.
+     */
+    public class LazyPos {
+        public final int pos;
+        public final int posPriority;
+
+        /**
+         * Initialize with index into {@link #quadratic}.
+         * @param pos index into {@link #quadratic}.
+         */
+        public LazyPos(int pos) {
+            this.pos = pos;
+            posPriority = priority[pos];
+        }
+
+        /**
+         * The number of priority changes that will be performed of the position is marked.
+         * This number is only valid as long as the overall state of the board is the same as when it was calculated.
+         */
+        AtomicInteger priorityChanges = new AtomicInteger(-1); // -1 = unresolved
+
+        /**
+         * This method performs a modulo operation. Do not call it many times in a tight inner loop!
+         * @return x position in the quadratic coordinate system.
+         */
+        public int getX() {
+            return pos%width;
+        }
+        /**
+         * This method performs a division operation. Do not call it many times in a tight inner loop!
+         * @return y position in the quadratic coordinate system.
+         */
+        public int getY() {
+            return pos/width;
+        }
+
+        /**
+         * @return the umber of priority changes setting a mark at this position would cause.
+         */
+        public int getPriorityChanges() {
+            if (priorityChanges.get() == -1) {
+                priorityChanges.set(0);
+                visitTriples(getX(), getY(), (pos1, pos2) -> {
+                    if (quadratic[pos1] == NEUTRAL) {
+                        priorityChanges.incrementAndGet();
+                    }
+                    if (quadratic[pos2] == NEUTRAL) {
+                        priorityChanges.incrementAndGet();
+                    }
+                });
+            }
+            return priorityChanges.get();
+        }
+
+    }
+
+    /**
      * Find the next available {@link #NEUTRAL} element after the current. Seeking is done left-right, top-down from
      * {@code (pos.x+1, pos.y)} for {@code priority == pos.priority}. If nothing is found, a seek new left->down,
      * top-> down seek for {@code priority lower than pos.priority, starting at {@code 0, 0} is performed. If that does
@@ -176,6 +264,7 @@ public class Mapper {
      * @return the new position if possible, else null.
      */
     public final PriorityPos nextPriority(PriorityPos origo) {
+        // TODO: Switch to visitAll here
         int x = Math.max(0, origo.x+1);
         int y = Math.max(0, origo.y);
         int p = origo.priority;
@@ -348,6 +437,9 @@ public class Mapper {
     public final void markAndDeltaExpand(PriorityPos pos) {
         markAndDeltaExpand(pos.x, pos.y);
     }
+    public final void markAndDeltaExpand(LazyPos pos) {
+        markAndDeltaExpand(pos.getX(), pos.getY()); // TODO: Make this fast. Maye with x & y as first class?
+    }
     /**
      * Marks the given quadratic (x, y) and adds the coordinated to changed at changedIndex.
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
@@ -359,7 +451,6 @@ public class Mapper {
      * @return the new changedIndex. Will always be at least 2 more than previously.
      */
     public void markAndDeltaExpand(final int x, final int y) {
-        //System.out.println(this);
         ++changeIndexPosition;
         boardChangeIndexes[changeIndexPosition] = boardChangeIndexes[changeIndexPosition - 1];
         final int origoPos = y*width+x;
@@ -375,13 +466,7 @@ public class Mapper {
         --neutrals;
         visitTriples(x, y, (pos1, pos2) -> {
             final int pos1Element = quadratic[pos1];
-            int pos2Element;
-            try {
-                pos2Element = quadratic[pos2];
-            } catch (Exception e) {
-                throw new IllegalStateException(String.format(
-                        Locale.ROOT, "Ouch: origo(%d, %d)", x, y), e);
-            }
+            final int pos2Element = quadratic[pos2];
 
             if (pos1Element == MARKER && pos2Element == NEUTRAL) {
                 quadratic[pos2] = ILLEGAL;
@@ -393,6 +478,7 @@ public class Mapper {
                 --neutrals;
             }
         });
+        // TODO: Make this part of the visitTriples above
         adjustPriorities(x, y, 1);
 
         //  0:   X   X
@@ -609,8 +695,8 @@ public class Mapper {
                 triples.add(deltaX); triples.add(-deltaY); triples.add(deltaX*2); triples.add(-deltaY*2);
             }
         }
-        log.info("edge=" + edge + ", extracted " + triples.size()/4 + " delta triples " +
-                 "(" + triples.size()*4/1024 + " KBytes)");
+//        log.info("edge=" + edge + ", extracted " + triples.size()/4 + " delta triples " +
+//                 "(" + triples.size()*4/1024 + " KBytes)");
 /*        for (int i = 0 ; i < 1000 ; i+=4) {
             String human = String.format(
                     Locale.ROOT,
@@ -726,9 +812,10 @@ public class Mapper {
             final int maxDeltaRight = Math.min(width-marginXTop-origoX, origoX-marginXBottom);
 
             int startX = origoX - maxDeltaLeft;
-            if ((startX&1) != (marginXTop&1)) { // TODO:Replace with with some XOR + MASK magic: (startX^marginXTop)&1 ?
-                ++startX;
-            }
+            //if ((startX&1) != (marginXTop&1)) { // TODO:Replace with with some XOR + MASK magic: (startX^marginXTop)&1 ?
+            //    ++startX;
+            //}
+            startX += (startX^marginXTop)&1;
             int endX = origoX + maxDeltaRight;
             if (y1 == origoY) {
                 endX = origoX;
