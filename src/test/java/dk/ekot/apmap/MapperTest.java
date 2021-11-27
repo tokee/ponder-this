@@ -263,9 +263,9 @@ public class MapperTest extends TestCase {
     }
 
     public void testTranslate() {
-        int edge = 3;
+        int edge = 4;
         Mapper board = new Mapper(edge);
-        board.setQuadratic(4, 2, Mapper.MARKER);
+        board.setQuadratic(2, 0, Mapper.MARKER);
         System.out.println(board);
         board.visitAllXY((x, y) -> {
             int centerX = board.width/2;

@@ -54,12 +54,11 @@ public class MapWalker {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
         int depth = 0;
-        List<int[]> positions = IntStream.range(0, board.valids+1).boxed().map(
-                i -> (int[])null).collect(Collectors.toList());
+        List<Positions> positions = IntStream.range(0, board.valids+1).boxed().map(
+                i -> (Positions)null).collect(Collectors.toList());
         //positions.set(0, board.getPositions(walkPrioritizer));
 
-        positions.set(0, board.getTopLeftPositions().stream().mapToInt(Integer::intValue).toArray());
-        int[] posIndex = new int[board.valids+1];
+        positions.set(0, new Positions(board.getTopLeftPositions()));
 
         long nextShow = System.currentTimeMillis() + showBoardIntervalMS;
 
@@ -85,7 +84,7 @@ public class MapWalker {
 
             // Change board
 //            System.out.printf("m: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
-            board.markAndDeltaExpand(positions.get(depth)[posIndex[depth]], updatePriorities);
+            board.markAndDeltaExpand(positions.get(depth).current(), updatePriorities);
 
             // Check is a new max has been found
             if (bestMarkers < board.getMarkedCount()) {
@@ -104,8 +103,7 @@ public class MapWalker {
             if (!descendPos.isEmpty()) {
                 // Descend
                 ++depth;
-                positions.set(depth, descendPos.stream().mapToInt(lazy -> lazy.pos).toArray());
-                posIndex[depth] = 0;
+                positions.set(depth, new Positions(descendPos.stream().mapToInt(lazy -> lazy.pos).toArray()));
 //                System.out.printf("s: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 continue;
             }
@@ -116,7 +114,7 @@ public class MapWalker {
                 board.rollback(updatePriorities);
 //                System.out.printf("-: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 // Attempt to move to next position at the current depth
-                if (++posIndex[depth] == positions.get(depth).length) {
+                if (positions.get(depth).next() == -1) {
 //                    System.out.printf("r: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                     // No more on this level, move up
                     --depth;
@@ -127,9 +125,11 @@ public class MapWalker {
                     }
                     continue;
                 }
+
                 // There was another position, mark the previous position as visited and start over with the new position
-                int previousPos = positions.get(depth)[posIndex[depth]-1];
-                board.addVisitedToCurrent(previousPos);
+                int previousPos = positions.get(depth).previous();
+                board.addVisited(previousPos);
+                //board.addVisitedRotated(previousPos%board.width, previousPos/board.width); // TODO: Far too expensive!
 
 //                System.out.printf("b: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 break;

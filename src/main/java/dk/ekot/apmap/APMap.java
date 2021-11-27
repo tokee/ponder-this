@@ -53,9 +53,9 @@ public class APMap {
        // testMarking();
         //if (1==1) return;
 
-        goFlat(6); if (1 == 1) return;
+        //goFlat(6); if (1 == 1) return;
 
-        //System.out.println(new Mapper(20)); if (1==1) return;
+        //System.out.println(new Mapper(3)); if (1==1) return;
         //        new APMap().go(6, 10000000);
 
         //Arrays.stream(TASKS).
@@ -68,7 +68,7 @@ public class APMap {
 
 
         //new APMap().goQuadratic(50, 30_000, true);
-        System.out.println(new APMap().goQuadratic(4, 10_000, true, 2_000));
+        System.out.println(new APMap().goQuadratic(3, 10_000, true, 2_000));
 
         if (1==1) return;
         //processRemaining(1_000);

@@ -484,7 +484,7 @@ public class Mapper {
      * Performing a rollback after this will rollback whatever was on the rollback list plus the newly added pos.
      * @param pos an index into {@link #quadratic} which will be set to visited.
      */
-    public void addVisitedToCurrent(final int pos) {
+    public void addVisited(final int pos) {
         quadratic[pos] = VISITED;
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos;
     }
@@ -493,6 +493,7 @@ public class Mapper {
         // https://gamedev.stackexchange.com/questions/15237/how-do-i-rotate-a-structure-of-hexagonal-tiles-on-a-hexagonal-grid
         // https://www.redblobgames.com/grids/hexagons/#rotation
 //        System.out.printf("x=%d, y=%d\n", x, y);
+
         setQuadratic(x, y, VISITED);
 
         // Translate quadratical coordinates so that they are relative to center
@@ -564,7 +565,7 @@ public class Mapper {
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = y;
         if (quadratic[origoPos] != NEUTRAL) {
             throw new IllegalStateException(
-                    "Attempted to mark (" + x + ", " + y + ") bit it already had state " + quadratic[origoPos]);
+                    "Attempted to mark (" + x + ", " + y + ") bit but it already had state " + quadratic[origoPos]);
         }
 
         quadratic[origoPos] = MARKER;
