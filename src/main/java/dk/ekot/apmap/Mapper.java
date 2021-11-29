@@ -217,7 +217,7 @@ public class Mapper {
      * @param comparator determines the order of the result.
      * @return all neutral (aka free) positions, sorted by comparator.
      */
-    public List<LazyPos> getPositions(Comparator<LazyPos> comparator) {
+    public List<LazyPos> getLazyPositions(Comparator<LazyPos> comparator) {
         List<LazyPos> positions = new ArrayList<>(valids);
         visitAll(pos -> {
             if (quadratic[pos] == NEUTRAL) {
@@ -227,6 +227,32 @@ public class Mapper {
         positions.sort(comparator);
         return positions;
     }
+
+    /**
+     * Fill the given positions with all neutrals, in order of priority then left-right, sop-down.
+     *
+     * This is not a thread safe operation!
+     */
+    public void fillPositionsWithNeutralsByPriority(Positions positions) {
+        if (longCache.length != positions.getMaxCapacity()) {
+            longCache = new long[positions.getMaxCapacity()];
+        }
+
+        // Collect all neutrals as long by concatenating priority with position.
+        AtomicInteger index = new AtomicInteger(0);
+        visitAll(pos -> {
+            if (quadratic[pos] == NEUTRAL) {
+                longCache[index.getAndIncrement()] = (long) priority[pos] << 32 | (long) pos;
+            }
+        });
+
+        // Sort by natural order and extract positions
+        Arrays.sort(longCache, 0, index.get());
+        for (int i = 0 ; i < index.get() ; i++) {
+            positions.add((int) longCache[i]);
+        }
+    }
+    long[] longCache = new long[0];
 
     /**
      * Position with the special property {@link LazyPos#priorityChanges} which is only evaluated if requested.

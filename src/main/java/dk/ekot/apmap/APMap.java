@@ -95,8 +95,8 @@ public class APMap {
 
         // 118 + 139 responds well to pre-filled priority, 162 + 187 does not
 
-        int RUN[] = new int[]{578};
-        int STALE_MS = 20*1000;
+        int RUN[] = new int[]{6};
+        int STALE_MS = 30*1000;
 
         boolean SHOW_BEST = true;
 //        new Mapper(118).dumpDeltaStats();

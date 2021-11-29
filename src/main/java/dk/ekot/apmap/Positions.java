@@ -111,7 +111,7 @@ public class Positions {
     }
 
     public int getMaxCapacity() {
-        return length;
+        return positions.length;
     }
 
     /**

@@ -18,11 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Walker based on a quadratic the board using {@link Mapper} directly.
@@ -59,8 +57,9 @@ public class MapWalker {
             if (pDepth == 0) {
                 positions.addAll(board.getTopLeftPositions());
             } else {
-                positions.addAll(board.getPositions(walkPrioritizer).stream().
-                        map(lazy -> lazy.pos).collect(Collectors.toList()));
+                board.fillPositionsWithNeutralsByPriority(positions);
+                //positions.addAll(board.getLazyPositions(walkPrioritizer).stream().
+                //        map(lazy -> lazy.pos).collect(Collectors.toList()));
             }
         });
         //positions.set(0, board.getPositions(walkPrioritizer));
