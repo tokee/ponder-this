@@ -22,7 +22,7 @@ import java.util.List;
 public class Positions {
     private int[] positions;
     private int index = 0;
-    private int previousPosition = -1;
+    private int length;
 
     /**
      * Initialize with the given positions. -1 is reserved for flagging missing elements.
@@ -32,61 +32,94 @@ public class Positions {
      */
     public Positions(int[] positions) {
         this.positions = positions;
+        length = positions.length;
     }
 
+    /**
+     * Initialize with the given positions. -1 is reserved for flagging missing elements.
+     * The positions are assumed to be unique.
+     *
+     * @param positions a list of positions.
+     */
     public Positions(List<Integer> positions) {
-        this.positions = positions.stream().mapToInt(Integer::intValue).toArray();
+        this(positions.stream().mapToInt(Integer::intValue).toArray());
     }
 
-    public boolean hasNext() {
-        return index < positions.length;
+    /**
+     * Initialize the backing positions storage to the given size, but set {@link #length} to 0.
+     * This is typically used for a caching structure where the size of Positions matter for reuse.
+     * @param size the number of positions to make room for.
+     */
+    public Positions(int size) {
+        this.positions = new int[size];
+        this.length = 0;
     }
 
-    public int previous() {
-        if (previousPosition == -1) {
-            throw new IllegalStateException("There was no previously delivered position");
-        }
-        return previousPosition;
+    public boolean isEmpty() {
+        return index == length;
     }
 
     public int current() {
-        if (!hasNext()) {
-            return -1;
-        }
-        return positions[index];
+        return isEmpty() ? -1 : positions[index];
     }
 
     /**
      * @return next position or -1 if there are no more positions.
      */
     public int next() {
-        if (!hasNext()) {
+        if (isEmpty()) {
             return -1;
         }
-        previousPosition = positions[index++];
-        while (index < positions.length && positions[index] == -1) {
-            index++;
+        ++index;
+        while (!isEmpty() && current() == -1) {
+            ++index;
         }
-        return index == positions.length ? -1 : positions[index];
+        return current();
     }
 
     /**
-     * Remove the given position from the array of positions. If the position is not in the array of positions,
-     * this operation does not change anything.
-     * This requires a seek through the array from the given {@link #index}.
+     * Add a position after the current positions. Note that the structure does not auto-expand: The maximum number of
+     * positions that can be held is fixed at creation time.
+     * @param position a position in the form of an integer.
+     */
+    public void add(int position) {
+        positions[length++] = position;
+    }
+
+    public void addAll(List<Integer> poss) {
+        poss.forEach(this::add);
+    }
+    /**
+     * Remove the given position from the array of positions.
+     * If the position is not in the array of positions, this operation does not change anything.
+     * This requires a seek through the array from the given {@link #index} {@code O(n)}.
      *
      * @param position the position to remove.
+     * @return true is there are more positions.
      */
-    public void remove(int position) {
-        for (int i = index; i < positions.length; i++) {
+    public boolean remove(int position) {
+        for (int i = index; i < length; i++) {
             if (positions[i] == position) {
                 positions[i] = -1;
-                if (i == index) {
-                    index++;
+                if (i == index) { // current is invalidated, skip to next
+                    next();
                 }
                 break;
             }
         }
+        return !isEmpty();
+    }
+
+    public int getMaxCapacity() {
+        return length;
+    }
+
+    /**
+     * Logical clear of the structure {@code O(1)}.
+     */
+    public void clear() {
+        length = 0;
+        index = 0;
     }
 
 }

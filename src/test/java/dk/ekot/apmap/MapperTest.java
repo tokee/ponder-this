@@ -280,4 +280,17 @@ public class MapperTest extends TestCase {
             System.out.printf("center(%d, %d), pos(%d, %d) -> pos(%d, %d)\n", centerX, centerY, x, y, relX, relY);
         });
     }
+
+    public void testAdjustPriorities() {
+        testAdjustPriorities(2);
+        testAdjustPriorities(3);
+        testAdjustPriorities(4);
+        testAdjustPriorities(5);
+    }
+    public void testAdjustPriorities(int edge) {
+        System.out.println("----");
+        Mapper board = new Mapper(edge);
+        board.adjustPrioritiesCenterBad();
+        System.out.println(board);
+    }
 }

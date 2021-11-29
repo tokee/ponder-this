@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class APMap {
     private static final Logger log = LoggerFactory.getLogger(APMap.class);
 
-    public static final int[] TASKS = new int[]{
+    public static final int[] EDGES = new int[]{
             2, 6, 11, 18, 27, 38, 50, 65, 81, 98,
             118, 139, 162, 187,
             214, 242, 273,
@@ -38,18 +38,40 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 70, 80}, {18, 123, 153}, {27, 213, 266}, {38, 370, 420},
-            {50, 470, 621}, {65, 768, 884}, {81, 813, 1193}, {98, 1010, 1512},
-            {118, 1246, 1973}, {139, 1615, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
-            {214, 3072, 4198}, {242, 3085, 4922}, {273, 3353, 5736},
-            {305, 3915, 6648}, {338, 4380, 7691}, {374, 4778, 8962},
-            {411, 5422, 10060}, {450, 7077, 11123}, {491, 6632, 12534},
+            {2, 6, 6}, {6, 32, 33}, {11, 72, 80}, {18, 130, 153}, {27, 218, 266}, {38, 374, 420},
+            {50, 478, 621}, {65, 768, 884}, {81, 846, 1193}, {98, 1117, 1512},
+            {118, 1457, 1973}, {139, 1696, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
+            {214, 3072, 4208}, {242, 3124, 4964}, {273, 3693, 5736},
+            {305, 4321, 6648}, {338, 4830, 7691}, {374, 5179, 8962},
+            {411, 5624, 10060}, {450, 7077, 11123}, {491, 6632, 12534},
             {534, 7239, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
 
     public static void main(String[] args) {
+        if (args.length == 0) {
+            adHoc();
+            return;
+        }
+
+        if (args.length == 1) {
+            System.out.println("Usage: MapperTest [nochanges timeout in seconds] edge*");
+            System.out.println("Competition edges: " + Arrays.toString(EDGES));
+        }
+
+        boolean SHOW_BEST = true;
+        int[] edges = new int[args.length-1];
+        for (int i = 1 ; i < args.length ; i++) {
+            edges[i-1] = Integer.parseInt(args[i]);
+        }
+
+        int STALE_MS = Integer.parseInt(args[0])*1000;
+
+        testMultipleEdges(edges, SHOW_BEST, STALE_MS);
+    }
+
+    public static void adHoc() {
        // testMarking();
         //if (1==1) return;
 
@@ -67,19 +89,16 @@ public class APMap {
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
 
-        //new APMap().goQuadratic(50, 30_000, true);
-        System.out.println(new APMap().goQuadratic(3, 10_000, true, 2_000));
-
-        if (1==1) return;
+        //new APMap().goQuadratic(81, 10_000, true); if (1==1) return;
+        //System.out.println(new APMap().goQuadratic(65, 10_000, true, 2_000)); if (1==1) return;
         //processRemaining(1_000);
 
+        // 118 + 139 responds well to pre-filled priority, 162 + 187 does not
 
-        long startTime = System.currentTimeMillis();
-        int RUN[] = new int[]{27, 38, 65, 81};
-        //      int RUN[] = TASKS;
+        int RUN[] = new int[]{578};
+        int STALE_MS = 20*1000;
+
         boolean SHOW_BEST = true;
-        int STALE_MS = 120*1000; // 2 min
-
 //        new Mapper(118).dumpDeltaStats();
 //        new APMap().goQuadratic(534, 120_000, true);
         //new APMap().goQuadratic(3, 120_000, true, 10_000);
@@ -96,15 +115,31 @@ public class APMap {
   //      new APMap().go(11);
         //new APMap().go(18);
 
-        List<Mapper> results = Arrays.stream(RUN).parallel().
+        testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
+    }
+
+    private static void testMultipleEdges(int[] edges, boolean showBest, int staleMS) {
+        long startTime = System.currentTimeMillis();
+
+        System.out.printf(Locale.ROOT, "Testing with staleMS=%d: %s", staleMS, Arrays.toString(edges));
+
+        List<Mapper> results = Arrays.stream(edges).parallel().
                 boxed().
-                map(task -> new APMap().goQuadratic(task, STALE_MS, SHOW_BEST)).
+                map(task -> new APMap().goQuadratic(task, staleMS, showBest)).
                 collect(Collectors.toList());
-        System.out.println();
-//        results.forEach(s -> System.out.println(s + "\n\n"));
-        results.forEach(s -> System.out.printf(
-                "edge=%d, marks=%d/%d, walkTime=%ds, completed=%b: %s\n",
-                s.edge, s.getMarkedCount(), s.valids, s.getWalkTimeMS()/1000, s.isCompleted(), s.toJSON()));
+
+        System.out.println("\nAll results:");
+        results.forEach(b -> System.out.println(b.getStatus()));
+
+        System.out.println("\nImprovements:");
+        Map<Integer, Integer> localBest = Arrays.stream(BESTS).
+                map(b -> Arrays.copyOf(b, 2)).
+                collect(Collectors.toMap(b -> b[0], b -> b[1]));
+        results.stream().
+                filter(board -> localBest.containsKey(board.edge)).
+                filter(board -> board.marked > localBest.get(board.edge)).
+                forEach(b -> System.out.println(b.getStatus()));
+
 
         System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
     }
@@ -138,9 +173,7 @@ public class APMap {
         System.out.println();
 //        results.forEach(s -> System.out.println(s + "\n\n"));
         System.out.println("All results:");
-        results.forEach(s -> System.out.printf(
-                "edge=%d, marks=%d/%d, walkTime=%ds, completed=%b: %s\n",
-                s.edge, s.getMarkedCount(), s.valids, s.getWalkTimeMS()/1000, s.isCompleted(), s.toJSON()));
+        results.forEach(b -> System.out.println(b.getStatus()));
 
         System.out.println("Improvements:");
         Map<Integer, Integer> localBest = Arrays.stream(BESTS).
@@ -148,9 +181,7 @@ public class APMap {
                 collect(Collectors.toMap(b -> b[0], b -> b[1]));
         results.stream().
                 filter(board -> board.marked > localBest.get(board.edge)).
-                forEach(s -> System.out.printf(
-                        "edge=%d, marks=%d/%d, walkTime=%ds, completed=%b: %s\n",
-                        s.edge, s.getMarkedCount(), s.valids, s.getWalkTimeMS()/1000, s.isCompleted(), s.toJSON()));
+                forEach(b -> System.out.println(b.getStatus()));
 
         System.out.println("Total time: " + (System.currentTimeMillis()-startTime)/1000 + "s");
     }
@@ -191,7 +222,7 @@ public class APMap {
         long walkTime = -System.currentTimeMillis();
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Comparator.comparing(Mapper.LazyPos::getPriorityChanges).thenComparing(Mapper.LazyPos::getPos),true);
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityChangesComparator(), true);
-        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPositionComparator(), false);
+        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityComparator(), true);
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
@@ -390,6 +421,8 @@ public class APMap {
     Addon: Consider the concrete priorities changed by the potential mark: If some has a poor priority it does not
     matter mich if they are changed.
 
+    Observation 20211118: edge=374 make it to 29 marks in 10 hours. FAR too slow!
+
     -----------------
     Idea #16 20211127:
 
@@ -398,8 +431,29 @@ public class APMap {
     There is rotational symmetry, so when any given position has been fully checked, neither that position, nor any of
     its 5 rotational twins, needs to be tried for any sub-walks.
 
-    Extending addVisitedToCurrent to also set the rotational twins to VISITED seemt to be the way.
+    Extending addVisitedToCurrent to also set the rotational twins to VISITED seems to be the way.
 
+    -----------------
+    Idea #17 20211128:
+
+    Pre-adjust priorities before search so that edge positions are better and center is worst.
+
+    Observation: Seems a markedly improvement for some edges, with the flipside being worse for other edges
+
+    -----------------
+    Idea #18 20211128:
+
+    Keeping track of sorted "to visit" positions at each depth requires a lot (too much) memory.
+    edge=374 requires 5GB+
+    edge=419 has OOM at markers=1874 with 8GB heap
+
+
+    Since tried positions at the current depth in the current subtree are marked as VISITED, recreating the prioritized
+    list of positions can be done directly: The first entry in the recreated list will be the starting point.
+    Limiting the number of prioritized list to the last X created ones instead of all created ones seems like a
+    fix. As backtracking a lot of levels is not that common, the impact of recreation should not be bad.
+
+    Thought: Maybe it would be better overall to fully skip the caching of positions?
 
      */
 

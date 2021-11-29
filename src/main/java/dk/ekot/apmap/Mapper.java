@@ -489,6 +489,71 @@ public class Mapper {
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos;
     }
 
+    /**
+     * Adds the 5 60° rotations of (x, y) to positions, starting at 0.
+     * @param x in quadratic coordinates.
+     * @param y in quadratic coordinates.
+     * @param positions offsets in {@link #quadratic}.
+     */
+    public void fillRotated(int x, int y, int[] positions) {
+        fillRotated(x, y, positions, 0);
+    }
+    /**
+     * Adds the 5 60° rotations of (x, y) to positions, starting at start.
+     * @param x in quadratic coordinates.
+     * @param y in quadratic coordinates.
+     * @param positions offsets in {@link #quadratic}.
+     * @param start where to begin storing the 5 rotations of (x, y).
+     */
+    // TODO: Introduce visitRotated instead
+    public void fillRotated(int x, int y, int[] positions, int start) {
+        // Translate quadratical coordinates so that they are relative to center
+        int centerX = width/2;
+        int centerY = height/2;
+
+        int relX = x-centerX;
+        int relY = y-centerY;
+
+        // Adjust horizontal coordinates to be without gaps
+        relX = relX>>1; // TODO: Should probably do some trickery every other line here
+
+//        System.out.printf("relX=%d, relY=%d\n", relX, relY);
+
+        // Translate to hex coordinates
+        int xx = relX - (relY - (relY&1)) / 2;
+        int zz = relY;
+        int yy = -xx - zz;
+//        System.out.printf("xx=%d, yy=%d, zz=%d\n", xx, yy, zz);
+
+        for (int i = 0 ; i < 5 ; i++) {
+            // Rotate 60°
+
+            int xxO = xx;
+            int yyO = yy;
+            int zzO = zz;
+
+            xx = -zzO;
+            yy = -xxO;
+            zz = -yyO;
+
+            // Translate back to center-relative quadratic coordinates
+            relX = xx + (zz - (zz&1)) / 2;
+            relY = zz;
+
+            // Expand horizontal coordinates to the space oriented format
+            relX = (relX<<1) + (relY&1); // relY&1 to compensate for eneven offset
+
+            // Translate center-relative to plain rectangular coordinates.
+            x = relX+centerX;
+            y = relY+centerY;
+
+            //System.out.printf("x=%d, y=%d\n", x, y);
+
+            positions[start+i] = y*width+height;
+        }
+    }
+
+    // TODO: Reduce this to call fillRotated
     public void addVisitedRotated(int x, int y) {
         // https://gamedev.stackexchange.com/questions/15237/how-do-i-rotate-a-structure-of-hexagonal-tiles-on-a-hexagonal-grid
         // https://www.redblobgames.com/grids/hexagons/#rotation
@@ -600,6 +665,20 @@ public class Mapper {
         //---- marked(2, 1)
 
         //System.out.printf("\n%s\n---- marked(%d, %d)\n", this, x, y);
+    }
+
+    /**
+     * Adjust all priorities so that the center position is worst and the edges are best.
+     */
+    public void adjustPrioritiesCenterBad() {
+        final int centerX = width/2;
+        final int centerY = height/2;
+        visitAllXY((x, y) -> {
+            int distToCenter = (int) Math.sqrt(Math.pow(Math.abs(centerX - x), 2)/2 +
+                                               Math.pow(Math.abs(centerY-y), 2));
+            //System.out.printf("pos(%d, %d), center(%d, %d), dist=%d\n", x, y, centerX, centerY, distToCenter);
+            adjustPriority(x, y, (edge-distToCenter)*2);
+        });
     }
 
     /**
@@ -1052,6 +1131,12 @@ public class Mapper {
      */
     public boolean isValid(int x, int y) {
         return x >= 0 && x < width && y >= 0 && y < height && getQuadratic(x, y) != INVALID;
+    }
+
+    public String getStatus() {
+        return String.format(Locale.ROOT,
+                             "edge=%d, marks=%d/%d, walkTime=%ds, completed=%b: %s",
+                             edge, getMarkedCount(), valids, getWalkTimeMS()/1000, isCompleted(), toJSON());
     }
 
     public String toJSON() {
