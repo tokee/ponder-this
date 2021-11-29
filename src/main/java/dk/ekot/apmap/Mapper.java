@@ -512,6 +512,7 @@ public class Mapper {
      */
     public void addVisited(final int pos) {
         quadratic[pos] = VISITED;
+        --neutrals;
         boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos;
     }
 

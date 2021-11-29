@@ -68,9 +68,12 @@ public class MapWalker {
         // Invariants: (xs[depth], ys[depth]) are always neutral for current level
 
         while (depth < board.valids) {
-//            System.out.println("--------------------------------------------------");
-//            System.out.println(board);
-//            System.out.println("depth=" + depth + ", xs[depth]==" + xs[depth] + ", xy[depth]==" + ys[depth]);
+            //System.out.println("--------------------------------------------------");
+            //System.out.println(board);
+            //System.out.println("depth=" + depth + ", neutrals="+ board.getNeutralCount() + "/" + board.valids);
+            //if (board.getNeutralCount() != board.deepCountNeutrals()) {
+            //    throw new IllegalStateException("Too many neutrals!");
+            //}
 
             if (System.currentTimeMillis() > nextShow) {
                 System.out.println(board + " time triggered show, depth=" + depth);
@@ -131,12 +134,12 @@ public class MapWalker {
                 }
                 // There was another position, mark the previous position as visited and start over with the new position
                 board.addVisited(previousPos);
-/*                board.fillRotated(previousPos%board.width, previousPos/board.width, rotateBuffer);// TODO: Far too expensive with the mod and divide!
+              /*  board.fillRotated(previousPos%board.width, previousPos/board.width, rotateBuffer);// TODO: Far too expensive with the mod and divide!
                 for (int position : rotateBuffer) {
                     board.addVisited(position);
-                    positions.get(depth).remove(position);
+                    pool.get(depth).remove(position);
                 }
-                if (positions.isEmpty()) { // TODO: Avoid code duplication
+                if (pool.get(depth).isEmpty()) { // TODO: Avoid code duplication
                     // No more on this level, move up
                     --depth;
                     if (depth < 0) {
@@ -145,7 +148,8 @@ public class MapWalker {
                         return; // All tapped out
                     }
                     continue;
-                }*/
+                } */
+
                 //board.addVisitedRotated(previousPos%board.width, previousPos/board.width);
 
 //                System.out.printf("b: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
