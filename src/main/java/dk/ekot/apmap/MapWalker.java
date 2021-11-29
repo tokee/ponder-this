@@ -41,8 +41,7 @@ public class MapWalker {
         return bestBoard;
     }
 
-    public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS,
-                             Comparator<Mapper.LazyPos> walkPrioritizer, boolean updatePriorities) {
+    public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS, boolean updatePriorities) {
         final long startTime = System.currentTimeMillis();
 
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;

@@ -222,7 +222,7 @@ public class APMap {
         long walkTime = -System.currentTimeMillis();
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Comparator.comparing(Mapper.LazyPos::getPriorityChanges).thenComparing(Mapper.LazyPos::getPos),true);
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityChangesComparator(), true);
-        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityComparator(), true);
+        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, true);
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
