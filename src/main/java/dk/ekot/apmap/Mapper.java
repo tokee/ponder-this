@@ -54,8 +54,11 @@ public class Mapper {
     static final int INVALID = -1; // Outside of the board
     static final int NEUTRAL = 0;  // Valid but unset
     static final int MARKER = 1;   // Marked
-    static final int ILLEGAL = 2;  // Cannot be set (will result in AP)
     static final int VISITED = 3;  // Previously visited in this descend tree (do not mark again)
+
+    // ILLEGAL is special: First ILLEGAL for an element is just the value.
+    //                     Secondary ILLEGALS stacks by adding the ILLEGAL constant (5) each time.
+    static final int ILLEGAL = 5;  // Cannot be set (will result in AP)
 
     final int edge; // Hexagonal edge
     final int width;
@@ -637,6 +640,7 @@ public class Mapper {
     public void markAndDeltaExpand(final int pos, boolean updatePriorities) {
         markAndDeltaExpand(pos%width, pos/width, updatePriorities); // TODO: Avoid this as it is very slow
     }
+
     /**
      * Marks the given quadratic (x, y) and adds the coordinated to changed at changedIndex.
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
@@ -667,14 +671,18 @@ public class Mapper {
             final int pos1Element = quadratic[pos1];
             final int pos2Element = quadratic[pos2];
 
-            if (pos1Element == MARKER && pos2Element == NEUTRAL) {
-                quadratic[pos2] = ILLEGAL;
+            if (pos1Element == MARKER) { // pos2element is either NEUTRAL (0) or ILLEGAL (5+) // && pos2Element == NEUTRAL) {
+                quadratic[pos2] += ILLEGAL;
                 boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos2;
-                --neutrals;
-            } else if (pos2Element == MARKER && pos1Element == NEUTRAL) {
-                quadratic[pos1] = ILLEGAL;
+                if (pos2Element == NEUTRAL) {
+                    --neutrals;
+                }
+            } else if (pos2Element == MARKER) { // && pos1Element == NEUTRAL) {
+                quadratic[pos1] += ILLEGAL;
                 boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos1;
-                --neutrals;
+                if (pos1Element == NEUTRAL) {
+                    --neutrals;
+                }
             }
         });
         // TODO: Make this part of the visitTriples above
@@ -727,7 +735,6 @@ public class Mapper {
      * Mark all quadratic coordinate pairs in {@code changed[from..to]} (to is exclusive) as {@link #NEUTRAL}.
      * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
      */
-
     public void rollback(boolean updatePriorities) {
         //System.out.println(this);
         int start = boardChangeIndexes[changeIndexPosition - 1];
@@ -739,14 +746,92 @@ public class Mapper {
             adjustPriorities(x, y, -1); // Must be before the clearing of the marker below
         }
         setQuadratic(x, y, NEUTRAL);
+        --marked;
+        ++neutrals;
 
         for (int i = start; i < boardChangeIndexes[changeIndexPosition] ; i++) {
-            quadratic[boardChanges[i]] = NEUTRAL;
+            if (quadratic[boardChanges[i]] == MARKER) {
+                quadratic[boardChanges[i]] = NEUTRAL;
+                ++neutrals;
+            } else { // Must be illegal
+                quadratic[boardChanges[i]] -= ILLEGAL;
+            }
         }
-        --marked;
-        neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1])-1;
+        //neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1])-1;
         --changeIndexPosition;
         //System.out.printf("\n%s\n---- rollbacked(%d, %d)\n", this, x, y);
+    }
+
+    /**
+     * Marks the given quadratic (x, y).
+     * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
+     * a triple (arithmetic progression). The fields are updated with {}@link #ILLEGAL}.
+     * This updates {@link #marked} and {@link #neutrals}.
+     * @param x quadratic coordinate X.
+     * @param y quadratic coordinate Y.
+     * @param updatePriorities
+     */
+    public void setMarker(final int x, final int y, boolean updatePriorities) {
+        final int origoPos = y*width+x;
+        if (quadratic[origoPos] != NEUTRAL) {
+            throw new IllegalStateException(
+                    "Attempted to mark (" + x + ", " + y + ") bit but it already had state " + quadratic[origoPos]);
+        }
+
+        quadratic[origoPos] = MARKER;
+        ++marked;
+        --neutrals;
+
+        visitTriples(x, y, (pos1, pos2) -> {
+            final int pos1Element = quadratic[pos1];
+            final int pos2Element = quadratic[pos2];
+
+            if (pos1Element == MARKER) { // pos2element is either NEUTRAL (0) or ILLEGAL (5+) // && pos2Element == NEUTRAL) {
+                quadratic[pos2] += ILLEGAL;
+                if (pos2Element == NEUTRAL) {
+                    --neutrals;
+                }
+            } else if (pos2Element == MARKER) { // && pos1Element == NEUTRAL) {
+                quadratic[pos1] += ILLEGAL;
+                if (pos1Element == NEUTRAL) {
+                    --neutrals;
+                }
+            }
+        });
+        // TODO: Make this part of the visitTriples above
+        if (updatePriorities) {
+            adjustPriorities(x, y, 1);
+        }
+    }
+
+    /**
+     * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
+     * @param x quadratic X.
+     * @param y quadratic Y.
+     * @param updatePriorities if true, priorities are also adjusted.
+     */
+    public void removeMarker(int x, int y, boolean updatePriorities) {
+        if (updatePriorities) {
+            adjustPriorities(x, y, -1); // Must be before the clearing of the marker below
+        }
+        setQuadratic(x, y, NEUTRAL);
+        --marked;
+        ++neutrals;
+
+        visitTriples(x, y, (pos1, pos2) -> {
+            if (quadratic[pos1] >= ILLEGAL) {
+                quadratic[pos1] -= ILLEGAL;
+                if (quadratic[pos1] == NEUTRAL) {
+                    ++neutrals;
+                }
+            }
+            if (quadratic[pos2] >= ILLEGAL) {
+                quadratic[pos2] -= ILLEGAL;
+                if (quadratic[pos2] == NEUTRAL) {
+                    ++neutrals;
+                }
+            }
+        });
     }
 
 
@@ -1214,7 +1299,8 @@ public class Mapper {
         for (int y = 0 ; y < height ; y++) {
             sb.append((String.format("%3d: ", y)));
             for (int x = 0; x < width; x++) {
-                switch (getQuadratic(x, y)) {
+                int element = getQuadratic(x, y);
+                switch (element) {
                     case NEUTRAL:
 
 //                        sb.append("O");
@@ -1223,9 +1309,6 @@ public class Mapper {
                     case MARKER:
                         sb.append("X");
                         break;
-                    case ILLEGAL:
-                        sb.append(".");
-                        break;
                     case INVALID:
                         sb.append(" ");
                         break;
@@ -1233,7 +1316,12 @@ public class Mapper {
                         sb.append(",");
                         break;
                     default:
-                        throw new UnsupportedOperationException("Unknown element: " + getQuadratic(x, y));
+                        if (element < ILLEGAL) {
+                            throw new UnsupportedOperationException("Unknown element: " + getQuadratic(x, y));
+                        }
+                        int illegalValue = element/ILLEGAL;
+                        sb.append(illegalValue > 20 ? "I" : (char) ('a' -1 + illegalValue));
+                        break;
                 }
                 sb.append(x < width-1 ? " " : "");
             }

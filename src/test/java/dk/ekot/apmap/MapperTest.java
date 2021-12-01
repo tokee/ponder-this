@@ -293,4 +293,13 @@ public class MapperTest extends TestCase {
         board.adjustPrioritiesByTripleCount();
         System.out.println(board);
     }
+
+    public void testSetMarker() {
+        Mapper board = new Mapper(3);
+        board.setMarker(2, 0, true); System.out.println(board); System.out.println("----");
+        board.setMarker(4, 0, true); System.out.println(board); System.out.println("----");
+        board.setMarker(5, 1, true); System.out.println(board); System.out.println("----");
+        board.setMarker(4, 2, true); System.out.println(board); System.out.println("----");
+        board.removeMarker(4, 0, true); System.out.println(board); System.out.println("----");
+    }
 }
