@@ -41,7 +41,8 @@ public class MapWalker {
         return bestBoard;
     }
 
-    public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS, boolean updatePriorities) {
+    public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS, boolean updatePriorities,
+                             boolean returnOnFirstBottom) {
         final long startTime = System.currentTimeMillis();
 
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
@@ -111,6 +112,11 @@ public class MapWalker {
                 ++depth;
 //                System.out.printf("s: posIndex[depth=%d]==%d, positions.get(depth=%d).size()==%d\n", depth, posIndex[depth], depth, positions.get(depth).size());
                 continue;
+            }
+
+            if (returnOnFirstBottom) {
+                bestBoard.setWalkTimeMS(System.currentTimeMillis()-startTime);
+                return;
             }
 
             // Cannot descend, rollback and either go to next position or move up

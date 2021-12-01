@@ -152,6 +152,54 @@ public class Mapper {
     }
 
     /**
+     * Checks if the markers on the board are legally places (no complete triples).
+     * This is a slow process.
+     */
+    public void validate() {
+        visitAllXY((x, y) -> {
+            if (getQuadratic(x, y) >= ILLEGAL) {
+                int illegals = getQuadratic(x, y)/ILLEGAL;
+                AtomicInteger count = new AtomicInteger(0);
+                StringBuilder sb = new StringBuilder();
+                visitTriples(x, y, (pos1, pos2) -> {
+                    if (quadratic[pos1] == MARKER && quadratic[pos2] == MARKER) {
+                        count.incrementAndGet();
+                        sb.append(String.format(Locale.ROOT, "\n(%d, %d) (%d, %d)",
+                                                pos1%width, pos1/width, pos2%width, pos2/width));
+                    }
+                });
+                if (count.getAndIncrement() != illegals) {
+                    throw new IllegalStateException(String.format(
+                            Locale.ROOT, "Board illegals for (%d, %d) was %d, but should be %d. Relevant triples are%s",
+                            x, y, illegals, count.get(), sb));
+                }
+            } else if (getQuadratic(x, y) == MARKER) {
+                visitTriples(x, y, (pos1, pos2) -> {
+                    if (quadratic[pos1] == MARKER && quadratic[pos2] == MARKER) {
+                        throw new IllegalStateException(String.format(
+                                Locale.ROOT, "Triple detected at (%d, %d), (%d, %d), (%d, %d)",
+                                x, y, pos1%width, pos1/width, pos2%width, pos2/width));
+                    };
+                    if (quadratic[pos1] == MARKER) {
+                        if (quadratic[pos2] < ILLEGAL) {
+                            throw new IllegalStateException(String.format(
+                                    Locale.ROOT, "Triple detected with two markers (%d, %d), (%d, %d) but (%d, %d) was %d where it should be ILLEGAL",
+                                    x, y, pos1%width, pos1/width, pos2%width, pos2/width, quadratic[pos2]));
+                        }
+                    }
+                    if (quadratic[pos2] == MARKER) {
+                        if (quadratic[pos1] < ILLEGAL) {
+                            throw new IllegalStateException(String.format(
+                                    Locale.ROOT, "Triple detected with two markers (%d, %d), (%d, %d) but (%d, %d) was %d where it should be ILLEGAL",
+                                    x, y, pos2%width, pos2/width, pos1%width, pos1/width, quadratic[pos1]));
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
      * Find the next neutral entry, starting at the quadratic position and looking forward on the board.
      * The coordinates can be outside of the board, and will be moved left->right, top->down until hitting the
      * board of falling out of the bottom.
@@ -819,13 +867,13 @@ public class Mapper {
         ++neutrals;
 
         visitTriples(x, y, (pos1, pos2) -> {
-            if (quadratic[pos1] >= ILLEGAL) {
+            if (quadratic[pos1] >= ILLEGAL && quadratic[pos2] == MARKER) {
                 quadratic[pos1] -= ILLEGAL;
                 if (quadratic[pos1] == NEUTRAL) {
                     ++neutrals;
                 }
             }
-            if (quadratic[pos2] >= ILLEGAL) {
+            if (quadratic[pos2] >= ILLEGAL && quadratic[pos1] == MARKER) {
                 quadratic[pos2] -= ILLEGAL;
                 if (quadratic[pos2] == NEUTRAL) {
                     ++neutrals;

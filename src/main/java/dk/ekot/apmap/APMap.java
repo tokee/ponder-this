@@ -93,8 +93,7 @@ public class APMap {
         // edge=120, valids=42841, uniqueDeltas=85860, sumDeltas=688208400, minDeltas=10624, averageDeltas=16064, maxDeltas=32040, time=14s
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
-
-        //new APMap().goQuadratic(81, 10_000, true); if (1==1) return;
+        testReorder(); if (1 == 1) return;
         //System.out.println(new APMap().goQuadratic(65, 10_000, true, 2_000)); if (1==1) return;
         //processRemaining(1_000);
 
@@ -121,6 +120,21 @@ public class APMap {
         testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
     }
 
+    private static void testReorder() {
+        Mapper board = new APMap().goQuadratic(6, 10_000, false,  true);
+        System.out.println(board); System.out.println("---A " +  + board.marked);
+        board.validate();
+
+        board.removeMarker(5, 0, true);
+//        board.removeMarker(13, 0, true);
+        System.out.println(board); System.out.println("---B " + board.marked);
+        board.validate();
+
+        board.setMarker(9, 0, true);
+        System.out.println(board); System.out.println("---C " + board.marked);
+        board.validate();
+    }
+
     private static void testMultipleEdges(int[] edges, boolean showBest, int staleMS) {
         long startTime = System.currentTimeMillis();
 
@@ -128,7 +142,7 @@ public class APMap {
 
         List<Mapper> results = Arrays.stream(edges).parallel().
                 boxed().
-                map(task -> new APMap().goQuadratic(task, staleMS, showBest)).
+                map(task -> new APMap().goQuadratic(task, staleMS, showBest, false)).
                 collect(Collectors.toList());
 
         System.out.println("\nAll results:");
@@ -169,7 +183,7 @@ public class APMap {
         ForkJoinPool customThreadPool = new ForkJoinPool(3); // Seems to fit in default JVM heap allocation
         customThreadPool.submit(() -> {
             results.addAll(tests.parallelStream().
-                                   map(task -> new APMap().goQuadratic(task, maxStaleMS, true)).
+                                   map(task -> new APMap().goQuadratic(task, maxStaleMS, true, false)).
                                    collect(Collectors.toList()));
         }).join();
         
@@ -205,15 +219,15 @@ public class APMap {
     }
 
     private Mapper goQuadratic(int edge) {
-        return goQuadratic(edge, Integer.MAX_VALUE, true, Integer.MAX_VALUE);
+        return goQuadratic(edge, Integer.MAX_VALUE, true, Integer.MAX_VALUE, false);
     }
-    private Mapper goQuadratic(int edge, boolean showBest) {
-        return goQuadratic(edge, Integer.MAX_VALUE, showBest, Integer.MAX_VALUE);
+    private Mapper goQuadratic(int edge, boolean showBest, boolean returnOnFirstBottom) {
+        return goQuadratic(edge, Integer.MAX_VALUE, showBest, Integer.MAX_VALUE, returnOnFirstBottom);
     }
-    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest) {
-        return goQuadratic(edge, maxStaleMS, showBest, Integer.MAX_VALUE);
+    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, boolean returnOnFirstBottom) {
+        return goQuadratic(edge, maxStaleMS, showBest, Integer.MAX_VALUE, returnOnFirstBottom);
     }
-    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, int showBoardIntervalMS) {
+    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, int showBoardIntervalMS, boolean returnOnFirstBottom) {
         log.info("Initializing for edge " + edge + "...");
         long initTime = -System.currentTimeMillis();
         Mapper board = new Mapper(edge);
@@ -225,7 +239,7 @@ public class APMap {
         long walkTime = -System.currentTimeMillis();
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Comparator.comparing(Mapper.LazyPos::getPriorityChanges).thenComparing(Mapper.LazyPos::getPos),true);
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityChangesComparator(), true);
-        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, true);
+        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, true, returnOnFirstBottom);
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
@@ -479,6 +493,13 @@ public class APMap {
 
     Instead of rollbacking just 1 level at a time, rollback x% of the total depth at a time, to cause more diverse
     paths to be explored.
+
+    -----------------
+    Idea #21 20211201:
+
+    Building on idea #19
+
+    Instead of
 
      */
 
