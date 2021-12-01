@@ -290,7 +290,7 @@ public class MapperTest extends TestCase {
     public void testAdjustPriorities(int edge) {
         System.out.println("----");
         Mapper board = new Mapper(edge);
-        board.adjustPrioritiesCenterBad();
+        board.adjustPrioritiesByTripleCount();
         System.out.println(board);
     }
 }

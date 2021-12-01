@@ -709,6 +709,21 @@ public class Mapper {
     }
 
     /**
+     * Adjust all priorities so that the priority of any cell is the number of its triples.
+     */
+    public void adjustPrioritiesByTripleCount() {
+        log.debug("Adjusting priorities by triple count" + (edge < 100 ? "" : ". This might take some seconds"));
+        visitAllXY((x, y) -> {
+            AtomicInteger counter = new AtomicInteger(0);
+            visitTriples(x, y, (pos, pos2) -> {
+                counter.addAndGet(2);
+            });
+            //System.out.printf("pos(%d, %d), center(%d, %d), dist=%d\n", x, y, centerX, centerY, distToCenter);
+            adjustPriority(x, y, counter.get());
+        });
+    }
+
+    /**
      * Mark all quadratic coordinate pairs in {@code changed[from..to]} (to is exclusive) as {@link #NEUTRAL}.
      * This performs {@code --marked} and {@code neutrals += (to-from)/2}.
      */

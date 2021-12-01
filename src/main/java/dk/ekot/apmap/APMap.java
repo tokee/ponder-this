@@ -38,13 +38,13 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 72, 80}, {18, 130, 153}, {27, 218, 266}, {38, 374, 420},
+            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 130, 153}, {27, 218, 266}, {38, 374, 420},
             {50, 478, 621}, {65, 768, 884}, {81, 846, 1193}, {98, 1117, 1512},
             {118, 1457, 1973}, {139, 1696, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
             {214, 3072, 4208}, {242, 3124, 4964}, {273, 3693, 5736},
             {305, 4321, 6648}, {338, 4830, 7691}, {374, 5179, 8962},
-            {411, 5624, 10060}, {450, 7077, 11123}, {491, 6632, 12534},
-            {534, 7239, 14046}, {578, 12288, 15457}};
+            {411, 5624, 10060}, {450, 7077, 11123}, {491, 6744, 12534},
+            {534, 7358, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
@@ -72,6 +72,11 @@ public class APMap {
     }
 
     public static void adHoc() {
+
+        int RUN[] = new int[]{162};
+        int STALE_MS = 30*1000;
+
+
        // testMarking();
         //if (1==1) return;
 
@@ -95,8 +100,6 @@ public class APMap {
 
         // 118 + 139 responds well to pre-filled priority, 162 + 187 does not
 
-        int RUN[] = new int[]{6};
-        int STALE_MS = 30*1000;
 
         boolean SHOW_BEST = true;
 //        new Mapper(118).dumpDeltaStats();
@@ -454,6 +457,28 @@ public class APMap {
     fix. As backtracking a lot of levels is not that common, the impact of recreation should not be bad.
 
     Thought: Maybe it would be better overall to fully skip the caching of positions?
+
+    -----------------
+    Idea #19 20211201:
+
+    (after discussion with Thomas Egense)
+
+    When the first bottom has been reached, remove the marker which leaves the most elements as neutral, then try and
+    fill from there. Repeat until removal of a single marker does not free more new elements. Then shift to removing
+    2 markers at a time, etcetera.
+
+    Tricksies: How to avoid endless loops where the new marker(s) are positioned at the old position?
+
+    Performance: Expand the INVALID to include the count of triples that causes the field to be invalid.
+    This makes it simple to check how many elements the removal of a marker will cause to return to NEUTRAL.
+
+    Note: This invalidates the mark/rollback stack.
+
+    -----------------
+    Idea #20 20211201:
+
+    Instead of rollbacking just 1 level at a time, rollback x% of the total depth at a time, to cause more diverse
+    paths to be explored.
 
      */
 

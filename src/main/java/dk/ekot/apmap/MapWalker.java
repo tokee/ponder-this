@@ -50,7 +50,8 @@ public class MapWalker {
         if (startingPos == null) {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
-        board.adjustPrioritiesCenterBad();
+        //board.adjustPrioritiesCenterBad();
+        board.adjustPrioritiesByTripleCount();
         int depth = 0;
         PositionsPool pool = new PositionsPool(100, board.valids, (pDepth, positions) -> {
             if (pDepth == 0) {
@@ -134,10 +135,12 @@ public class MapWalker {
                 }
                 // There was another position, mark the previous position as visited and start over with the new position
                 board.addVisited(previousPos);
-              /*  board.fillRotated(previousPos%board.width, previousPos/board.width, rotateBuffer);// TODO: Far too expensive with the mod and divide!
+/*                board.fillRotated(previousPos%board.width, previousPos/board.width, rotateBuffer);// TODO: Far too expensive with the mod and divide!
                 for (int position : rotateBuffer) {
-                    board.addVisited(position);
-                    pool.get(depth).remove(position);
+                    if (board.quadratic[position] == Mapper.NEUTRAL) {
+                        board.addVisited(position);
+                        pool.get(depth).remove(position);
+                    }
                 }
                 if (pool.get(depth).isEmpty()) { // TODO: Avoid code duplication
                     // No more on this level, move up
@@ -148,7 +151,7 @@ public class MapWalker {
                         return; // All tapped out
                     }
                     continue;
-                } */
+                }*/
 
                 //board.addVisitedRotated(previousPos%board.width, previousPos/board.width);
 
