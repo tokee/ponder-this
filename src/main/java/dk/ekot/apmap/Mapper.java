@@ -882,6 +882,13 @@ public class Mapper {
         });
     }
 
+    public void shuffle() {
+        throw new UnsupportedOperationException("Not implemented yet");
+        // TODO:
+        // 1) Remove markers blocking lowest illegal (how to choose which of the two triple entries?), track them as REMOVED
+        // 2) If there are more NEUTRALS than removed markers, mark them (prioritize those that were previously illegals over the removed markers)
+        // 3) Profit?
+    }
 
     private void adjustPriorities(int x, int y, int priorityDelta) {
         visitTriples(x, y, (pos1, pos2) -> {
