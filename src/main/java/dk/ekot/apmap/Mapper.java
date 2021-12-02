@@ -890,6 +890,10 @@ public class Mapper {
      * @param updatePriorities if true, priorities are also adjusted.
      */
     public void removeMarker(int x, int y, boolean updatePriorities) {
+        if (getQuadratic(x, y) != MARKER) {
+            throw new IllegalStateException("Tried removing MARKER from (" + x + ", " + y + ") but it was " +
+                                            getQuadratic(x, y) + " instead of the expected " + MARKER);
+        }
         if (updatePriorities) {
             adjustPriorities(x, y, -1); // Must be before the clearing of the marker below
         }
@@ -968,8 +972,12 @@ public class Mapper {
         lightestLocked.forEach(locked -> {
             freedSpots.add(locked);
             List<XYPos> lockers = findLockingMarks(locked);
-            previouslyMarked.addAll(lockers);
-            lockers.forEach(locker -> removeMarker(locker.x, locker.y, true));
+            lockers.forEach(locker -> {
+                if (getQuadratic(locker.x, locker.y) == MARKER) { // Might have been removed before
+                    previouslyMarked.add(locker);
+                    removeMarker(locker.x, locker.y, true);
+                }
+            });
         });
 
         return "";//String.format(Locale.ROOT, "lightest=%s\nfreed=%s\nremoved=%s\n" +

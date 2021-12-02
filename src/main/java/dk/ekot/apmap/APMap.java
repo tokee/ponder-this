@@ -121,9 +121,12 @@ public class APMap {
     }
 
     private static void testReorder() {
-        int RUNS = 100000;
+        int RUNS = 10000;
 
-        Mapper board = new APMap().goQuadratic(5, 10_000, false,  true);
+        // TODO: Fails with edge==50!?
+        // TODO: 18 seems to work well (134), 27 (221), 38 (fail),
+        Mapper board = new APMap().goQuadratic(98, 10_000, false,  true);
+        final int initial = board.marked;
         System.out.println(board); System.out.println("---A " +  + board.marked);
 /*        board.validate();
 
@@ -136,16 +139,21 @@ public class APMap {
         System.out.println(board); System.out.println("---C " + board.marked);
         board.validate();
   */
+        int best = board.marked;
+        int worst = board.marked;
         for (int i = 0 ; i < RUNS ; i++) {
             int gained = board.shuffle();
             if (gained != 0) {
                 System.out.println("Run=" + i + " gained " + gained + " with total " + board.marked);
                 System.out.println(board);
+                best = Math.max(best, board.marked);
+                worst = Math.min(worst, board.marked);
             }
         }
         System.out.println("=======================================");
         System.out.println(board); System.out.println("---E " + board.marked);
-
+        System.out.println(board.toJSON());
+        System.out.printf(Locale.ROOT, "worst=%d, initial=%d, best=%d", initial, worst, best);
     }
 
     private static void testMultipleEdges(int[] edges, boolean showBest, int staleMS) {
