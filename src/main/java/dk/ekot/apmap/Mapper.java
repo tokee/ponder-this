@@ -384,6 +384,11 @@ public class Mapper {
             this.y = y;
         }
 
+        public XYPos(int pos) {
+            this.x = pos%width;
+            this.y = pos/width;
+        }
+
         /**
          * @return the position as index instead of {@code (x, y)}.
          */
@@ -908,27 +913,57 @@ public class Mapper {
         });
     }
 
-    public void shuffle() {
+    /**
+     * Shuffling by finding the ILLEGALs with the lowest count, removing the MARKERs locking the ILLEGALs and filling
+     * up again, starting with the freed ILLEGALs.
+     * @return number of marks gained (can be negative).
+     */
+    public int shuffle() {
         final int initialMarks = getMarkedCount();
         // Free some elements
-        List<XYPos> freedSpots = new ArrayList<>();
+        List<XYPos> explicitFreed = new ArrayList<>();
         List<XYPos> previouslyMarked = new ArrayList<>();
-        freeSpots(freedSpots, previouslyMarked);
+        String freeDebug = freeSpots(explicitFreed, previouslyMarked);
+        List<XYPos> indirectFreed = new ArrayList<>();
+        visitAll(pos -> {
+            if (quadratic[pos] == NEUTRAL) {
+                boolean add = true;
+                for (XYPos explicit: explicitFreed) {
+                    if (pos == explicit.getPos()) {
+                        add = false;
+                        break;
+                    }
+                }
+                for (XYPos previous: previouslyMarked) {
+                    if (pos == previous.getPos()) {
+                        add = false;
+                        break;
+                    }
+                }
+                if (add) {
+                    indirectFreed.add(new XYPos(pos));
+                }
+            }
+        });
 
         // Set markers on previously invalid positions , if possible
         AtomicInteger reMarked = new AtomicInteger(0);
-        Stream.concat(freedSpots.stream(), previouslyMarked.stream()).forEach(xyPos -> {
-            final int pos = xyPos.getPos();
-            if (quadratic[pos] == NEUTRAL) {
-                setMarker(xyPos.x, xyPos.y, true);
-                reMarked.incrementAndGet();
-            }
-        });
-        System.out.printf(Locale.ROOT, "Remarking with %d+%d candidates marked %d elements\n",
-                          freedSpots.size(), previouslyMarked.size(), reMarked.get());
+        Stream.concat(indirectFreed.stream(), Stream.concat(explicitFreed.stream(), previouslyMarked.stream())).
+                forEach(xyPos -> {
+                    final int pos = xyPos.getPos();
+                    if (quadratic[pos] == NEUTRAL) {
+                        setMarker(xyPos.x, xyPos.y, true);
+                        reMarked.incrementAndGet();
+                    }
+                });
+        if (getMarkedCount() != initialMarks) {
+            System.out.printf(Locale.ROOT, "Remarking with explicit=%d, previouslyMarked=%d, indirect=%d candidates marked %d elements\n%s\n",
+                              explicitFreed.size(), previouslyMarked.size(), indirectFreed.size(), reMarked.get(), freeDebug);
+        }
+        return getMarkedCount()-initialMarks;
     }
 
-    private void freeSpots(List<XYPos> freedSpots, List<XYPos> previouslyMarked) {
+    private String freeSpots(List<XYPos> freedSpots, List<XYPos> previouslyMarked) {
         List<XYPos> lightestLocked = findLightestLocked();
         lightestLocked.forEach(locked -> {
             freedSpots.add(locked);
@@ -936,9 +971,9 @@ public class Mapper {
             previouslyMarked.addAll(lockers);
             lockers.forEach(locker -> removeMarker(locker.x, locker.y, true));
         });
-        System.out.println("Lightest: " + lightestLocked);
-        System.out.println("Freed:    " + freedSpots);
-        System.out.println("Removed:  " + previouslyMarked);
+
+        return "";//String.format(Locale.ROOT, "lightest=%s\nfreed=%s\nremoved=%s\n" +
+                    //                      lightestLocked, freedSpots.toString(), previouslyMarked.toString());
     }
 
     private List<XYPos> findLockingMarks(XYPos xyPos) {
