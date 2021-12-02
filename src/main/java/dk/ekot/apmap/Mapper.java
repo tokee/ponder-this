@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Transforms from and to flat and quadratic representations of a hexagonal board. Supports visualization.
@@ -350,6 +351,7 @@ public class Mapper {
             return posPriority;
         }
 
+
         /**
          * @return the umber of priority changes setting a mark at this position would cause.
          */
@@ -370,6 +372,30 @@ public class Mapper {
 
     }
 
+    /**
+     * Simple x-y-based representation in the quadratic system.
+     */
+    public class XYPos {
+        public final int x;
+        public final int y;
+
+        public XYPos(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        /**
+         * @return the position as index instead of {@code (x, y)}.
+         */
+        public int getPos() {
+            return y*width+x;
+        }
+
+        @Override
+        public String toString() {
+            return "(" + x + ", " + y + ")";
+        }
+    }
     /**
      * Find the next available {@link #NEUTRAL} element after the current. Seeking is done left-right, top-down from
      * {@code (pos.x+1, pos.y)} for {@code priority == pos.priority}. If nothing is found, a seek new left->down,
@@ -883,11 +909,68 @@ public class Mapper {
     }
 
     public void shuffle() {
-        throw new UnsupportedOperationException("Not implemented yet");
-        // TODO:
-        // 1) Remove markers blocking lowest illegal (how to choose which of the two triple entries?), track them as REMOVED
-        // 2) If there are more NEUTRALS than removed markers, mark them (prioritize those that were previously illegals over the removed markers)
-        // 3) Profit?
+        final int initialMarks = getMarkedCount();
+        // Free some elements
+        List<XYPos> freedSpots = new ArrayList<>();
+        List<XYPos> previouslyMarked = new ArrayList<>();
+        freeSpots(freedSpots, previouslyMarked);
+
+        // Set markers on previously invalid positions , if possible
+        AtomicInteger reMarked = new AtomicInteger(0);
+        Stream.concat(freedSpots.stream(), previouslyMarked.stream()).forEach(xyPos -> {
+            final int pos = xyPos.getPos();
+            if (quadratic[pos] == NEUTRAL) {
+                setMarker(xyPos.x, xyPos.y, true);
+                reMarked.incrementAndGet();
+            }
+        });
+        System.out.printf(Locale.ROOT, "Remarking with %d+%d candidates marked %d elements\n",
+                          freedSpots.size(), previouslyMarked.size(), reMarked.get());
+    }
+
+    private void freeSpots(List<XYPos> freedSpots, List<XYPos> previouslyMarked) {
+        List<XYPos> lightestLocked = findLightestLocked();
+        lightestLocked.forEach(locked -> {
+            freedSpots.add(locked);
+            List<XYPos> lockers = findLockingMarks(locked);
+            previouslyMarked.addAll(lockers);
+            lockers.forEach(locker -> removeMarker(locker.x, locker.y, true));
+        });
+        System.out.println("Lightest: " + lightestLocked);
+        System.out.println("Freed:    " + freedSpots);
+        System.out.println("Removed:  " + previouslyMarked);
+    }
+
+    private List<XYPos> findLockingMarks(XYPos xyPos) {
+        List<Integer> locking = new ArrayList<>();
+        visitTriples(xyPos.x, xyPos.y, ((pos1, pos2) -> {
+            if (quadratic[pos1] == MARKER && quadratic[pos2] == MARKER) {
+                // TODO: Maybe randomize here? Or select by how far each of the pos' reaches?
+                locking.add(pos1);
+            }
+        }));
+        return toXY(locking);
+    }
+
+    private List<XYPos> findLightestLocked() {
+        List<Integer> lightest = new ArrayList<>();
+        AtomicInteger bestIllegality = new AtomicInteger(Integer.MAX_VALUE);
+        visitAll(pos -> {
+            if (quadratic[pos] >= ILLEGAL) {
+                if (quadratic[pos] < bestIllegality.get()) {
+                    bestIllegality.set(quadratic[pos]);
+                    lightest.clear();
+                }
+                if (quadratic[pos] == bestIllegality.get()) {
+                    lightest.add(pos);
+                }
+            }
+        });
+        return toXY(lightest);
+    }
+
+    private List<XYPos> toXY(List<Integer> positions) {
+        return positions.stream().map(pos -> new XYPos(pos%width, pos/width)).collect(Collectors.toList());
     }
 
     private void adjustPriorities(int x, int y, int priorityDelta) {

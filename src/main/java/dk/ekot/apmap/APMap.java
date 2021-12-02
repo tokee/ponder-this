@@ -38,7 +38,7 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 130, 153}, {27, 218, 266}, {38, 374, 420},
+            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 131, 153}, {27, 219, 266}, {38, 374, 420},
             {50, 478, 621}, {65, 768, 884}, {81, 846, 1193}, {98, 1117, 1512},
             {118, 1457, 1973}, {139, 1696, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
             {214, 3072, 4208}, {242, 3124, 4964}, {273, 3693, 5736},
@@ -133,6 +133,12 @@ public class APMap {
         board.setMarker(9, 0, true);
         System.out.println(board); System.out.println("---C " + board.marked);
         board.validate();
+
+        for (int i = 0 ; i < 10 ; i++) {
+            board.shuffle();
+            System.out.println(board);
+            System.out.println("---D" + i + ": " + board.marked);
+        }
     }
 
     private static void testMultipleEdges(int[] edges, boolean showBest, int staleMS) {
