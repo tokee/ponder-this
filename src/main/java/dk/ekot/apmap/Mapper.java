@@ -99,7 +99,7 @@ public class Mapper {
         height = edge*2-1;
         quadratic = new int[height*width];
         priority = new int[height*width];
-        boardChanges = new int[height * width * 2]; // Times 2 as they are coordinates
+        boardChanges = new int[height * width * 2 * 10]; // Times 2 as they are coordinates, times 10 for ILLEGALS (hack)
         boardChangeIndexes = new int[height * width];
 
         // Draw the quadratic map
@@ -752,7 +752,18 @@ public class Mapper {
 
             if (pos1Element == MARKER) { // pos2element is either NEUTRAL (0) or ILLEGAL (5+) // && pos2Element == NEUTRAL) {
                 quadratic[pos2] += ILLEGAL;
-                boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos2;
+                try {
+                    boardChanges[boardChangeIndexes[changeIndexPosition]++] = pos2;
+                } catch (IndexOutOfBoundsException e) {
+                    throw new IllegalStateException(String.format(
+                            Locale.ROOT, "IOBException on markAndDeltaExpand(x=%d, y=%d, updatePriorities=%b) while " +
+                                         "logging board changes for position (%d, %d)." +
+                                         "changeIndexPosition=%d, boardChangeIndexes.length=%d, boardChanges.length=%d," +
+                                         " width=%d, height=%d, valids=%d",
+                            x, y, updatePriorities, pos2%width, pos2/width,
+                            changeIndexPosition, boardChangeIndexes.length, boardChanges.length,
+                            width, height, valids), e);
+                }
                 if (pos2Element == NEUTRAL) {
                     --neutrals;
                 }

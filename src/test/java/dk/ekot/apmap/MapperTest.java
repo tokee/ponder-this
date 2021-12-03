@@ -302,4 +302,11 @@ public class MapperTest extends TestCase {
         board.setMarker(4, 2, true); System.out.println(board); System.out.println("----");
         board.removeMarker(4, 0, true); System.out.println(board); System.out.println("----");
     }
+
+    public void testInitialFill() {
+        for (int edge = 2 ; edge < 50 ; edge++) {
+            System.out.println("Creating board with edge " + edge);
+            new Mapper(edge);
+        }
+    }
 }

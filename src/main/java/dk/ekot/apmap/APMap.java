@@ -38,12 +38,12 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 131, 153}, {27, 219, 266}, {38, 374, 420},
-            {50, 478, 621}, {65, 768, 884}, {81, 846, 1193}, {98, 1117, 1512},
-            {118, 1457, 1973}, {139, 1696, 2418}, {162, 1942, 2915}, {187, 3072, 3515},
-            {214, 3072, 4208}, {242, 3124, 4964}, {273, 3693, 5736},
-            {305, 4321, 6648}, {338, 4830, 7691}, {374, 5179, 8962},
-            {411, 5624, 10060}, {450, 7077, 11123}, {491, 6744, 12534},
+            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 135, 153}, {27, 229, 266}, {38, 383, 420},
+            {50, 496, 621}, {65, 768, 884}, {81, 868, 1193}, {98, 1158, 1512},
+            {118, 1542, 1973}, {139, 1758, 2418}, {162, 1942, 2921}, {187, 3072, 3518},
+            {214, 3072, 4284}, {242, 3124, 5057}, {273, 3693, 5831},
+            {305, 4321, 6753}, {338, 5336, 7783}, {374, 5404, 8962},
+            {411, 6093, 10060}, {450, 7077, 11123}, {491, 7181, 12534},
             {534, 7358, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
@@ -72,6 +72,7 @@ public class APMap {
     }
 
     public static void adHoc() {
+        testReorder(305); if (1 == 1) return;
 
         int RUN[] = new int[]{162};
         int STALE_MS = 30*1000;
@@ -93,7 +94,6 @@ public class APMap {
         // edge=120, valids=42841, uniqueDeltas=85860, sumDeltas=688208400, minDeltas=10624, averageDeltas=16064, maxDeltas=32040, time=14s
         // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
 
-        testReorder(); if (1 == 1) return;
         //System.out.println(new APMap().goQuadratic(65, 10_000, true, 2_000)); if (1==1) return;
         //processRemaining(1_000);
 
@@ -120,14 +120,18 @@ public class APMap {
         testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
     }
 
-    private static void testReorder() {
-        int RUNS = 10000;
+    private static void testReorder(int edge) {
+        final long startTime = System.currentTimeMillis();
+        int RUNS = 100;
 
         // TODO: Fails with edge==50!?
         // TODO: 18 seems to work well (134), 27 (221), 38 (fail),
-        Mapper board = new APMap().goQuadratic(98, 10_000, false,  true);
+        Mapper board = new APMap().goQuadratic(edge, 10_000, true,  true);
         final int initial = board.marked;
-        System.out.println(board); System.out.println("---A " +  + board.marked);
+        if (edge <= 50) {
+            System.out.println(board);
+            System.out.println("---A " + +board.marked);
+        }
 /*        board.validate();
 
         board.removeMarker(5, 0, true);
@@ -141,19 +145,39 @@ public class APMap {
   */
         int best = board.marked;
         int worst = board.marked;
+        Mapper bestBoard = board;
+        // TODO: Add termination on cycles by keeping a Set of previous toJSONs
         for (int i = 0 ; i < RUNS ; i++) {
             int gained = board.shuffle();
             if (gained != 0) {
-                System.out.println("Run=" + i + " gained " + gained + " with total " + board.marked);
-                System.out.println(board);
+                System.out.printf("Run=%d gained %d with total %d: %s\n", i, gained, board.marked, board.toJSON());
+                if (edge <= 50) {
+                    System.out.println(board);
+                }
+                if (board.marked > best) {
+                    bestBoard = board.copy(true);
+                }
                 best = Math.max(best, board.marked);
                 worst = Math.min(worst, board.marked);
             }
         }
         System.out.println("=======================================");
-        System.out.println(board); System.out.println("---E " + board.marked);
-        System.out.println(board.toJSON());
-        System.out.printf(Locale.ROOT, "worst=%d, initial=%d, best=%d", initial, worst, best);
+        if (edge <= 50) {
+            System.out.println(board);
+            System.out.println("---E " + board.marked);
+        }
+        System.out.printf(Locale.ROOT, "edge=%d, shuffle1: worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s",
+                          edge, initial, worst, best, getPersonalbest(edge),
+                          (System.currentTimeMillis()-startTime)/1000, bestBoard.toJSON());
+    }
+
+    public static int getPersonalbest(int edge) {
+        for (int[] vals: BESTS) {
+            if (vals[0] == edge) {
+                return vals[1];
+            }
+        }
+        return -1;
     }
 
     private static void testMultipleEdges(int[] edges, boolean showBest, int staleMS) {

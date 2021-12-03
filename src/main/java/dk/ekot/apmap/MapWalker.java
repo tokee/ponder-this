@@ -17,10 +17,8 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 /**
  * Walker based on a quadratic the board using {@link Mapper} directly.
@@ -51,8 +49,8 @@ public class MapWalker {
         if (startingPos == null) {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
-        //board.adjustPrioritiesCenterBad();
-        board.adjustPrioritiesByTripleCount();
+        board.adjustPrioritiesCenterBad();
+        //board.adjustPrioritiesByTripleCount(); // Very heavy!
         int depth = 0;
         PositionsPool pool = new PositionsPool(100, board.valids, (pDepth, positions) -> {
             if (pDepth == 0) {
