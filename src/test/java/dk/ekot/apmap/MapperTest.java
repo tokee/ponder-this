@@ -172,7 +172,7 @@ public class MapperTest extends TestCase {
 
     private void dumpVisitAll(int edge) {
         Mapper board = new Mapper(edge);
-        board.visitAll(pos -> ++board.priority[pos]);
+        board.visitAllValid(pos -> ++board.priority[pos]);
         System.out.println(board);
     }
     public void testVisitAllIntersecting() {

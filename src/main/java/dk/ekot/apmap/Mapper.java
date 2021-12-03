@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -65,6 +66,8 @@ public class Mapper {
     final int width;
     final int height;
     final int valids;
+    final int[] allValidPositions; // As indices into quadratic & priority
+
     final int[] quadratic; // top-down, left-right. (0, 0) is top left
     final int[] priority;  // 0-∞. Lower numbers are better (idea #13)
 
@@ -105,11 +108,16 @@ public class Mapper {
         // Draw the quadratic map
         Arrays.fill(quadratic, INVALID);
         final AtomicInteger v = new AtomicInteger(0);
-        visitAll(pos -> {
+        visitAllSlow(pos -> {
             quadratic[pos] = NEUTRAL;
             v.incrementAndGet();
         });
         valids = v.get();
+        allValidPositions = new int[valids];
+        AtomicInteger i = new AtomicInteger(0);
+        visitAllSlow(pos -> {
+            allValidPositions[i.getAndIncrement()] = pos;
+        });
         neutrals = valids;
         tripleDeltas = getTripleDeltas();
 //        tripleDeltasByColumn = getDeltaColumns();
@@ -139,6 +147,7 @@ public class Mapper {
         this.completed = other.completed;
 
         this.tripleDeltas = Arrays.copyOf(other.tripleDeltas, other.tripleDeltas.length);
+        this.allValidPositions = Arrays.copyOf(other.allValidPositions, other.allValidPositions.length);
 //        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
     }
@@ -271,7 +280,7 @@ public class Mapper {
      */
     public List<LazyPos> getLazyPositions(Comparator<LazyPos> comparator) {
         List<LazyPos> positions = new ArrayList<>(valids);
-        visitAll(pos -> {
+        visitAllValid(pos -> {
             if (quadratic[pos] == NEUTRAL) {
                 positions.add(new LazyPos(pos));
             }
@@ -292,7 +301,7 @@ public class Mapper {
 
         // Collect all neutrals as long by concatenating priority with position.
         AtomicInteger index = new AtomicInteger(0);
-        visitAll(pos -> {
+        visitAllValid(pos -> {
             if (quadratic[pos] == NEUTRAL) {
                 longCache[index.getAndIncrement()] = (long) priority[pos] << 32 | (long) pos;
             }
@@ -399,6 +408,19 @@ public class Mapper {
         @Override
         public String toString() {
             return "(" + x + ", " + y + ")";
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            XYPos xyPos = (XYPos) o;
+            return x == xyPos.x && y == xyPos.y;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(x, y);
         }
     }
     /**
@@ -931,16 +953,76 @@ public class Mapper {
     /**
      * Shuffling by finding the ILLEGALs with the lowest count, removing the MARKERs locking the ILLEGALs and filling
      * up again, starting with the freed ILLEGALs.
+     * Addition: Permutate the MARKERs to move, selecting the best combination.
      * @return number of marks gained (can be negative).
      */
+    // edge 27: 216 -> 229
     public int shuffle() {
+        final int initialMarks = getMarkedCount();
+        // Free some elements
+        List<XYPos> lightestLocked = findLightestLocked();
+        List<XYPair> toFree = getMarkedTriples(lightestLocked);
+
+        // TODO: Permutate here
+        List<XYPos> removedMarkers = toFree.stream()
+                .map(XYPair::getPos1)
+                .peek(pos -> {
+                    if (getQuadratic(pos.x, pos.y) == MARKER) { // Might have been removed before
+                        removeMarker(pos.x, pos.y, true);
+                    }
+                })
+                .collect(Collectors.toList());
+
+        List<XYPos> indirectFreed = streamAllValid()
+                .boxed()
+                .map(XYPos::new)
+                .filter(pos -> !(lightestLocked.contains(pos) || removedMarkers.contains(pos)))
+                .collect(Collectors.toList());
+
+        // Set markers on previously invalid positions , if possible
+        AtomicInteger reMarked = new AtomicInteger(0);
+        Stream.concat(indirectFreed.stream(), Stream.concat(lightestLocked.stream(), removedMarkers.stream())).
+                forEach(xyPos -> {
+                    final int pos = xyPos.getPos();
+                    if (quadratic[pos] == NEUTRAL) {
+                        setMarker(xyPos.x, xyPos.y, true);
+                        reMarked.incrementAndGet();
+                    }
+                });
+        return getMarkedCount()-initialMarks;
+    }
+
+    private List<XYPair> getMarkedTriples(List<XYPos> lightestLocked) {
+        return lightestLocked.stream().
+                map(this::findDoubleMarkedTuples).
+                flatMap(Collection::stream).
+                collect(Collectors.toList());
+    }
+
+    private List<XYPair> findDoubleMarkedTuples(XYPos pos) {
+        List<XYPair> locking = new ArrayList<>();
+        visitTriples(pos.x, pos.y, ((pos1, pos2) -> {
+            if (quadratic[pos1] == MARKER && quadratic[pos2] == MARKER) {
+                locking.add(new XYPair(new XYPos(pos1), new XYPos(pos2)));
+            }
+        }));
+        return locking;
+    }
+
+    /**
+     * Shuffling by finding the ILLEGALs with the lowest count, removing the MARKERs locking the ILLEGALs and filling
+     * up again, starting with the freed ILLEGALs.
+     * @return number of marks gained (can be negative).
+     */
+    // edge 27: 216 -> 229
+    public int shuffle1() {
         final int initialMarks = getMarkedCount();
         // Free some elements
         List<XYPos> explicitFreed = new ArrayList<>();
         List<XYPos> previouslyMarked = new ArrayList<>();
         String freeDebug = freeSpots(explicitFreed, previouslyMarked);
         List<XYPos> indirectFreed = new ArrayList<>();
-        visitAll(pos -> {
+        visitAllValid(pos -> {
             if (quadratic[pos] == NEUTRAL) {
                 boolean add = true;
                 for (XYPos explicit: explicitFreed) {
@@ -1009,7 +1091,7 @@ public class Mapper {
     private List<XYPos> findLightestLocked() {
         List<Integer> lightest = new ArrayList<>();
         AtomicInteger bestIllegality = new AtomicInteger(Integer.MAX_VALUE);
-        visitAll(pos -> {
+        visitAllValid(pos -> {
             if (quadratic[pos] >= ILLEGAL) {
                 if (quadratic[pos] < bestIllegality.get()) {
                     bestIllegality.set(quadratic[pos]);
@@ -1263,7 +1345,18 @@ public class Mapper {
      * @param callback delivers the indices in {@link #quadratic} for each valid element, left->right, top->down
      */
     @SuppressWarnings("SuspiciousNameCombination")
-    public void visitAll(Consumer<Integer> callback) {
+    public void visitAllValid(Consumer<Integer> callback) {
+        Arrays.stream(allValidPositions)
+                .forEach(callback::accept);
+    }
+
+    /**
+     * Visit all valid positions on the hexagon represented as quadratic.
+     * Important: This is a ine-time call used during constructions. Use {@link #visitAllValid} subsequently.
+     * @param callback delivers the indices in {@link #quadratic} for each valid element, left->right, top->down
+     */
+    @SuppressWarnings("SuspiciousNameCombination")
+    public void visitAllSlow(Consumer<Integer> callback) {
         int yMul = 0;
         for (int y = 0 ; y < height ; y++) {
             int margin = Math.abs(y-(height>>1));
@@ -1272,6 +1365,10 @@ public class Mapper {
             }
             yMul += width;
         }
+    }
+
+    public IntStream streamAllValid() {
+        return Arrays.stream(allValidPositions);
     }
 
     /**
@@ -1522,4 +1619,21 @@ public class Mapper {
         return sb.toString();
     }
 
+    private class XYPair {
+        public final XYPos pos1;
+        public final XYPos pos2;
+
+        public XYPair(XYPos pos1, XYPos pos2) {
+            this.pos1 = pos1;
+            this.pos2 = pos2;
+        }
+
+        public XYPos getPos1() {
+            return pos1;
+        }
+
+        public XYPos getPos2() {
+            return pos2;
+        }
+    }
 }

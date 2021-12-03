@@ -41,8 +41,8 @@ public class APMap {
             {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 135, 153}, {27, 229, 266}, {38, 383, 420},
             {50, 496, 621}, {65, 768, 884}, {81, 868, 1193}, {98, 1158, 1512},
             {118, 1542, 1973}, {139, 1758, 2418}, {162, 1942, 2921}, {187, 3072, 3518},
-            {214, 3072, 4284}, {242, 3124, 5057}, {273, 3693, 5831},
-            {305, 4321, 6753}, {338, 5336, 7783}, {374, 5404, 8962},
+            {214, 3072, 4284}, {242, 3297, 5057}, {273, 3953, 5831},
+            {305, 4546, 6753}, {338, 5336, 7783}, {374, 5404, 8962},
             {411, 6093, 10060}, {450, 7077, 11123}, {491, 7181, 12534},
             {534, 7358, 14046}, {578, 12288, 15457}};
 
@@ -72,7 +72,7 @@ public class APMap {
     }
 
     public static void adHoc() {
-        testReorder(305); if (1 == 1) return;
+        testReorder(27); if (1 == 1) return;
 
         int RUN[] = new int[]{162};
         int STALE_MS = 30*1000;
@@ -146,9 +146,16 @@ public class APMap {
         int best = board.marked;
         int worst = board.marked;
         Mapper bestBoard = board;
+        Set<Integer> seen = new HashSet<>();
+        seen.add(board.toJSON().hashCode());
         // TODO: Add termination on cycles by keeping a Set of previous toJSONs
         for (int i = 0 ; i < RUNS ; i++) {
             int gained = board.shuffle();
+            if (!seen.add(board.toJSON().hashCode())) {
+                System.out.println("Stopped at shuffle " + (i+1) + "/" + RUNS + " as the board is repeating");
+                break;
+            }
+
             if (gained != 0) {
                 System.out.printf("Run=%d gained %d with total %d: %s\n", i, gained, board.marked, board.toJSON());
                 if (edge <= 50) {
@@ -163,7 +170,7 @@ public class APMap {
         }
         System.out.println("=======================================");
         if (edge <= 50) {
-            System.out.println(board);
+            System.out.println(bestBoard);
             System.out.println("---E " + board.marked);
         }
         System.out.printf(Locale.ROOT, "edge=%d, shuffle1: worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s",
