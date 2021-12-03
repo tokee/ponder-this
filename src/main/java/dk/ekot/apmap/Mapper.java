@@ -17,6 +17,7 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -531,6 +532,17 @@ public class Mapper {
     }
 
     /**
+     * Getter that allows requests outside of the board. In that case {@link #INVALID} is returned.
+     * Does not update {@link #neutrals} and {@link #marked}.
+     * @param pos quadratic coordinates.
+     * @return the element at the given coordinates or {@link #INVALID} if outside the board.
+     */
+    private int getQuadratic(XYPos pos) {
+        return getQuadratic(pos.x, pos.y);
+    }
+
+
+    /**
      * The setter does not check if the coordinates are legal and does not update {@link #neutrals} and {@link #marked}.
      * @param x quadratic coordinate X.
      * @param y quadratic coordinate Y.
@@ -538,6 +550,15 @@ public class Mapper {
      */
     public final void setQuadratic(int x, int y, int element) {
         quadratic[y*width+x] = element;
+    }
+
+    /**
+     * The setter does not check if the coordinates are legal and does not update {@link #neutrals} and {@link #marked}.
+     * @param pos quadratic coordinates.
+     * @param element the element to set at the coordinates.
+     */
+    public final void setQuadratic(XYPos pos, int element) {
+        quadratic[pos.y*width+pos.x] = element;
     }
 
     /**
@@ -879,6 +900,17 @@ public class Mapper {
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
      * a triple (arithmetic progression). The fields are updated with {}@link #ILLEGAL}.
      * This updates {@link #marked} and {@link #neutrals}.
+     * @param pos quadratic coordinates.
+     * @param updatePriorities
+     */
+    public void setMarker(final XYPos pos, boolean updatePriorities) {
+        setMarker(pos.x, pos.y, updatePriorities);
+    }
+    /**
+     * Marks the given quadratic (x, y).
+     * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
+     * a triple (arithmetic progression). The fields are updated with {}@link #ILLEGAL}.
+     * This updates {@link #marked} and {@link #neutrals}.
      * @param x quadratic coordinate X.
      * @param y quadratic coordinate Y.
      * @param updatePriorities
@@ -916,6 +948,14 @@ public class Mapper {
         }
     }
 
+    /**
+     * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
+     * @param pos quadratic coordinates.
+     * @param updatePriorities if true, priorities are also adjusted.
+     */
+    public void removeMarker(XYPos pos, boolean updatePriorities) {
+        removeMarker(pos.x, pos.y, updatePriorities);
+    }
     /**
      * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
      * @param x quadratic X.
@@ -961,36 +1001,52 @@ public class Mapper {
         final int initialMarks = getMarkedCount();
         // Free some elements
         List<XYPos> lightestLocked = findLightestLocked();
-        List<XYPair> toFree = getMarkedTriples(lightestLocked);
+        List<XYPair> removePairs = getMarkedTriples(lightestLocked);
 
         // TODO: Permutate here
-        List<XYPos> removedMarkers = toFree.stream()
+        List<XYPos> removedMarkers = removePairs.stream()
                 .map(XYPair::getPos1)
-                .peek(pos -> {
-                    if (getQuadratic(pos.x, pos.y) == MARKER) { // Might have been removed before
-                        removeMarker(pos.x, pos.y, true);
-                    }
-                })
                 .collect(Collectors.toList());
 
+
+        return applyShuffle(lightestLocked, removedMarkers, false);
+    }
+
+    private int applyShuffle(List<XYPos> lightestLocked, List<XYPos> removedMarkers, boolean rollback) {
+        final int initialMarks = getMarkedCount();
+        // Remove selected markers
+        removedMarkers.stream()
+                .filter(pos -> getQuadratic(pos) == MARKER)
+                .forEach(pos -> removeMarker(pos, true));
+
+        // Find all indirectly freed elements
         List<XYPos> indirectFreed = streamAllValid()
                 .boxed()
                 .map(XYPos::new)
                 .filter(pos -> !(lightestLocked.contains(pos) || removedMarkers.contains(pos)))
                 .collect(Collectors.toList());
 
-        // Set markers on previously invalid positions , if possible
-        AtomicInteger reMarked = new AtomicInteger(0);
-        Stream.concat(indirectFreed.stream(), Stream.concat(lightestLocked.stream(), removedMarkers.stream())).
-                forEach(xyPos -> {
-                    final int pos = xyPos.getPos();
-                    if (quadratic[pos] == NEUTRAL) {
-                        setMarker(xyPos.x, xyPos.y, true);
-                        reMarked.incrementAndGet();
-                    }
-                });
-        return getMarkedCount()-initialMarks;
+        // Set markers prioritized by indirect, lightest and removed
+        List<XYPos> reMarked =
+                Stream.concat(indirectFreed.stream(), Stream.concat(lightestLocked.stream(), removedMarkers.stream()))
+                .filter(pos -> getQuadratic(pos) == NEUTRAL)
+                .peek(pos -> setMarker(pos, true))
+                .collect(Collectors.toList());
+
+        int freed = getMarkedCount() - initialMarks;
+        if (!rollback) {
+            return freed;
+        }
+
+        reMarked.stream()
+                .filter(pos -> getQuadratic(pos) == MARKER)
+                .forEach(pos -> removeMarker(pos, true));
+        removedMarkers.stream()
+                .filter(pos -> getQuadratic(pos) == NEUTRAL)
+                .forEach(pos -> setMarker(pos, true));
+        return freed;
     }
+
 
     private List<XYPair> getMarkedTriples(List<XYPos> lightestLocked) {
         return lightestLocked.stream().
