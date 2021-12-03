@@ -997,19 +997,53 @@ public class Mapper {
      * @return number of marks gained (can be negative).
      */
     // edge 27: 216 -> 229
-    public int shuffle() {
-        final int initialMarks = getMarkedCount();
+    public int shuffle2(int seed, int maxPermutations) {
+        //System.out.printf("edge=%d, shuffle2 seed=%d, maxPermutations=%d\n", edge, seed, maxPermutations);
+
+        final Random random = new Random(seed);
         // Free some elements
         List<XYPos> lightestLocked = findLightestLocked();
         List<XYPair> removePairs = getMarkedTriples(lightestLocked);
 
         // TODO: Permutate here
-        List<XYPos> removedMarkers = removePairs.stream()
-                .map(XYPair::getPos1)
-                .collect(Collectors.toList());
+        boolean[] useFirst = new boolean[removePairs.size()]; // Set bit = use pos1 , else use pos2
+        boolean[] bestPermutation = new boolean[removePairs.size()];
+        int bestDelta = Integer.MIN_VALUE;
+        int permutations = (int) Math.min(maxPermutations, Math.pow(2, removePairs.size()));
+        for (int permutation = 0 ; permutation < permutations ; permutation++) {
+            // Create a new removal list based on permutations
+            List<XYPos> removeMarkers = new ArrayList<>(removePairs.size());
+            for (int i = 0 ; i < removePairs.size() ; i++) {
+                removeMarkers.add(useFirst[i] ? removePairs.get(i).getPos1() : removePairs.get(i).getPos2());
+            }
 
+            // Measure the effectiveness of the permutation
+            int markDelta = applyShuffle(lightestLocked, removeMarkers, true);
+            if (markDelta > bestDelta) {
+                bestDelta = markDelta;
+                System.arraycopy(useFirst, 0, bestPermutation, 0, useFirst.length);
+            }
 
-        return applyShuffle(lightestLocked, removedMarkers, false);
+            // Update the permutation bitmap
+            for (int i = 0 ; i < useFirst.length ; i++) {
+                useFirst[i] = random.nextBoolean();
+            }
+/*            for (int i = 0 ; i < useFirst.length ; i++) {
+                if (useFirst[i]) {
+                    useFirst[i] = false;
+                } else {
+                    useFirst[i] = true;
+                    break;
+                }
+            }*/
+        }
+
+        // Apply the best permutation, even if negative TODO: Switch to other strategy on negative?
+        List<XYPos> removeMarkers = new ArrayList<>(removePairs.size());
+        for (int i = 0 ; i < removePairs.size() ; i++) {
+            removeMarkers.add(bestPermutation[i] ? removePairs.get(i).getPos1() : removePairs.get(i).getPos2());
+        }
+        return applyShuffle(lightestLocked, removeMarkers, false);
     }
 
     private int applyShuffle(List<XYPos> lightestLocked, List<XYPos> removedMarkers, boolean rollback) {

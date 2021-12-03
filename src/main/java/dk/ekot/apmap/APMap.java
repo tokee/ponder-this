@@ -39,8 +39,8 @@ public class APMap {
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
             {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 135, 153}, {27, 229, 266}, {38, 383, 420},
-            {50, 496, 621}, {65, 768, 884}, {81, 868, 1193}, {98, 1158, 1512},
-            {118, 1542, 1973}, {139, 1758, 2418}, {162, 1942, 2921}, {187, 3072, 3518},
+            {50, 496, 621}, {65, 768, 884}, {81, 907, 1193}, {98, 1158, 1512},
+            {118, 1574, 1973}, {139, 1758, 2418}, {162, 1942, 2921}, {187, 3072, 3518},
             {214, 3072, 4284}, {242, 3297, 5057}, {273, 3953, 5831},
             {305, 4546, 6753}, {338, 5336, 7783}, {374, 5404, 8962},
             {411, 6093, 10060}, {450, 7077, 11123}, {491, 7181, 12534},
@@ -49,37 +49,13 @@ public class APMap {
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
 
-    public static void main(String[] args) {
-        if (args.length == 0) {
-            adHoc();
-            return;
-        }
-
-        if (args.length == 1) {
-            System.out.println("Usage: MapperTest [nochanges timeout in seconds] edge*");
-            System.out.println("Competition edges: " + Arrays.toString(EDGES));
-        }
-
-        boolean SHOW_BEST = true;
-        int[] edges = new int[args.length-1];
-        for (int i = 1 ; i < args.length ; i++) {
-            edges[i-1] = Integer.parseInt(args[i]);
-        }
-
-        int STALE_MS = Integer.parseInt(args[0])*1000;
-
-        testMultipleEdges(edges, SHOW_BEST, STALE_MS);
-    }
-
     public static void adHoc() {
-        testReorder(27); if (1 == 1) return;
+        int RUN[] = new int[]{273};
+        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
-        int RUN[] = new int[]{162};
-        int STALE_MS = 30*1000;
-
-
-       // testMarking();
+        // testMarking();
         //if (1==1) return;
+        int STALE_MS = 30*1000;
 
         //goFlat(6); if (1 == 1) return;
 
@@ -120,8 +96,33 @@ public class APMap {
         testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
     }
 
-    private static void testReorder(int edge) {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            adHoc();
+            return;
+        }
+
+        if (args.length == 1) {
+            System.out.println("Usage: MapperTest [nochanges timeout in seconds] edge*");
+            System.out.println("Competition edges: " + Arrays.toString(EDGES));
+        }
+
+        boolean SHOW_BEST = true;
+        int[] edges = new int[args.length-1];
+        for (int i = 1 ; i < args.length ; i++) {
+            edges[i-1] = Integer.parseInt(args[i]);
+        }
+
+        int STALE_MS = Integer.parseInt(args[0])*1000;
+
+        testMultipleEdges(edges, SHOW_BEST, STALE_MS);
+    }
+
+    private static void doShuffle(int edge) {
         final long startTime = System.currentTimeMillis();
+        System.out.println("Performing initial cheap run for edge=" + edge);
+        final int seed = new Random().nextInt();
+        final int MAX_PERMUTATIONS = 20;
         int RUNS = 100;
 
         // TODO: Fails with edge==50!?
@@ -143,21 +144,23 @@ public class APMap {
         System.out.println(board); System.out.println("---C " + board.marked);
         board.validate();
   */
+        System.out.println("Initiating shuffle for edge=" + edge);
         int best = board.marked;
         int worst = board.marked;
         Mapper bestBoard = board;
         Set<Integer> seen = new HashSet<>();
         seen.add(board.toJSON().hashCode());
         // TODO: Add termination on cycles by keeping a Set of previous toJSONs
-        for (int i = 0 ; i < RUNS ; i++) {
-            int gained = board.shuffle();
+        for (int run = 0 ; run < RUNS ; run++) {
+            int gained = board.shuffle2(seed, MAX_PERMUTATIONS);
             if (!seen.add(board.toJSON().hashCode())) {
-                System.out.println("Stopped at shuffle " + (i+1) + "/" + RUNS + " as the board is repeating");
+                System.out.println("Stopped at shuffle " + (run+1) + "/" + RUNS + " as the board is repeating");
                 break;
             }
 
             if (gained != 0) {
-                System.out.printf("Run=%d gained %d with total %d: %s\n", i, gained, board.marked, board.toJSON());
+                System.out.printf(Locale.ROOT, "edge=%d, seed=%d, perms=%d, run=%d/%d gained %d with total %d: %s\n",
+                                  edge, seed, MAX_PERMUTATIONS, run+1, RUNS, gained, board.marked, board.toJSON());
                 if (edge <= 50) {
                     System.out.println(board);
                 }
@@ -173,8 +176,8 @@ public class APMap {
             System.out.println(bestBoard);
             System.out.println("---E " + board.marked);
         }
-        System.out.printf(Locale.ROOT, "edge=%d, shuffle1: worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s",
-                          edge, initial, worst, best, getPersonalbest(edge),
+        System.out.printf(Locale.ROOT, "edge=%d, shuffle2(seed=%d, perms=%d): worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s\n",
+                          edge, seed, MAX_PERMUTATIONS, initial, worst, best, getPersonalbest(edge),
                           (System.currentTimeMillis()-startTime)/1000, bestBoard.toJSON());
     }
 
