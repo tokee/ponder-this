@@ -38,19 +38,21 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 135, 153}, {27, 229, 266}, {38, 383, 420},
-            {50, 496, 621}, {65, 768, 884}, {81, 907, 1193}, {98, 1158, 1512},
-            {118, 1574, 1973}, {139, 1758, 2418}, {162, 1942, 2921}, {187, 3072, 3518},
-            {214, 3072, 4284}, {242, 3297, 5057}, {273, 3953, 5831},
-            {305, 4546, 6753}, {338, 5336, 7783}, {374, 5404, 8962},
-            {411, 6093, 10060}, {450, 7077, 11123}, {491, 7181, 12534},
-            {534, 7358, 14046}, {578, 12288, 15457}};
+            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 136, 153}, {27, 236, 266}, {38, 386, 420},
+            {50, 505, 621}, {65, 768, 884}, {81, 907, 1193}, {98, 1185, 1512},
+            {118, 1579, 1973}, {139, 1854, 2418}, {162, 2027, 2921}, {187, 3072, 3518},
+            {214, 3072, 4284}, {242, 3471, 5057}, {273, 4117, 5831},
+            {305, 4801, 6753}, {338, 5743, 7783}, {374, 6042, 8962},
+            {411, 6691, 10060}, {450, 7710, 11123}, {491, 8625, 12534},
+            {534, 8258, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
 
     public static void adHoc() {
-        int RUN[] = new int[]{273};
+        //int RUN[] = new int[]{214, 242, 305, 338};
+        int RUN[] = new int[]{139};
+        //int RUN[] = EDGES;
         Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
@@ -77,21 +79,6 @@ public class APMap {
 
 
         boolean SHOW_BEST = true;
-//        new Mapper(118).dumpDeltaStats();
-//        new APMap().goQuadratic(534, 120_000, true);
-        //new APMap().goQuadratic(3, 120_000, true, 10_000);
-//        if (1==1) return;
-
-//        Arrays.stream(TASKS).forEach(task -> new APMap().goQuadratic(task, 100_000_000L / (task * task)));
-        //new APMap().goFlat(4);
-//        new APMap().goQuadratic(4, 500_000, true);
-//        if (1==1) return;
-        //new APMap().goQuadratic(6, true);
-//        new APMap().goQuadratic(450, true);
-        //new APMap().go(11);
-//        new APMap().go(6);
-  //      new APMap().go(11);
-        //new APMap().go(18);
 
         testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
     }
@@ -148,15 +135,9 @@ public class APMap {
         int best = board.marked;
         int worst = board.marked;
         Mapper bestBoard = board;
-        Set<Integer> seen = new HashSet<>();
-        seen.add(board.toJSON().hashCode());
         // TODO: Add termination on cycles by keeping a Set of previous toJSONs
         for (int run = 0 ; run < RUNS ; run++) {
             int gained = board.shuffle2(seed, MAX_PERMUTATIONS);
-            if (!seen.add(board.toJSON().hashCode())) {
-                System.out.println("Stopped at shuffle " + (run+1) + "/" + RUNS + " as the board is repeating");
-                break;
-            }
 
             if (gained != 0) {
                 System.out.printf(Locale.ROOT, "edge=%d, seed=%d, perms=%d, run=%d/%d gained %d with total %d: %s\n",

@@ -1046,6 +1046,28 @@ public class Mapper {
         return applyShuffle(lightestLocked, removeMarkers, false);
     }
 
+    /**
+     * Shuffling by finding the ILLEGALs with the lowest count, removing the MARKERs locking the ILLEGALs and filling
+     * up again, starting with the freed ILLEGALs.
+     * Special feature: Used priorities to select the mark to remove: The mark that has the lowest priority in the
+     * triple wins.
+     * @return number of marks gained (can be negative).
+     */
+    // Seems to do markedly worse than shuffle2
+    public int shuffle3(int seed) {
+        //System.out.printf("edge=%d, shuffle2 seed=%d, maxPermutations=%d\n", edge, seed, maxPermutations);
+
+        final Random random = new Random(seed);
+        // Free some elements
+        List<XYPos> lightestLocked = findLightestLocked(); // TODO: Check for repetitions here?
+        List<XYPair> removePairs = getMarkedTriples(lightestLocked);
+        List<XYPos> removeMarkers = removePairs.stream()
+                //.peek(pair -> System.out.println("Priorities(" + pair.pos1 + ", " + pair.pos2 + "): " + priority[pair.pos1.getPos()] + " " + priority[pair.pos2.getPos()]))
+                .map(pair -> priority[pair.pos1.getPos()] < priority[pair.pos2.getPos()] ? pair.pos1 : pair.pos2)
+                .collect(Collectors.toList());
+        return applyShuffle(lightestLocked, removeMarkers, false);
+    }
+
     private int applyShuffle(List<XYPos> lightestLocked, List<XYPos> removedMarkers, boolean rollback) {
         final int initialMarks = getMarkedCount();
         // Remove selected markers
