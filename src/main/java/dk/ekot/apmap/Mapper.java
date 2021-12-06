@@ -21,6 +21,8 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -151,6 +153,51 @@ public class Mapper {
         this.allValidPositions = Arrays.copyOf(other.allValidPositions, other.allValidPositions.length);
 //        this.tripleDeltasByRow = Arrays.copyOf(other.tripleDeltasByRow, other.tripleDeltasByRow.length);
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
+    }
+
+    /**
+     * Set the markers stated in the JSON. Does not perform any cleaning beforehand.
+     * @param json APMap-compliant JSON.
+     */
+    public void addJSONMarkers(String json) {
+        final int rows = (int) json.chars().filter(c -> c == '{').count();
+        if (rows != height) {
+            throw new IllegalArgumentException(
+                    "Got " + rows + " rows from JSON, but the height of the current layout is " + height);
+        }
+        Matcher m = CURLY.matcher(json);
+        int row = 0;
+        while (m.find()) { // {0, 2, 89}, group(1) == 0, 2, 89
+                int margin = Math.abs(row-(height>>1));
+                for (String xs: m.group(1).split(" *, *")) {
+                    if (xs.isEmpty()) {
+                        continue;
+                    }
+                    int x = Integer.parseInt(xs);
+                    setMarker(margin+x*2, row, true);
+                }
+            ++row;
+        }
+    }
+    private static final Pattern CURLY = Pattern.compile("[{]([^}]*)[}]");
+
+    /**
+     * Creates a new structure based on the given JSON.
+     * @param json APMap-compliant JSON.
+     * @return a Mapper with markers as stated in the JSON.
+     */
+    public static Mapper fromJSON(String json) {
+        Mapper board = new Mapper(getEdgeFromJSON(json));
+        board.addJSONMarkers(json);
+        return board;
+    }
+
+    /**
+     * @param json APMap-compliant JSON.
+     * @return the edge as inferred from the JSON.
+     */
+    public static int getEdgeFromJSON(String json) {
+        return (int) ((json.chars().filter(c -> c == '{').count() + 1) / 2);
     }
 
     /**

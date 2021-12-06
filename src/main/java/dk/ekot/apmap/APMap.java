@@ -17,8 +17,17 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -44,16 +53,18 @@ public class APMap {
             {214, 3072, 4284}, {242, 3471, 5057}, {273, 4117, 5831},
             {305, 4801, 6753}, {338, 5743, 7783}, {374, 6042, 8962},
             {411, 6691, 10060}, {450, 7710, 11123}, {491, 8625, 12534},
-            {534, 8258, 14046}, {578, 12288, 15457}};
+            {534, 9598, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
 
     public static void adHoc() {
         //int RUN[] = new int[]{214, 242, 305, 338};
-        int RUN[] = new int[]{139};
+        int RUN[] = new int[]{38};
         //int RUN[] = EDGES;
-        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
+
+        Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 10000, 20)); if (1 == 1) return;
+//        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
         //if (1==1) return;
@@ -115,34 +126,76 @@ public class APMap {
         // TODO: Fails with edge==50!?
         // TODO: 18 seems to work well (134), 27 (221), 38 (fail),
         Mapper board = new APMap().goQuadratic(edge, 10_000, true,  true);
-        final int initial = board.marked;
-        if (edge <= 50) {
-            System.out.println(board);
-            System.out.println("---A " + +board.marked);
+        System.out.println("Cheap run finished after " + (System.currentTimeMillis()-startTime)/1000 + " seconds");
+        doShuffle(board, RUNS, seed, MAX_PERMUTATIONS);
+    }
+
+    public static String loadJSON(int edge) {
+        File PERSISTENCE = new File("/home/te/projects/ponder-this/src/main/java/dk/ekot/apmap/results_te.txt");
+        if (!PERSISTENCE.canRead()) {
+            throw new RuntimeException(new FileNotFoundException("Unable to read '" + PERSISTENCE + "'"));
         }
-/*        board.validate();
+        try (InputStream is = new FileInputStream(PERSISTENCE);
+             InputStreamReader ir = new InputStreamReader(is, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader(ir)) {
+            String lastValid = null;
+            String line;
+            while ((line = br.readLine()) != null) {
+                Matcher m = EDGE_LINE.matcher(line);
+                if (m. find() && m.group(1).equals(Integer.toString(edge))) {
+                    lastValid = line;
+                }
+            }
+            if (lastValid == null) {
+                throw new IllegalArgumentException(
+                        "Unable to locate any line starting with 'edge=" + edge + "' in '" + PERSISTENCE + "'");
+            }
+            return lastValid;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private static final Pattern EDGE_LINE = Pattern.compile("^edge=([0-9]*)");
 
-        board.removeMarker(5, 0, true);
-//        board.removeMarker(13, 0, true);
-        System.out.println(board); System.out.println("---B " + board.marked);
-        board.validate();
+    private static void shuffleFromJSON(String json) {
+        final int MAX_PERMUTATIONS = 20;
+        int RUNS = 100;
+        shuffleFromJSON(json, RUNS, MAX_PERMUTATIONS);
+    }
+    private static void shuffleFromJSON(String json, int runs, int maxPermutations) {
+        final long startTime = System.currentTimeMillis();
+        final int seed = new Random().nextInt();
 
-        board.setMarker(9, 0, true);
-        System.out.println(board); System.out.println("---C " + board.marked);
-        board.validate();
-  */
-        System.out.println("Initiating shuffle for edge=" + edge);
+        int edge = Mapper.getEdgeFromJSON(json);
+
+        Mapper board = new Mapper(edge);
+        board.adjustPrioritiesCenterBad(); // The cheap one used in goQuadratic
+        board.addJSONMarkers(json);
+
+        System.out.printf(Locale.ROOT, "edge=%d loaded and prioritized  with marked=%d in %d seconds\n",
+                          board.edge, board.marked, (System.currentTimeMillis()-startTime)/1000);
+        doShuffle(board, runs, seed, maxPermutations);
+    }
+
+    private static void doShuffle(Mapper board, int runs, int seed, int maxPermutations) {
+        final long startTime = System.currentTimeMillis();
+        final int initial = board.marked;
+        if (board.edge <= 50) {
+            System.out.println(board);
+            System.out.println("--- " + +board.marked);
+        }
+
+        System.out.println("Initiating shuffle for edge=" + board.edge);
         int best = board.marked;
         int worst = board.marked;
         Mapper bestBoard = board;
         // TODO: Add termination on cycles by keeping a Set of previous toJSONs
-        for (int run = 0 ; run < RUNS ; run++) {
-            int gained = board.shuffle2(seed, MAX_PERMUTATIONS);
-
+        for (int run = 0; run < runs; run++) {
+            int gained = board.shuffle2(seed, maxPermutations);
             if (gained != 0) {
                 System.out.printf(Locale.ROOT, "edge=%d, seed=%d, perms=%d, run=%d/%d gained %d with total %d: %s\n",
-                                  edge, seed, MAX_PERMUTATIONS, run+1, RUNS, gained, board.marked, board.toJSON());
-                if (edge <= 50) {
+                                  board.edge, seed, maxPermutations, run + 1, runs, gained, board.marked, board.toJSON());
+                if (board.edge <= 50) {
                     System.out.println(board);
                 }
                 if (board.marked > best) {
@@ -153,13 +206,15 @@ public class APMap {
             }
         }
         System.out.println("=======================================");
-        if (edge <= 50) {
+        if (board.edge <= 50) {
             System.out.println(bestBoard);
-            System.out.println("---E " + board.marked);
+            System.out.println("--- " + board.marked);
         }
-        System.out.printf(Locale.ROOT, "edge=%d, shuffle2(seed=%d, perms=%d): worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s\n",
-                          edge, seed, MAX_PERMUTATIONS, initial, worst, best, getPersonalbest(edge),
-                          (System.currentTimeMillis()-startTime)/1000, bestBoard.toJSON());
+        System.out.printf(Locale.ROOT, "edge=%d, %s" +
+                                       "shuffle2(seed=%d, perms=%d): worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s\n",
+                          board.edge, getPersonalbest(board.edge) < best ? "IMPROVEMENT " : "",
+                          seed, maxPermutations, initial, worst, best, getPersonalbest(board.edge),
+                          (System.currentTimeMillis() - startTime) / 1000, bestBoard.toJSON());
     }
 
     public static int getPersonalbest(int edge) {
@@ -531,7 +586,7 @@ public class APMap {
     paths to be explored.
 
     -----------------
-    Idea #21 20211201:
+    Idea #21 20211206:
 
     Building on idea #19
 

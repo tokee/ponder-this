@@ -309,4 +309,16 @@ public class MapperTest extends TestCase {
             new Mapper(edge);
         }
     }
+
+    public void testFromToJSON() {
+        Mapper board = new Mapper(3);
+        board.setMarker(2, 0, true);
+        board.setMarker(4, 0, true);
+        board.setMarker(5, 1, true);
+        board.setMarker(4, 2, true);
+        String before = board.toJSON();
+        Mapper toFromJSON = Mapper.fromJSON(before);
+        String after = toFromJSON.toJSON();
+        assertEquals("Board -> JSON -> board should be the identity", before, after);
+    }
 }
