@@ -48,7 +48,7 @@ public class APMap {
             {214, 3072, 4284}, {242, 3471, 5057}, {273, 4117, 5831},
             {305, 4801, 6753}, {338, 5743, 7783}, {374, 6042, 8962},
             {411, 6691, 10060}, {450, 7710, 11123}, {491, 8625, 12534},
-            {534, 9598, 14046}, {578, 12288, 15457}};
+            {534, 10711, 14046}, {578, 12288, 15457}};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
@@ -596,9 +596,11 @@ public class APMap {
     paths to be explored.
 
     -----------------
-    Idea #21 20211206:
+    Idea #21 20211207:
 
-    Building on idea #19
+    Look at current solutions, select no-go areas for marks, attempt to place marks that optimizes locking the no-gos.
+    
+
 
     Instead of
 
