@@ -55,14 +55,14 @@ public class APMap {
 
     public static void adHoc() {
         //int RUN[] = new int[]{214, 242, 305, 338};
-        int RUN[] = new int[]{38};
+        int RUN[] = new int[]{6};
         //int RUN[] = EDGES;
-        Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
+        //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
         //System.out.println(map); if (1==1) return;
         
 
 
-        Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 10000, 20)); if (1 == 1) return;
+        Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 100, 20)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
@@ -306,7 +306,7 @@ public class APMap {
 
     private static void testMarking() {
         Mapper board = new Mapper(3);
-        Mapper.PriorityPos pos = new Mapper.PriorityPos(2, 0, 0);
+        Mapper.PriorityPosXY pos = new Mapper.PriorityPosXY(2, 0, 0);
         System.out.println("***********************************");
         System.out.println(board + " setting " + pos);
         board.markAndDeltaExpand(pos, true);

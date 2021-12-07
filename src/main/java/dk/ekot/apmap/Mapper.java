@@ -21,7 +21,6 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -483,7 +482,7 @@ public class Mapper {
      * @param position the starting position.
      * @return the new position if possible, else null.
      */
-    public final PriorityPos nextPriority(PriorityPos origo) {
+    public final PriorityPosXY nextPriority(PriorityPosXY origo) {
         // TODO: Switch to visitAll here
         int x = Math.max(0, origo.x+1);
         int y = Math.max(0, origo.y);
@@ -501,7 +500,7 @@ public class Mapper {
             for (int qx = qy == y ? x : 0 ; qx < width ; qx++) { // TODO: If we have the right start, use x+=2
                 int element = getQuadratic(qx, qy);
                 if (element == NEUTRAL && p == getPriority(qx, qy)) {
-                    return new PriorityPos(qx, qy, origo.priority);
+                    return new PriorityPosXY(qx, qy, origo.priority);
                 }
             }
         }
@@ -529,7 +528,7 @@ public class Mapper {
                             bestY = qy;
                             bestP = currentP;
                             if (bestP == p + 1) { // Exactly 1 better than original, cannot get better
-                                return new PriorityPos(bestX, bestY, bestP);
+                                return new PriorityPosXY(bestX, bestY, bestP);
                             }
                             // Room for improvement, keep searching
                         }
@@ -540,30 +539,50 @@ public class Mapper {
         if (bestX == -1) {
             return null;
         }
-        return new PriorityPos(bestX, bestY, bestP);
+        return new PriorityPosXY(bestX, bestY, bestP);
     }
 
-    final static class PriorityPos {
+    final static class PriorityPosXY {
         public final int x;
         public final int y;
         public final int priority;
 
-        public PriorityPos() {
+        public PriorityPosXY() {
             this(-1, 0, 0);
         }
 
-        public PriorityPos(int x, int y, int priority) {
+        public PriorityPosXY(int x, int y, int priority) {
             this.x = x;
             this.y = y;
             this.priority = priority;
         }
 
-        public PriorityPos copy() {
-            return new PriorityPos(x, y, priority);
+        public PriorityPosXY copy() {
+            return new PriorityPosXY(x, y, priority);
         }
 
         public String toString() {
             return "(" + x + ", " + y + ": " + priority + ")";
+        }
+    }
+
+    private class PriorityPos implements Comparable<PriorityPos> {
+        public final int pos;
+        public final int priority;
+
+        public PriorityPos(int pos) {
+            this.pos = pos;
+            this.priority = Mapper.this.priority[pos];
+        }
+
+        public PriorityPos(int pos, int priority) {
+            this.pos = pos;
+            this.priority = priority;
+        }
+
+        @Override
+        public int compareTo(PriorityPos o) {
+            return priority == o.priority ? Integer.compare(pos, o.pos) : Integer.compare(priority, o.priority);
         }
     }
 
@@ -674,7 +693,7 @@ public class Mapper {
         return neutrals;
     }
 
-    public final void markAndDeltaExpand(PriorityPos pos, boolean updatePriorities) {
+    public final void markAndDeltaExpand(PriorityPosXY pos, boolean updatePriorities) {
         markAndDeltaExpand(pos.x, pos.y, updatePriorities); // TODO: Make this fast. Maye with x & y as first class?
     }
     public final void markAndDeltaExpand(LazyPos pos, boolean updatePriorities) {
@@ -951,6 +970,18 @@ public class Mapper {
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
      * a triple (arithmetic progression). The fields are updated with {}@link #ILLEGAL}.
      * This updates {@link #marked} and {@link #neutrals}.
+     * Note: Slow due to division and modulo.
+     * @param pos quadratic coordinates.
+     * @param updatePriorities
+     */
+    public void setMarker(int pos, boolean updatePriorities) {
+        setMarker(pos%width, pos/width, updatePriorities);
+    }
+    /**
+     * Marks the given quadratic (x, y).
+     * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
+     * a triple (arithmetic progression). The fields are updated with {}@link #ILLEGAL}.
+     * This updates {@link #marked} and {@link #neutrals}.
      * @param pos quadratic coordinates.
      * @param updatePriorities
      */
@@ -1001,6 +1032,15 @@ public class Mapper {
 
     /**
      * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
+     * Warning: Slow as it uses division and modulo.
+     * @param pos quadratic coordinates.
+     * @param updatePriorities if true, priorities are also adjusted.
+     */
+    public void removeMarker(int pos, boolean updatePriorities) {
+        removeMarker(pos%width, pos/width, updatePriorities);
+    }
+    /**
+     * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
      * @param pos quadratic coordinates.
      * @param updatePriorities if true, priorities are also adjusted.
      */
@@ -1040,6 +1080,59 @@ public class Mapper {
             }
         });
     }
+
+    /**
+     * Shuffling by finding the markers that locks the lowest amount of positions, then removing those until minFree
+     * positions has been freed, not counting the removed markers themselves.
+     * After that new markers are set, prioritizing the positions freed by removing markers.
+     * @param minFree the minimum amount of markers to remove.
+     * @return number of marks gained (can be negative).
+     */
+    public int shuffle4(int minFree) {
+        final int initialNeutrals = getNeutralCount(); // Should be 0
+        if (initialNeutrals != 0) {
+            System.out.println("shuffle4: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
+        }
+        final int initialMarkedCount = getMarkedCount();
+
+        // Prioritize markers with the least locking first
+        List<Integer> markers = streamAllValid()
+                .filter(pos -> quadratic[pos] == MARKER)
+                .boxed()
+                .map(PriorityPos::new)
+                .sorted()
+                .map(pp -> pp.pos)
+                .collect(Collectors.toList());
+
+
+        // Remove markers
+        List<Integer> explicitFreed = new ArrayList<>();
+        for (Integer marker: markers) {
+            removeMarker(marker, true);
+            explicitFreed.add(marker);
+            if (getNeutralCount() > explicitFreed.size() + minFree) {
+                break;
+            }
+        }
+
+        // Locate implicitly freed markers
+        List<Integer> implicitFreed = streamAllValid()
+                .filter(pos -> quadratic[pos] == NEUTRAL)
+                .boxed()
+                .filter(pos -> !explicitFreed.contains(pos))
+                .map(PriorityPos::new)
+                .sorted()
+                .map(pp -> pp.pos)
+                .collect(Collectors.toList());
+
+        // Mark again, starting with implicit
+        Stream.concat(implicitFreed.stream(), explicitFreed.stream())
+                .filter(pos -> quadratic[pos] == NEUTRAL)
+                .forEach(pos -> setMarker(pos, true));
+
+        return getMarkedCount() - initialMarkedCount;
+    }
+
 
     /**
      * Shuffling by finding the ILLEGALs with the lowest count, removing the MARKERs locking the ILLEGALs and filling
@@ -1804,7 +1897,7 @@ public class Mapper {
                     case VISITED:
                         bi.setRGB(x, y, 0x00FFFF);
                     default:
-                        int red = Math.min(255, 128 + element);
+                        int red = Math.min(255, 64 + element);
                         bi.setRGB(x, y, red << 16);
                         break;
                 }

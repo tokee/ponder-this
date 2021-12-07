@@ -44,8 +44,8 @@ public class MapWalker {
         final long startTime = System.currentTimeMillis();
 
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
-        Mapper.PriorityPos zeroPos = new Mapper.PriorityPos();
-        Mapper.PriorityPos startingPos = board.nextPriority(zeroPos);
+        Mapper.PriorityPosXY zeroPos = new Mapper.PriorityPosXY();
+        Mapper.PriorityPosXY startingPos = board.nextPriority(zeroPos);
         if (startingPos == null) {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
@@ -172,13 +172,13 @@ public class MapWalker {
         final long startTime = System.currentTimeMillis();
 
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
-        Mapper.PriorityPos zeroPos = new Mapper.PriorityPos();
-        Mapper.PriorityPos startingPos = board.nextPriority(zeroPos);
+        Mapper.PriorityPosXY zeroPos = new Mapper.PriorityPosXY();
+        Mapper.PriorityPosXY startingPos = board.nextPriority(zeroPos);
         if (startingPos == null) {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
         int depth = 0;
-        Mapper.PriorityPos[] positions = new Mapper.PriorityPos[board.valids+1];
+        Mapper.PriorityPosXY[] positions = new Mapper.PriorityPosXY[board.valids + 1];
         positions[0] = startingPos;
         long fulls = 0;
         long nextShow = System.currentTimeMillis() + showBoardIntervalMS;
@@ -219,7 +219,7 @@ public class MapWalker {
             }
 
             // Check if descending is possible with the changed board
-            Mapper.PriorityPos descendPos = board.nextPriority(zeroPos);
+            Mapper.PriorityPosXY descendPos = board.nextPriority(zeroPos);
             //Mapper.PriorityPos descendPos = board.nextPriority(positions[depth]);
             if (descendPos != null) {
                 positions[depth+1] = descendPos;
