@@ -17,12 +17,7 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
@@ -62,6 +57,10 @@ public class APMap {
         //int RUN[] = new int[]{214, 242, 305, 338};
         int RUN[] = new int[]{38};
         //int RUN[] = EDGES;
+        Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
+        //System.out.println(map); if (1==1) return;
+        
+
 
         Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 10000, 20)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
@@ -92,6 +91,17 @@ public class APMap {
         boolean SHOW_BEST = true;
 
         testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
+    }
+
+    private static void saveImage(int edge) {
+        Mapper map = new Mapper(edge);
+        String json = loadJSON(edge);
+        map.addJSONMarkers(json);
+        try {
+            map.saveToImage();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void main(String[] args) {

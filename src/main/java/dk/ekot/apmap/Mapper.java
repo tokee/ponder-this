@@ -17,6 +17,10 @@ package dk.ekot.apmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1764,11 +1768,12 @@ public class Mapper {
                         sb.append(",");
                         break;
                     default:
+                        sb.append(".");/*
                         if (element < ILLEGAL) {
                             throw new UnsupportedOperationException("Unknown element: " + getQuadratic(x, y));
                         }
                         int illegalValue = element/ILLEGAL;
-                        sb.append(illegalValue > 20 ? "I" : (char) ('a' -1 + illegalValue));
+                        sb.append(illegalValue > 20 ? "I" : (char) ('a' -1 + illegalValue));*/
                         break;
                 }
                 sb.append(x < width-1 ? " " : "");
@@ -1776,6 +1781,43 @@ public class Mapper {
             sb.append(y < height-1 ? "\n" : "");
         }
         return sb.toString();
+    }
+
+    public void saveToImage() throws IOException {
+        System.out.println("Generating and saving image for edge=" + edge + ", marks=" + marked);
+        BufferedImage bi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        int markCount = 0;
+        for (int y = 0 ; y < height ; y++) {
+            for (int x = 0; x < width; x++) {
+                int element = getQuadratic(x, y);
+                switch (element) {
+                    case NEUTRAL:
+                        bi.setRGB(x, y, 0xFFFFFF);
+                        break;
+                    case MARKER:
+                        bi.setRGB(x, y, 0x0000FF);
+                        markCount++;
+                        break;
+                    case INVALID:
+                        bi.setRGB(x, y, 0x000000);
+                        break;
+                    case VISITED:
+                        bi.setRGB(x, y, 0x00FFFF);
+                    default:
+                        int red = Math.min(255, 128 + element);
+                        bi.setRGB(x, y, red << 16);
+                        break;
+                }
+            }
+        }
+        if (markCount != marked) {
+            System.err.println("Error: Expected the mark count for edge=" + edge + " to be " + marked +
+                               " but it was " + markCount);
+        }
+
+        File out = new File(String.format(Locale.ROOT, "edge_%03d_marks_%d.png", edge, markCount));
+        ImageIO.write(bi, "png", out);
+        System.out.println("Saved to " + out);
     }
 
     private class XYPair {
