@@ -50,6 +50,7 @@ public class MapWalker {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
         board.adjustPrioritiesCenterBad();
+        //board.adjustPrioritiesCenterGood();
         //board.adjustPrioritiesByTripleCount(); // Very heavy!
         int depth = 0;
         PositionsPool pool = new PositionsPool(100, board.valids, (pDepth, positions) -> {
@@ -138,6 +139,7 @@ public class MapWalker {
                     continue;
                 }
                 // There was another position, mark the previous position as visited and start over with the new position
+//                System.out.println("Previous " + previousPos%board.width + ", " + previousPos/board.width);
                 board.addVisited(previousPos);
 /*                board.fillRotated(previousPos%board.width, previousPos/board.width, rotateBuffer);// TODO: Far too expensive with the mod and divide!
                 for (int position : rotateBuffer) {

@@ -42,7 +42,7 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 136, 153}, {27, 236, 266}, {38, 386, 420},
+            {2, 6, 6}, {6, 32, 33}, {11, 78, 80}, {18, 140, 153}, {27, 236, 266}, {38, 386, 420},
             {50, 505, 621}, {65, 768, 884}, {81, 907, 1193}, {98, 1185, 1512},
             {118, 1579, 1973}, {139, 1854, 2418}, {162, 2027, 2921}, {187, 3072, 3518},
             {214, 3072, 4284}, {242, 3471, 5057}, {273, 4117, 5831},
@@ -55,14 +55,15 @@ public class APMap {
 
     public static void adHoc() {
         //int RUN[] = new int[]{214, 242, 305, 338};
-        int RUN[] = new int[]{6};
+        int RUN[] = new int[]{118, 139, 162, 187, 214, 242, 273};
         //int RUN[] = EDGES;
         //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
         //System.out.println(map); if (1==1) return;
         
+        //Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
 
-        Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 100, 20)); if (1 == 1) return;
+        Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 10000, 20)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
@@ -130,8 +131,8 @@ public class APMap {
         final long startTime = System.currentTimeMillis();
         System.out.println("Performing initial cheap run for edge=" + edge);
         final int seed = new Random().nextInt();
-        final int MAX_PERMUTATIONS = 20;
-        int RUNS = 100;
+        final int MAX_PERMUTATIONS = 40;
+        int RUNS = 1000000;
 
         // TODO: Fails with edge==50!?
         // TODO: 18 seems to work well (134), 27 (221), 38 (fail),
@@ -141,7 +142,10 @@ public class APMap {
     }
 
     public static String loadJSON(int edge) {
-        File PERSISTENCE = new File("/home/te/projects/ponder-this/src/main/java/dk/ekot/apmap/results_te.txt");
+        File PERSISTENCE_A = new File("/home/te/projects/ponder-this/src/main/java/dk/ekot/apmap/results_te.txt");
+        File PERSISTENCE_B = new File("results_te.txt");
+        File PERSISTENCE = PERSISTENCE_A.canRead() ? PERSISTENCE_A : PERSISTENCE_B;
+
         if (!PERSISTENCE.canRead()) {
             throw new RuntimeException(new FileNotFoundException("Unable to read '" + PERSISTENCE + "'"));
         }
@@ -202,9 +206,13 @@ public class APMap {
         // TODO: Add termination on cycles by keeping a Set of previous toJSONs
         for (int run = 0; run < runs; run++) {
             int gained = board.shuffle2(seed, maxPermutations);
-            if (gained != 0) {
-                System.out.printf(Locale.ROOT, "edge=%d, seed=%d, perms=%d, run=%d/%d gained %d with total %d: %s\n",
-                                  board.edge, seed, maxPermutations, run + 1, runs, gained, board.marked, board.toJSON());
+            if (gained == 0) {
+                System.out.printf(Locale.ROOT, "edge=%3d, run=%3d/%d, marks=%d/%d (0 gained)\n",
+                                  board.edge, run+1, runs, board.getMarkedCount(), initial);
+            } else {
+                System.out.printf(Locale.ROOT, "edge=%d, seed=%d, perms=%d, run=%d/%d gained %d with total %d/%d%s: %s\n",
+                                  board.edge, seed, maxPermutations, run + 1, runs, gained, board.marked, initial,
+                                  best < board.marked ? " (IMPROVEMENT)" : "", board.toJSON());
                 if (board.edge <= 50) {
                     System.out.println(board);
                 }

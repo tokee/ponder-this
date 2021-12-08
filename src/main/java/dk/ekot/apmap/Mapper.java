@@ -920,6 +920,20 @@ public class Mapper {
     }
 
     /**
+     * Adjust all priorities so that the center position is best and the edges are worst.
+     */
+    public void adjustPrioritiesCenterGood() {
+        final int centerX = width/2;
+        final int centerY = height/2;
+        visitAllXY((x, y) -> {
+            int distToCenter = (int) Math.sqrt(Math.pow(Math.abs(centerX - x), 2)/2 +
+                                               Math.pow(Math.abs(centerY-y), 2));
+            //System.out.printf("pos(%d, %d), center(%d, %d), dist=%d\n", x, y, centerX, centerY, distToCenter);
+            adjustPriority(x, y, distToCenter*2);
+        });
+    }
+
+    /**
      * Adjust all priorities so that the priority of any cell is the number of its triples.
      */
     public void adjustPrioritiesByTripleCount() {
@@ -956,9 +970,13 @@ public class Mapper {
             if (quadratic[boardChanges[i]] == MARKER) {
                 quadratic[boardChanges[i]] = NEUTRAL;
                 ++neutrals;
-            } else { // Must be illegal
+            } else if (quadratic[boardChanges[i]] >= ILLEGAL) {
                 quadratic[boardChanges[i]] -= ILLEGAL;
+            } else if (quadratic[boardChanges[i]] == VISITED) {
+                quadratic[boardChanges[i]] = NEUTRAL;
+                ++neutrals;
             }
+
         }
         //neutrals += (boardChangeIndexes[changeIndexPosition] - boardChangeIndexes[changeIndexPosition - 1])-1;
         --changeIndexPosition;
@@ -1085,6 +1103,8 @@ public class Mapper {
      * Shuffling by finding the markers that locks the lowest amount of positions, then removing those until minFree
      * positions has been freed, not counting the removed markers themselves.
      * After that new markers are set, prioritizing the positions freed by removing markers.
+     *
+     * Observation: Performs worse than shuffle2
      * @param minFree the minimum amount of markers to remove.
      * @return number of marks gained (can be negative).
      */
@@ -1131,6 +1151,27 @@ public class Mapper {
                 .forEach(pos -> setMarker(pos, true));
 
         return getMarkedCount() - initialMarkedCount;
+    }
+
+    /**
+     * Shuffling by finding maxCandidates ILLEGALS randomly, removing the MARKERs locking the ILLEGALs and filling
+     * up again, starting with the freed ILLEGALs.
+     * This piggybacks on shuffle2.
+     * @param seed used for the Random.
+     * @param maxCandidates the number of ILLEGAL candidates to extract randomly.
+     * @param maxTrials the number of trials to run before selecting the best candidate.
+     * @param maxPermutations used for
+     * @return number of marks gained (can be negative).
+     */
+    // edge 27: 216 -> 229
+    public int shuffle5(int seed, int maxCandidates, int maxTrials, int maxPermutations) {
+        //System.out.printf("edge=%d, shuffle2 seed=%d, maxPermutations=%d\n", edge, seed, maxPermutations);
+
+        final Random random = new Random(seed);
+        // Free some elements
+        List<XYPos> lightestLocked = findLightestLocked();
+        List<XYPair> removePairs = getMarkedTriples(lightestLocked);
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
 
