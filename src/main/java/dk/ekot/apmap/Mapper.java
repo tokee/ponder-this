@@ -158,6 +158,16 @@ public class Mapper {
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
     }
 
+    public void cacheTriples() {
+        // [pos][row][firstMarker]
+        int[][][] triplesOut = new int[width*height][height][];
+        // [pos][row][firstMarker]
+        int[][][] triplesThrough = new int[width*height][height][];
+        streamAllValid().forEach(pos -> {
+            throw new UnsupportedOperationException("Not implemented yet");
+        });
+    }
+
     /**
      * Set the markers stated in the JSON. Does not perform any cleaning beforehand.
      * @param json APMap-compliant JSON.
@@ -1160,18 +1170,45 @@ public class Mapper {
      * @param seed used for the Random.
      * @param maxCandidates the number of ILLEGAL candidates to extract randomly.
      * @param maxTrials the number of trials to run before selecting the best candidate.
-     * @param maxPermutations used for
+     * @param maxPermutations used for calls to {@link #getBestPermutation(List, List, Random, int)}.
+     * @param minGained at least this amount of marks must be gained in order to apply the best result.
      * @return number of marks gained (can be negative).
      */
     // edge 27: 216 -> 229
-    public int shuffle5(int seed, int maxCandidates, int maxTrials, int maxPermutations) {
-        //System.out.printf("edge=%d, shuffle2 seed=%d, maxPermutations=%d\n", edge, seed, maxPermutations);
-
+    public int shuffle5(int seed, int maxCandidates, int maxTrials, int maxPermutations, int minGained) {
         final Random random = new Random(seed);
-        // Free some elements
-        List<XYPos> lightestLocked = findLightestLocked();
-        List<XYPair> removePairs = getMarkedTriples(lightestLocked);
-        throw new UnsupportedOperationException("Not implemented yet");
+
+        //System.out.printf("edge=%d, shuffle2 seed=%d, maxPermutations=%d\n", edge, seed, maxPermutations);
+        List<XYPos> locked = streamAllValid()
+                .filter(pos -> quadratic[pos] >= ILLEGAL)
+                .boxed()
+                .map(XYPos::new)
+                .collect(Collectors.toList());
+        maxCandidates = Math.min(maxCandidates, locked.size());
+
+
+        List<XYPos> bestLocked = null;
+        List<XYPair> bestMarkerPairs = null;
+        Pair<Integer, boolean[]> bestPermutation = new Pair<>(Integer.MIN_VALUE, null);
+
+        for (int i = 0 ; i < maxTrials ; i++) {
+            Set<XYPos> selectedLocked = new HashSet<>();
+            while (selectedLocked.size() < maxCandidates) {
+                selectedLocked.add(locked.get(random.nextInt(locked.size())));
+            }
+            List<XYPos> selectedLockedList = new ArrayList<>(selectedLocked);
+            List<XYPair> removePairs = getMarkedTriples(selectedLockedList);
+            Pair<Integer, boolean[]> result = getBestPermutation(selectedLockedList, removePairs, random, maxPermutations);
+            if (result.first > bestPermutation.first) {
+                bestLocked = selectedLockedList;
+                bestMarkerPairs = removePairs;
+                bestPermutation = result;
+            }
+
+        }
+
+        // Apply the best permutation if it is good enough
+        return bestPermutation.first < minGained ? 0 : applyPermutation(bestLocked, bestMarkerPairs, bestPermutation.second);
     }
 
 
@@ -1190,20 +1227,35 @@ public class Mapper {
         List<XYPos> lightestLocked = findLightestLocked();
         List<XYPair> removePairs = getMarkedTriples(lightestLocked);
 
-        // TODO: Permutate here
-        boolean[] useFirst = new boolean[removePairs.size()]; // Set bit = use pos1 , else use pos2
-        boolean[] bestPermutation = new boolean[removePairs.size()];
+        Pair<Integer, boolean[]> best = getBestPermutation(lightestLocked, removePairs, random, maxPermutations);
+
+        // Apply the best permutation, even if negative TODO: Switch to other strategy on negative?
+        return applyPermutation(lightestLocked, removePairs, best.second);
+    }
+
+    /**
+     * Find the best markers to remove, one from each removePairs.
+     * @param locked the locked elements that are to be freed.
+     * @param markerPairs the markers that locks the elements.
+     * @param random the random used for permutations.
+     * @param maxPermutations the maximum number of permutations to try before returning the result.
+     * @return the best delta found together with the permutation used.
+     *         The permutation can be used with {@link #applyPermutation}.
+     */
+    private Pair<Integer, boolean[]> getBestPermutation(List<XYPos> locked, List<XYPair> markerPairs, Random random, int maxPermutations) {
+        boolean[] useFirst = new boolean[markerPairs.size()]; // Set bit = use pos1 , else use pos2
+        boolean[] bestPermutation = new boolean[markerPairs.size()];
         int bestDelta = Integer.MIN_VALUE;
-        int permutations = (int) Math.min(maxPermutations, Math.pow(2, removePairs.size()));
+        int permutations = (int) Math.min(maxPermutations, Math.pow(2, markerPairs.size()));
         for (int permutation = 0 ; permutation < permutations ; permutation++) {
             // Create a new removal list based on permutations
-            List<XYPos> removeMarkers = new ArrayList<>(removePairs.size());
-            for (int i = 0 ; i < removePairs.size() ; i++) {
-                removeMarkers.add(useFirst[i] ? removePairs.get(i).getPos1() : removePairs.get(i).getPos2());
+            List<XYPos> removeMarkers = new ArrayList<>(markerPairs.size());
+            for (int i = 0; i < markerPairs.size() ; i++) {
+                removeMarkers.add(useFirst[i] ? markerPairs.get(i).getPos1() : markerPairs.get(i).getPos2());
             }
 
             // Measure the effectiveness of the permutation
-            int markDelta = applyShuffle(lightestLocked, removeMarkers, true);
+            int markDelta = applyShuffle(locked, removeMarkers, true);
             if (markDelta > bestDelta) {
                 bestDelta = markDelta;
                 System.arraycopy(useFirst, 0, bestPermutation, 0, useFirst.length);
@@ -1222,14 +1274,24 @@ public class Mapper {
                 }
             }*/
         }
-
-        // Apply the best permutation, even if negative TODO: Switch to other strategy on negative?
-        List<XYPos> removeMarkers = new ArrayList<>(removePairs.size());
-        for (int i = 0 ; i < removePairs.size() ; i++) {
-            removeMarkers.add(bestPermutation[i] ? removePairs.get(i).getPos1() : removePairs.get(i).getPos2());
-        }
-        return applyShuffle(lightestLocked, removeMarkers, false);
+        return new Pair<>(bestDelta, bestPermutation);
     }
+
+    /**
+     * Apply a permutation normally generated from {@link #getBestPermutation(List, List, Random, int)}.
+     * @param locked the locked elements that are to be freed.
+     * @param markerPairs the markers that locks the elements.
+     * @param permutation the markers to remove from markerPairs.
+     * @return the
+     */
+    private int applyPermutation(List<XYPos> locked, List<XYPair> markerPairs, boolean[] permutation) {
+        List<XYPos> removeMarkers = new ArrayList<>(markerPairs.size());
+        for (int i = 0; i < markerPairs.size() ; i++) {
+            removeMarkers.add(permutation[i] ? markerPairs.get(i).getPos1() : markerPairs.get(i).getPos2());
+        }
+        return applyShuffle(locked, removeMarkers, false);
+    }
+
 
     /**
      * Shuffling by finding the ILLEGALs with the lowest count, removing the MARKERs locking the ILLEGALs and filling
@@ -1253,7 +1315,7 @@ public class Mapper {
         return applyShuffle(lightestLocked, removeMarkers, false);
     }
 
-    private int applyShuffle(List<XYPos> lightestLocked, List<XYPos> removedMarkers, boolean rollback) {
+    private int applyShuffle(List<XYPos> locked, List<XYPos> removedMarkers, boolean rollback) {
         final int initialMarks = getMarkedCount();
         // Remove selected markers
         removedMarkers.stream()
@@ -1264,12 +1326,12 @@ public class Mapper {
         List<XYPos> indirectFreed = streamAllValid()
                 .boxed()
                 .map(XYPos::new)
-                .filter(pos -> !(lightestLocked.contains(pos) || removedMarkers.contains(pos)))
+                .filter(pos -> !(locked.contains(pos) || removedMarkers.contains(pos)))
                 .collect(Collectors.toList());
 
         // Set markers prioritized by indirect, lightest and removed
         List<XYPos> reMarked =
-                Stream.concat(indirectFreed.stream(), Stream.concat(lightestLocked.stream(), removedMarkers.stream()))
+                Stream.concat(indirectFreed.stream(), Stream.concat(locked.stream(), removedMarkers.stream()))
                 .filter(pos -> getQuadratic(pos) == NEUTRAL)
                 .peek(pos -> setMarker(pos, true))
                 .collect(Collectors.toList());
@@ -1969,6 +2031,16 @@ public class Mapper {
 
         public XYPos getPos2() {
             return pos2;
+        }
+    }
+
+    public static class Pair<T, S> {
+        public final T first;
+        public final S second;
+
+        public Pair(T first, S second) {
+            this.first = first;
+            this.second = second;
         }
     }
 }
