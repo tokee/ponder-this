@@ -321,4 +321,8 @@ public class MapperTest extends TestCase {
         String after = toFromJSON.toJSON();
         assertEquals("Board -> JSON -> board should be the identity", before, after);
     }
+
+    public void testCacheTriples() {
+        new Mapper(578).cacheTriples();
+    }
 }

@@ -158,14 +158,36 @@ public class Mapper {
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
     }
 
+    // Wven with bitmaps this is unrealistic: 22:29:01.663 [main] INFO dk.ekot.apmap.Mapper - CacheTriples: #elements is 2666895 with 1000519 valids. With a full bitmap for each valid that is 318083 MByte
+
     public void cacheTriples() {
-        // [pos][row][firstMarker]
-        int[][][] triplesOut = new int[width*height][height][];
-        // [pos][row][firstMarker]
-        int[][][] triplesThrough = new int[width*height][height][];
-        streamAllValid().forEach(pos -> {
-            throw new UnsupportedOperationException("Not implemented yet");
+//        log.info("CacheTriples: #elements is " + width*height + " with " + valids + " valids. With a full " +
+//                 "bitmap for each valid that is " + ((long) valids * width * height / 8 / 1024 / 1024) + " MByte");
+        // [pos][firstMarkers]
+        int[][] triplesRadial = new int[width*height][];
+        // [pos]firstMarker]
+        int[][] triplesIntersecting = new int[width*height][];
+        streamAllValid().forEach(origo -> {
+            List<Integer> radial = new ArrayList<>();
+            visitTriplesRadial(origo%width, origo/width, (pos1, pos2) -> {
+                int closest = Math.abs(origo-pos1) < Math.abs(origo-pos2) ? pos1 : pos2;
+                radial.add(closest);
+            });
+            triplesRadial[origo] = radial.stream().mapToInt(Integer::intValue).toArray();
+
+            List<Integer> intersect = new ArrayList<>();
+            visitTriplesIntersecting(origo%width, origo/width, (pos1, pos2) -> {
+                intersect.add(pos1); // Does not matter if it is pos1 or pos2
+            });
+            triplesIntersecting[origo] = intersect.stream().mapToInt(Integer::intValue).toArray();
         });
+        long elements = 0;
+        for (int i = 0 ; i < width*height ; i++) {
+            if (triplesRadial[i] != null) {
+                elements += triplesRadial[i].length + triplesIntersecting[i].length;
+            }
+        }
+        log.info("CacheTriples produced " + elements + " elements ~= " + (elements*4/1024/1024) + " MByte");
     }
 
     /**

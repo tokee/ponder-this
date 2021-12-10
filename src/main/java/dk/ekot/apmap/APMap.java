@@ -55,7 +55,7 @@ public class APMap {
 
     public static void adHoc() {
         //int RUN[] = new int[]{214, 242, 305, 338};
-        int RUN[] = new int[]{118};
+        int RUN[] = new int[]{18};
         //int RUN[] = EDGES;
         //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
         //System.out.println(map); if (1==1) return;
