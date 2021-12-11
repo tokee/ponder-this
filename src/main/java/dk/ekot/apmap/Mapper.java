@@ -163,6 +163,37 @@ public class Mapper {
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
     }
 
+    /**
+     * Fast (aka uses arrayCopy) assignment all values from other Mapper to this Mapper. An in-place clone.
+     * Requires the other Mapper to have the same edge as this Mapper.
+     * @param other a Mapper with the same edge as this Mapper.
+     */
+    public void assign(Mapper other) {
+        if (other.edge != edge) {
+            throw new IllegalArgumentException(
+                    "Expected other Mapper to have edge " + edge + " but received " + other.edge);
+        }
+        copy(other.quadratic, quadratic);
+        copy(other.priority, priority);
+
+        copy(other.boardChanges, boardChanges);
+        copy(other.boardChangeIndexes, boardChangeIndexes);
+
+        System.arraycopy(other.tripleDeltas, 0, tripleDeltas, 0, other.tripleDeltas.length);
+
+        marked = other.marked;
+        neutrals = other.neutrals;
+        changeIndexPosition = other.changeIndexPosition;
+        completed = other.completed;
+        walkTimeMS = other.walkTimeMS;
+    }
+
+    // Special purpose copy. Don't use generally!
+    private void copy(int[] from, int[] to) {
+        if (from != null) {
+            System.arraycopy(from, 0, to, 0, from.length);
+        }
+    }
 
     // Even with bitmaps this is unrealistic: 22:29:01.663 [main] INFO dk.ekot.apmap.Mapper - CacheTriples: #elements is 2666895 with 1000519 valids. With a full bitmap for each valid that is 318083 MByte
     public void cacheTriplesEachPosTest() {

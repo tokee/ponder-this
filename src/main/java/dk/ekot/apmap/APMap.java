@@ -42,20 +42,28 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 33, 33}, {11, 79, 80}, {18, 140, 153}, {27, 236, 266}, {38, 386, 420},
-            {50, 505, 621}, {65, 768, 884}, {81, 907, 1193}, {98, 1185, 1512},
+            {2, 6, 6}, {6, 33, 33}, {11, 79, 80}, {18, 146, 153}, {27, 236, 266}, {38, 402, 420},
+            {50, 509, 621}, {65, 768, 884}, {81, 907, 1193}, {98, 1185, 1512},
             {118, 1579, 1973}, {139, 1854, 2418}, {162, 2027, 2921}, {187, 3072, 3518},
             {214, 3184, 4284}, {242, 3471, 5057}, {273, 4117, 5831},
             {305, 4801, 6753}, {338, 5743, 7783}, {374, 6042, 8962},
             {411, 6691, 10060}, {450, 7710, 11123}, {491, 8625, 12534},
-            {534, 10711, 14046}, {578, 12288, 15457}};
+            {534, 10768, 14046}, {578, 12288, 15457}};
+
+    public static final int[] IMPROVABLE = new int[]{
+            11, 18, 27, 38, 50, 65, 81, 98,
+            118, 139, 162, 187,
+            214, 242, 273,
+            305, 338, 374,
+            411, 450, 491,
+            534, 578};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
-
+    // 65: adHoc finished in 33223ms
     public static void adHoc() {
-        //int RUN[] = new int[]{214, 242, 305, 338};
-        int RUN[] = new int[]{18};
+        int RUN[] = new int[]{65};
+        //int RUN[] = IMPROVABLE;
         //int RUN[] = EDGES;
         //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
         //System.out.println(map); if (1==1) return;
@@ -63,7 +71,7 @@ public class APMap {
         //Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
 
-        Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 1000, 100)); if (1 == 1) return;
+        Arrays.stream(RUN).boxed().parallel().forEach(edge -> shuffleFromJSON(loadJSON(edge), 100, 100)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
@@ -107,7 +115,9 @@ public class APMap {
 
     public static void main(String[] args) {
         if (args.length == 0) {
+            long startTime = System.currentTimeMillis();
             adHoc();
+            System.out.println("adHoc finished in " + (System.currentTimeMillis()-startTime) + "ms");
             return;
         }
 
@@ -209,10 +219,10 @@ public class APMap {
             seed = random.nextInt();
             //int gained = board.shuffle2(seed, maxPermutations);
             //int gained = board.shuffle5(seed, Math.max(2, board.edge/2), 500, maxPermutations, -1);
-            int gained = board.shuffle6(seed, 5, maxPermutations, -10);
-            if (gained == 0) {
-                System.out.printf(Locale.ROOT, "edge=%3d, run=%3d/%d, marks=%d/%d (0 gained)\n",
-                                  board.edge, run+1, runs, board.getMarkedCount(), initial);
+            int gained = board.shuffle6(seed, 3, maxPermutations, -10);
+            if (gained == 0 || board.marked < best) {
+                System.out.printf(Locale.ROOT, "edge=%3d, run=%3d/%d, marks=%d/%d (%d gained)\n",
+                                  board.edge, run+1, runs, board.getMarkedCount(), initial, gained);
             } else {
                 System.out.printf(Locale.ROOT, "edge=%d, seed=%d, perms=%d, run=%d/%d gained %d with total %d/%d%s: %s\n",
                                   board.edge, seed, maxPermutations, run + 1, runs, gained, board.marked, initial,
@@ -233,7 +243,7 @@ public class APMap {
             System.out.println("--- " + board.marked);
         }
         System.out.printf(Locale.ROOT, "edge=%d, %s" +
-                                       "shuffle5(seed=%d, perms=%d): worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s\n",
+                                       "shuffle6(seed=%d, perms=%d): worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s\n",
                           board.edge, getPersonalbest(board.edge) < best ? "IMPROVEMENT " : "",
                           seed, maxPermutations, initial, worst, best, getPersonalbest(board.edge),
                           (System.currentTimeMillis() - startTime) / 1000, bestBoard.toJSON());
@@ -622,6 +632,13 @@ public class APMap {
     When delivering the triples, it must be checked that they are not INVALID.
 
     Update: Unit test testVisitTriplesSpeed shows this is no improvement over calculated
+
+    -----------------
+    Idea #23 20211211:
+
+    Make a snapshot-alternative to rollbacks that stores the full state of Mapper. One way would be to add an
+    assign(otherMap) method that requires the otherMap to have matching layout.
+
      */
 
 }
