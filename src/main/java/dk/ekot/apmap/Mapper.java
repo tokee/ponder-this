@@ -1191,6 +1191,135 @@ public class Mapper {
     }
 
     /**
+     * Shuffling by finding all ILLEGALS and sorting them randomly, then removing locing MARKERs for each ILLEGAL one
+     * at a time until the number of freed markers is {@code >= directFreed + minIndirectFreed}.
+     * The markers are refilled, starting with the indirectly freed, the marked delta is noted and a rollback is
+     * performed. The pos1/pos2 priority is primarily the ones with the lowest priority, secondarily the lowest index
+     * number.
+     * This goes on for maxTrials. If minGained is <= markedDelta, the permutation is applied to the board.
+     * @param seed used for the Random.
+     * @param minIndirectFreed the minimum number of indirectly freed markers before continuing.
+     * @param maxTrials the number of trials to run before selecting the best candidate.
+     * @param minGained at least this amount of marks must be gained in order to apply the best result.
+     * @return number of marks gained (can be negative).
+     */
+    public int shuffle6(int seed, int minIndirectFreed, int maxTrials, int minGained) {
+        final Random random = new Random(seed);
+
+        List<XYPos> locked = streamAllValid()
+                .filter(pos -> quadratic[pos] >= ILLEGAL)
+                .boxed()
+                .map(XYPos::new)
+                .collect(Collectors.toList());
+
+        int bestDelta = Integer.MIN_VALUE;
+        List<XYPos> bestLocked = null;
+
+        for (int trial = 0 ; trial < maxTrials ; trial++) {
+            Collections.shuffle(locked, random);
+            int delta = findDeltaForFreed(locked, minIndirectFreed, true);
+//            int delta2 = findDeltaForFreed(locked, minIndirectFreed, true);
+//            if (delta != delta2) {
+//                throw new IllegalStateException("Inconsistent delta: "+ delta + " vs " + delta2);
+//            }
+            if (delta > bestDelta) {
+                bestDelta = delta;
+                bestLocked = new ArrayList<>(locked);
+                if (delta != findDeltaForFreed(bestLocked, minIndirectFreed, true)) {
+                    System.out.println("//////////////////////////////");
+                }
+            }
+        }
+        if (bestDelta < minGained || bestLocked == null) {
+            return 0;
+        }
+        int returnDelta = findDeltaForFreed(bestLocked, minIndirectFreed, false);
+        if (returnDelta != bestDelta) {
+            System.out.println("Inconsistent behaviour: Expected returnDelta to be " + bestDelta + " but it was " + returnDelta);
+        }
+        return returnDelta;
+    }
+
+    private int findDeltaForFreed(List<XYPos> locked, int minIndirectFreed, boolean rollback) {
+        final boolean updatePriorities = true;
+        final int initialMarks = marked;
+        final int initialNeutrals = getNeutralCount();
+        if (initialNeutrals != 0) {
+            System.out.println("shuffle5: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
+        }
+        List<XYPos> explicitlyUnlocked = new ArrayList<>();
+        List<XYPos> removedMarkers = new ArrayList<>();
+
+        // Iterate until we have indirectly freed enough
+        for (XYPos lPos: locked) {
+            if (getNeutralCount() > initialNeutrals+explicitlyUnlocked.size()+removedMarkers.size()+minIndirectFreed) {
+                break;
+            }
+            explicitlyUnlocked.add(lPos);
+            visitTriples(lPos.x, lPos.y, (pos1, pos2) -> {
+                if (quadratic[pos1] != MARKER || quadratic[pos2] != MARKER) {
+                    return;
+                }
+                // TODO: Priorities doe snot get properly rolled back!
+                int mPos = pos1; //priority[pos1] < priority[pos2] ? pos1 : pos2;
+                removedMarkers.add(new XYPos(mPos));
+                removeMarker(mPos, updatePriorities);
+            });
+        }
+//        System.out.printf("marked=%d, initial=%d, removed=%d, minIndirectFreed=%d\n",
+//                          marked, initialMarks, removedMarkers.size(), minIndirectFreed);
+        //removedMarkers.forEach(pos -> System.out.print(pos + "(" + getQuadratic(pos) + ") "));
+        int delta = findDeltaForFreed(explicitlyUnlocked, removedMarkers, initialMarks, updatePriorities, rollback);
+        if (rollback && initialMarks != marked) {
+            throw new IllegalStateException(
+                    "Rollback was true so initial marks " + initialMarks + " should equal current marks " + marked);
+        }
+        return delta;
+    }
+
+    private int findDeltaForFreed(List<XYPos> explicitUnlocked, List<XYPos> removedMarkers,
+                                  int initialMarks, boolean updatePriorities, boolean rollback) {
+        // Find all indirectly freed elements
+        List<XYPos> indirectFreed = streamAllValid()
+                .filter(pos -> quadratic[pos] == NEUTRAL)
+                .boxed()
+                .map(XYPos::new)
+                .filter(pos -> !(explicitUnlocked.contains(pos) || removedMarkers.contains(pos)))
+                .collect(Collectors.toList());
+
+        // TODO: Why is Indirect always empty?
+//        System.out.printf("Indirect: %s\nExplicit: %s\nRemoved:  %s\n", indirectFreed, explicitUnlocked, removedMarkers);
+
+        List<XYPos> reMarkedTest =
+                Stream.concat(indirectFreed.stream(), Stream.concat(explicitUnlocked.stream(), removedMarkers.stream()))
+                        .filter(pos -> getQuadratic(pos) == NEUTRAL)
+                        .collect(Collectors.toList());
+//        System.out.println("---");
+//        System.out.println("RemovedMarkers " + removedMarkers);
+//        System.out.println("Remarktest " + reMarkedTest);
+
+
+        // Set markers prioritized by indirect, lightest and removed
+        List<XYPos> reMarked =
+                Stream.concat(indirectFreed.stream(), Stream.concat(explicitUnlocked.stream(), removedMarkers.stream()))
+                        .filter(pos -> getQuadratic(pos) == NEUTRAL)
+                        .peek(pos -> setMarker(pos, updatePriorities))
+                        .collect(Collectors.toList());
+
+        int freed = getMarkedCount() - initialMarks;
+        if (!rollback) {
+            return freed;
+        }
+        reMarked.stream()
+                .filter(pos -> getQuadratic(pos) == MARKER)
+                .forEach(pos -> removeMarker(pos, updatePriorities));
+        removedMarkers.stream()
+                .filter(pos -> getQuadratic(pos) == NEUTRAL)
+                .forEach(pos -> setMarker(pos, updatePriorities));
+        return freed;
+    }
+
+    /**
      * Shuffling by finding maxCandidates ILLEGALS randomly, removing the MARKERs locking the ILLEGALs and filling
      * up again, starting with the freed ILLEGALs.
      * This piggybacks on shuffle2.
@@ -1350,31 +1479,7 @@ public class Mapper {
                 .forEach(pos -> removeMarker(pos, true));
 
         // Find all indirectly freed elements
-        List<XYPos> indirectFreed = streamAllValid()
-                .boxed()
-                .map(XYPos::new)
-                .filter(pos -> !(locked.contains(pos) || removedMarkers.contains(pos)))
-                .collect(Collectors.toList());
-
-        // Set markers prioritized by indirect, lightest and removed
-        List<XYPos> reMarked =
-                Stream.concat(indirectFreed.stream(), Stream.concat(locked.stream(), removedMarkers.stream()))
-                .filter(pos -> getQuadratic(pos) == NEUTRAL)
-                .peek(pos -> setMarker(pos, true))
-                .collect(Collectors.toList());
-
-        int freed = getMarkedCount() - initialMarks;
-        if (!rollback) {
-            return freed;
-        }
-
-        reMarked.stream()
-                .filter(pos -> getQuadratic(pos) == MARKER)
-                .forEach(pos -> removeMarker(pos, true));
-        removedMarkers.stream()
-                .filter(pos -> getQuadratic(pos) == NEUTRAL)
-                .forEach(pos -> setMarker(pos, true));
-        return freed;
+        return Mapper.this.findDeltaForFreed(locked, removedMarkers, initialMarks, true, rollback);
     }
 
 
