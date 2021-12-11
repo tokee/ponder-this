@@ -85,6 +85,11 @@ public class Mapper {
 //    final long[][] tripleDeltasByColumn; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 //    final long[][] tripleDeltasByRow; // [deltaX1, deltaY1, deltaX2, deltaY2]*
 
+    // Closest radial triple candidates for the given column
+    private int[][] tripleColumnDeltasRadial;
+    // Triple intersect camdidates for the given column
+    private int[][] tripleColumnDeltasIntersect;
+
     int marked = 0;
     int neutrals;
     int changeIndexPosition = 0;
@@ -158,9 +163,9 @@ public class Mapper {
 //        this.tripleDeltasByColumn = Arrays.copyOf(other.tripleDeltasByColumn, other.tripleDeltasByColumn.length);
     }
 
-    // Wven with bitmaps this is unrealistic: 22:29:01.663 [main] INFO dk.ekot.apmap.Mapper - CacheTriples: #elements is 2666895 with 1000519 valids. With a full bitmap for each valid that is 318083 MByte
 
-    public void cacheTriples() {
+    // Even with bitmaps this is unrealistic: 22:29:01.663 [main] INFO dk.ekot.apmap.Mapper - CacheTriples: #elements is 2666895 with 1000519 valids. With a full bitmap for each valid that is 318083 MByte
+    public void cacheTriplesEachPosTest() {
 //        log.info("CacheTriples: #elements is " + width*height + " with " + valids + " valids. With a full " +
 //                 "bitmap for each valid that is " + ((long) valids * width * height / 8 / 1024 / 1024) + " MByte");
         // [pos][firstMarkers]
@@ -1685,6 +1690,117 @@ public class Mapper {
     }
 
     /**
+     * Iterate all triples connected to origo.
+     * @param origoX start X in the quadratic coordinate system.
+     * @param origoY start Y in the quadratic coordinate system.
+     */
+    public void visitTriplesCached(final int origoX, final int origoY, TripleCallback callback) {
+        final int origo = origoX + origoY*width;
+        final int max = quadratic.length;
+
+        if (tripleColumnDeltasIntersect == null) {
+            fillTripleRowDeltas();
+        }
+        final int[] deltasRadial = tripleColumnDeltasRadial[origoX];
+        final int[] deltasIntersect = tripleColumnDeltasIntersect[origoX];
+
+        // TODO: Fast skip to start
+        for (int i = 0 ; i < deltasRadial.length ; i++) {
+            final int delta = deltasRadial[i];
+            final int pos1 = origo + delta;
+            final int pos2 = pos1 + delta;
+            if (pos2 < 0 || pos2 >= max || quadratic[pos1] == INVALID || quadratic[pos2] == INVALID) {
+                continue;
+            }
+            callback.processValid(pos1, pos2);
+        }
+
+        for (int i = 0 ; i < deltasIntersect.length ; i++) {
+            final int delta = deltasIntersect[i];
+            final int pos1 = origo + delta;
+            final int pos2 = origo - delta;
+            if (pos1 < 0 || pos1 >= max || pos2 < 0 || pos2 >= max ||
+                quadratic[pos1] == INVALID || quadratic[pos2] == INVALID) {
+                continue;
+            }
+            callback.processValid(pos1, pos2);
+        }
+    }
+
+    /**
+     * Calculate all row deltas and store them as {@link #tripleColumnDeltasRadial} and
+     * {@link #tripleColumnDeltasIntersect}.
+     * @return the number of bytes used to hold the deltas.
+     */
+    public long fillTripleRowDeltas() {
+        log.debug("edge=" + edge + " Caching row triple deltas");
+        long bytes = 0;
+        tripleColumnDeltasRadial = new int[width][];
+        tripleColumnDeltasIntersect = new int[width][];
+        // TODO: Figure out how to do fast mirroring across vertical center
+        for (int column = 0 ; column < width ; column++) {
+            Pair<int[], int[]> deltas = getTripleDeltas(column);
+            tripleColumnDeltasRadial[column] = deltas.first;
+            tripleColumnDeltasIntersect[column] = deltas.second;
+            bytes += deltas.first.length*4L;
+            bytes += deltas.second.length*4L;
+        }
+        log.debug("edge=" + edge + " Row triple deltas ~= " + bytes/1048576 + " MB");
+        return bytes;
+    }
+
+    /**
+     * Calculate all possible radial triples (closest mark stored) and intersect triples (only one mark stored) for a
+     * given column. The caller must check for vertical boundary violations as well as ILLEGALs at the markers.
+     * @param column the column to calculate deltas for.
+     * @return {@code Pair<radial, intersect>} triples.
+     */
+    // TODO: Mirror when crossing vertical middle?
+    public Pair<int[], int[]> getTripleDeltas(int column) {
+        List<Integer> radial = new ArrayList<>();
+        List<Integer> intersect = new ArrayList<>();
+        // TODO: Can the width/2+1 be reduced a tiny bit? w3->1, w4->1, w5->2, w6->2, w7->3
+        for (int deltaX = 0 ; deltaX < width/2+1 ; deltaX++) {
+            // TODO: Make the boundary here smarter at the edges
+            for (int deltaY = 0; deltaY < height/2+1; deltaY++) {
+                if (deltaX == 0 && deltaY == 0) {
+                    continue;
+                }
+                if ((deltaX & 1) != (deltaY & 1)) { // Both must be odd or both must be even to hit only valids
+                    continue;
+                }
+
+                if (column-(deltaX*2) >= 0 && column-(deltaX*2) < width) { // Radial left is ok   && column+(deltaX*2) < width) { // Radial is ok
+                    // Top left -> bottom right
+                    radial.add(-deltaX - deltaY*width);
+                    if (deltaY != 0 && deltaX != 0) { // No need to rotate direction 180° if either x or y is 0
+                        // Bottom left -> top right
+                        radial.add(-deltaX + deltaY*width);
+                    }
+                }
+                if (column+(deltaX*2) >= 0 && column+(deltaX*2) < width) { // Radial right is ok
+                    // Top left -> bottom right
+                    radial.add(deltaX + deltaY*width);
+                    if (deltaY != 0 && deltaX != 0) { // No need to rotate direction 180° if either x or y is 0
+                        // Bottom left -> top right
+                        radial.add(deltaX - deltaY*width);
+                    }
+                }
+                if (column-deltaX >= 0 && column+deltaX < width) { // Intersect is ok
+                    intersect.add(-deltaX - deltaY*width);
+                    if (deltaY != 0 && deltaX != 0) { // No need to rotate direction 180° if either x or y is 0
+                        intersect.add(-deltaX + deltaY*width);
+                    }
+                }
+            }
+        }
+        Collections.sort(radial);
+        Collections.sort(intersect);
+        return new Pair<>(radial.stream().mapToInt(Integer::intValue).toArray(),
+                          intersect.stream().mapToInt(Integer::intValue).toArray());
+    }
+
+    /**
      * Provides stats for how the generic triples overlaps with ideal (position specific) triples
      * edge=578, valids=1000519, uniqueDeltas=2001903, sumDeltas=375388224777, minDeltas=249700, averageDeltas=375193, maxDeltas=749955, time=18681s
      */
@@ -1843,7 +1959,7 @@ public class Mapper {
         return String.format(Locale.ROOT, "(%d, %d)", pos/width, pos%width);
     }
     /**
-     * Iterate all triples radiating out from origo.
+     * Iterate all triples radiating out from origo. Delivered pos1 is furthest away from origo, pos2 is closest.
      * @param origoX start X in the quadratic coordinate system.
      * @param origoY start Y in the quadratic coordinate system.
      */
@@ -2063,6 +2179,17 @@ public class Mapper {
         public Pair(T first, S second) {
             this.first = first;
             this.second = second;
+        }
+    }
+    public static class Triple<S, T, U> {
+        public final S first;
+        public final T second;
+        public final U thirt;
+
+        public Triple(S first, T second, U thirt) {
+            this.first = first;
+            this.second = second;
+            this.thirt = thirt;
         }
     }
 }

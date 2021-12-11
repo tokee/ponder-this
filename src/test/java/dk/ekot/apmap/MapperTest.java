@@ -3,6 +3,10 @@ package dk.ekot.apmap;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /*
@@ -323,6 +327,112 @@ public class MapperTest extends TestCase {
     }
 
     public void testCacheTriples() {
-        new Mapper(578).cacheTriples();
+        new Mapper(578).cacheTriplesEachPosTest();
+    }
+
+    public void testGetTripleDeltasDebug2() {
+        Mapper board = new Mapper(2);
+        Mapper.Pair<int[], int[]> deltas = board.getTripleDeltas(2);
+        System.out.printf(Locale.ROOT, "edge=%d, width=%d, height=%d, radial=%s, intersect=%s",
+                          board.edge, board.width, board.height,
+                          Arrays.toString(deltas.first), Arrays.toString(deltas.second));
+    }
+    public void testGetTripleDeltas() {
+        Mapper board = new Mapper(576);
+        long memory = 0;
+        // Divide by 2 and multiply by 2 as the board is symmetric
+        for (int column = 0 ; column < board.width/2 ; column++) {
+            Mapper.Pair<int[], int[]> triples = board.getTripleDeltas(column);
+            memory += ((long) triples.first.length + triples.second.length) * 4 * 2;
+        }
+        System.out.println("Total mem: " + memory/1048576 + " MB");
+    }
+
+    public void testVisitTriplesCache() {
+        {
+            Mapper board = new Mapper(2);
+            System.out.println(board);
+            board.fillTripleRowDeltas();
+            board.setQuadratic(2, 1, Mapper.MARKER);
+
+            board.visitTriples(2, 1, (pos1, pos2) -> {
+                System.out.printf("calc origo=(%d, %d), pos1=(%d, %d), pos2=(%d, %d)\n",
+                                  2, 1, pos1 % board.width, pos1 / board.width, pos2 % board.width, pos2 / board.width);
+                board.quadratic[pos1] = Mapper.ILLEGAL;
+                board.quadratic[pos2] = Mapper.ILLEGAL;
+
+            });
+            System.out.println(board);
+        }
+        System.out.println("----------");
+
+        {
+            Mapper board = new Mapper(2);
+            board.fillTripleRowDeltas();
+            board.setQuadratic(2, 1, Mapper.MARKER);
+            board.visitTriplesCached(2, 1, (pos1, pos2) -> {
+                System.out.printf("cached origo=(%d, %d), pos1=(%d, %d), pos2=(%d, %d)\n",
+                                  2, 1, pos1 % board.width, pos1 / board.width, pos2 % board.width, pos2 / board.width);
+                board.quadratic[pos1] = Mapper.ILLEGAL;
+                board.quadratic[pos2] = Mapper.ILLEGAL;
+            });
+            System.out.println(board);
+        }
+    }
+    public void testVisitTriplesSpeed() {
+        int edge = 200;
+        int runs = 3;
+
+        Mapper board = new Mapper(edge);
+        board.fillTripleRowDeltas();
+        AtomicLong sum = new AtomicLong(0);
+        //System.out.println(board);
+        final int seed = 87;
+        final double fraction = 0.001;
+        for (int run = 0 ; run < runs ; run++) {
+//            System.out.printf("edge=%d, run=%d/%d\n", edge, run+1, runs);
+            AtomicLong calcCount = new AtomicLong(0);
+            AtomicLong cacheCount = new AtomicLong(0);
+            long calcMS = 0;
+            long cacheMS = 0;
+
+
+            calcMS -= System.currentTimeMillis();
+            Random random = new Random(seed);
+            board.visitAllXY((x, y) -> {
+                if (random.nextDouble() > fraction) {
+                    return;
+                }
+                board.visitTriples(x, y, (pos1, pos2) -> {
+                    calcCount.incrementAndGet();
+//                    System.out.printf("calc origo=(%d, %d), pos1=(%d, %d), pos2=(%d, %d)\n",
+//                                      x, y, pos1%board.width, pos1/board.width, pos2%board.width, pos2/board.width);
+                    sum.addAndGet(pos1 + pos2 + board.quadratic[pos1] + board.quadratic[pos2]);
+                });
+            });
+            calcMS += System.currentTimeMillis();
+
+//            System.out.println("------------------------");
+
+            cacheMS -= System.currentTimeMillis();
+            Random random2 = new Random(seed);
+            board.visitAllXY((x, y) -> {
+                if (random2.nextDouble() > fraction) {
+                    return;
+                }
+                board.visitTriplesCached(x, y, (pos1, pos2) -> {
+                    cacheCount.incrementAndGet();
+//                    System.out.printf("cache origo=(%d, %d), pos1=(%d, %d), pos2=(%d, %d)\n",
+//                                      x, y, pos1%board.width, pos1/board.width, pos2%board.width, pos2/board.width);
+                    sum.addAndGet(pos1 + pos2 + board.quadratic[pos1] + board.quadratic[pos2]);
+                });
+            });
+            cacheMS += System.currentTimeMillis();
+
+//            System.out.println("**************************************************************");
+            System.out.printf(Locale.ROOT, "edge=%d, run=%d, calc=%dms (calls=%d), cache=%dms (calls=%d)\n",
+                              edge, run, calcMS, calcCount.get(), cacheMS, cacheCount.get());
+        }
+
     }
 }

@@ -45,7 +45,7 @@ public class APMap {
             {2, 6, 6}, {6, 33, 33}, {11, 78, 80}, {18, 140, 153}, {27, 236, 266}, {38, 386, 420},
             {50, 505, 621}, {65, 768, 884}, {81, 907, 1193}, {98, 1185, 1512},
             {118, 1579, 1973}, {139, 1854, 2418}, {162, 2027, 2921}, {187, 3072, 3518},
-            {214, 3072, 4284}, {242, 3471, 5057}, {273, 4117, 5831},
+            {214, 3184, 4284}, {242, 3471, 5057}, {273, 4117, 5831},
             {305, 4801, 6753}, {338, 5743, 7783}, {374, 6042, 8962},
             {411, 6691, 10060}, {450, 7710, 11123}, {491, 8625, 12534},
             {534, 10711, 14046}, {578, 12288, 15457}};
@@ -611,9 +611,14 @@ public class APMap {
 
     Look at current solutions, select no-go areas for marks, attempt to place marks that optimizes locking the no-gos.
     
+    -----------------
+    Idea #22 20211210:
 
-
-    Instead of
+    Cache triple-finding by only caching deltas and only storing all possible index deltas for each column.
+    Store only the closest triple point for each entry.
+    Sort the deltas, making it fast to skip deltas where index+(delta<<1) < 0 and stop using deltas where
+    index+(delta<<1) > width*height.
+    When delivering the triples, it must be checked that they are not INVALID.
 
      */
 
