@@ -219,7 +219,7 @@ public class APMap {
             seed = random.nextInt();
             //int gained = board.shuffle2(seed, maxPermutations);
             //int gained = board.shuffle5(seed, Math.max(2, board.edge/2), 500, maxPermutations, -1);
-            int gained = board.shuffle6(seed, 3, maxPermutations, -10);
+            int gained = board.shuffle7(seed, 3, maxPermutations, -10);
             if (gained == 0 || board.marked < best) {
                 System.out.printf(Locale.ROOT, "edge=%3d, run=%3d/%d, marks=%d/%d (%d gained)\n",
                                   board.edge, run+1, runs, board.getMarkedCount(), initial, gained);
@@ -243,7 +243,7 @@ public class APMap {
             System.out.println("--- " + board.marked);
         }
         System.out.printf(Locale.ROOT, "edge=%d, %s" +
-                                       "shuffle6(seed=%d, perms=%d): worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s\n",
+                                       "shuffle7(seed=%d, perms=%d): worst=%d, initial=%d, best=%d, allTimeBest=%d, time=%ss: %s\n",
                           board.edge, getPersonalbest(board.edge) < best ? "IMPROVEMENT " : "",
                           seed, maxPermutations, initial, worst, best, getPersonalbest(board.edge),
                           (System.currentTimeMillis() - startTime) / 1000, bestBoard.toJSON());

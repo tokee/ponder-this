@@ -168,7 +168,7 @@ public class Mapper {
      * Requires the other Mapper to have the same edge as this Mapper.
      * @param other a Mapper with the same edge as this Mapper.
      */
-    public void assign(Mapper other) {
+    public void assignFrom(Mapper other) {
         if (other.edge != edge) {
             throw new IllegalArgumentException(
                     "Expected other Mapper to have edge " + edge + " but received " + other.edge);
@@ -1248,7 +1248,7 @@ public class Mapper {
 
         for (int trial = 0 ; trial < maxTrials ; trial++) {
             Collections.shuffle(locked, random);
-            int delta = findDeltaForFreed(locked, minIndirectFreed, true);
+            int delta = findDeltaForFreedA(locked, minIndirectFreed, true, true);
 //            int delta2 = findDeltaForFreed(locked, minIndirectFreed, true);
 //            if (delta != delta2) {
 //                throw new IllegalStateException("Inconsistent delta: "+ delta + " vs " + delta2);
@@ -1261,15 +1261,63 @@ public class Mapper {
         if (bestDelta < minGained || bestLocked == null) {
             return 0;
         }
-        int returnDelta = findDeltaForFreed(bestLocked, minIndirectFreed, false);
+        int returnDelta = findDeltaForFreedA(bestLocked, minIndirectFreed, false, true);
         if (returnDelta != bestDelta) {
             System.out.println("Inconsistent behaviour: Expected returnDelta to be " + bestDelta + " but it was " + returnDelta);
         }
         return returnDelta;
     }
 
-    private int findDeltaForFreed(List<XYPos> locked, int minIndirectFreed, boolean rollback) {
-        final boolean updatePriorities = true;
+    /**
+     * Speed-optimized version of shuffle6.
+     *
+     * Shuffling by finding all ILLEGALS and sorting them randomly, then removing locing MARKERs for each ILLEGAL one
+     * at a time until the number of freed markers is {@code >= directFreed + minIndirectFreed}.
+     * The markers are refilled, starting with the indirectly freed, the marked delta is noted and a rollback is
+     * performed. The pos1/pos2 priority is primarily the ones with the lowest priority, secondarily the lowest index
+     * number.
+     * This goes on for maxTrials. If minGained is <= markedDelta, the permutation is applied to the board.
+     * @param seed used for the Random.
+     * @param minIndirectFreed the minimum number of indirectly freed markers before continuing.
+     * @param maxTrials the number of trials to run before selecting the best candidate.
+     * @param minGained at least this amount of marks must be gained in order to apply the best result.
+     * @return number of marks gained (can be negative).
+     */
+    public int shuffle7(int seed, int minIndirectFreed, int maxTrials, int minGained) {
+        final Random random = new Random(seed);
+
+        List<XYPos> locked = streamAllValid()
+                .filter(pos -> quadratic[pos] >= ILLEGAL)
+                .boxed()
+                .map(XYPos::new)
+                .collect(Collectors.toList());
+
+        final Mapper initial = copy(false);
+        final Mapper best = copy(false);
+        int bestDelta = Integer.MIN_VALUE;
+
+        for (int trial = 0 ; trial < maxTrials ; trial++) {
+            Collections.shuffle(locked, random);
+            int delta = findDeltaForFreedA(locked, minIndirectFreed, false, false);
+//            int delta2 = findDeltaForFreed(locked, minIndirectFreed, true);
+//            if (delta != delta2) {
+//                throw new IllegalStateException("Inconsistent delta: "+ delta + " vs " + delta2);
+//            }
+            if (delta > bestDelta) {
+                bestDelta = delta;
+                best.assignFrom(this);
+            }
+            this.assignFrom(initial); // Reset for new trial
+        }
+        if (bestDelta < minGained) {
+            return 0;
+        }
+        this.assignFrom(best);
+        return bestDelta;
+    }
+
+    private int findDeltaForFreedA(
+            List<XYPos> locked, int minIndirectFreed, boolean rollback, boolean updatePriorities) {
         final int initialMarks = marked;
         final int initialNeutrals = getNeutralCount();
         if (initialNeutrals != 0) {
