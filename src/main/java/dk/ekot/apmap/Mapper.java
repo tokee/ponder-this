@@ -1256,9 +1256,6 @@ public class Mapper {
             if (delta > bestDelta) {
                 bestDelta = delta;
                 bestLocked = new ArrayList<>(locked);
-                if (delta != findDeltaForFreed(bestLocked, minIndirectFreed, true)) {
-                    System.out.println("//////////////////////////////");
-                }
             }
         }
         if (bestDelta < minGained || bestLocked == null) {
