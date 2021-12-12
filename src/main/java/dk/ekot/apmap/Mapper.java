@@ -169,6 +169,7 @@ public class Mapper {
      * @param other a Mapper with the same edge as this Mapper.
      */
     public void assignFrom(Mapper other) {
+//    public void assignFrom(Mapper other, boolean assignPriorities, boolean assignChanges, boolean assignDeltas) {
         if (other.edge != edge) {
             throw new IllegalArgumentException(
                     "Expected other Mapper to have edge " + edge + " but received " + other.edge);
@@ -1336,8 +1337,8 @@ public class Mapper {
                 if (quadratic[pos1] != MARKER || quadratic[pos2] != MARKER) {
                     return;
                 }
-                // TODO: Priorities doe snot get properly rolled back!
-                int mPos = pos1; //priority[pos1] < priority[pos2] ? pos1 : pos2;
+                // TODO: Priorities does not get properly rolled back, so we can only select properly if not updating priorities
+                int mPos = updatePriorities ? pos1 : priority[pos1] < priority[pos2] ? pos1 : pos2;
                 removedMarkers.add(new XYPos(mPos));
                 removeMarker(mPos, updatePriorities);
             });
@@ -1366,10 +1367,10 @@ public class Mapper {
         // TODO: Why is Indirect always empty?
 //        System.out.printf("Indirect: %s\nExplicit: %s\nRemoved:  %s\n", indirectFreed, explicitUnlocked, removedMarkers);
 
-        List<XYPos> reMarkedTest =
-                Stream.concat(indirectFreed.stream(), Stream.concat(explicitUnlocked.stream(), removedMarkers.stream()))
-                        .filter(pos -> getQuadratic(pos) == NEUTRAL)
-                        .collect(Collectors.toList());
+//        List<XYPos> reMarkedTest =
+//                Stream.concat(indirectFreed.stream(), Stream.concat(explicitUnlocked.stream(), removedMarkers.stream()))
+//                        .filter(pos -> getQuadratic(pos) == NEUTRAL)
+//                        .collect(Collectors.toList());
 //        System.out.println("---");
 //        System.out.println("RemovedMarkers " + removedMarkers);
 //        System.out.println("Remarktest " + reMarkedTest);
