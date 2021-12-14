@@ -798,6 +798,9 @@ public class Mapper {
      */
     // TODO: Introduce visitRotated instead
     public void fillRotated(int x, int y, int[] positions, int start) {
+
+        // https://gamedev.stackexchange.com/questions/15237/how-do-i-rotate-a-structure-of-hexagonal-tiles-on-a-hexagonal-grid
+        // https://www.redblobgames.com/grids/hexagons/#rotation
         // Translate quadratical coordinates so that they are relative to center
         int centerX = width/2;
         int centerY = height/2;
@@ -1118,6 +1121,44 @@ public class Mapper {
     }
 
     /**
+     * Marks the given quadratic (x, y).
+     * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
+     * a triple (arithmetic progression). The fields are updated with {}@link #ILLEGAL}.
+     * This updates {@link #marked} and {@link #neutrals}.
+     *
+     * Cached version of {@link #setMarker(int, boolean)} that does not update priorities.
+     * @param origoPos quadratic index
+     */
+    public void setMarkerCached(final int origoPos) {
+        if (quadratic[origoPos] != NEUTRAL) {
+            throw new IllegalStateException(
+                    "Attempted to mark (" + origoPos%width + ", " + origoPos/width + ") bit but it already had state " +
+                    quadratic[origoPos]);
+        }
+
+        quadratic[origoPos] = MARKER;
+        ++marked;
+        --neutrals;
+
+        visitTriplesCached(origoPos, (pos1, pos2) -> {
+            final int pos1Element = quadratic[pos1];
+            final int pos2Element = quadratic[pos2];
+
+            if (pos1Element == MARKER) { // pos2element is either NEUTRAL (0) or ILLEGAL (5+) // && pos2Element == NEUTRAL) {
+                quadratic[pos2] += ILLEGAL;
+                if (pos2Element == NEUTRAL) {
+                    --neutrals;
+                }
+            } else if (pos2Element == MARKER) { // && pos1Element == NEUTRAL) {
+                quadratic[pos1] += ILLEGAL;
+                if (pos1Element == NEUTRAL) {
+                    --neutrals;
+                }
+            }
+        });
+    }
+
+    /**
      * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
      * Warning: Slow as it uses division and modulo.
      * @param pos quadratic coordinates.
@@ -1153,6 +1194,37 @@ public class Mapper {
         ++neutrals;
 
         visitTriples(x, y, (pos1, pos2) -> {
+            if (quadratic[pos1] >= ILLEGAL && quadratic[pos2] == MARKER) {
+                quadratic[pos1] -= ILLEGAL;
+                if (quadratic[pos1] == NEUTRAL) {
+                    ++neutrals;
+                }
+            }
+            if (quadratic[pos2] >= ILLEGAL && quadratic[pos1] == MARKER) {
+                quadratic[pos2] -= ILLEGAL;
+                if (quadratic[pos2] == NEUTRAL) {
+                    ++neutrals;
+                }
+            }
+        });
+    }
+
+    /**
+     * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
+     * This is a cahced version of {@link #removeMarker(int, int, boolean)} without priority support.
+     * @param pos quadratic index.
+     */
+    public void removeMarkerCached(int pos) {
+        if (quadratic[pos] != MARKER) {
+            throw new IllegalStateException(
+                    "Tried removing MARKER from (" + pos%width + ", " + pos/width + ") but it was " +
+                    quadratic[pos] + " instead of the expected " + MARKER);
+        }
+        quadratic[pos] = NEUTRAL;
+        --marked;
+        ++neutrals;
+
+        visitTriplesCached(pos, (pos1, pos2) -> {
             if (quadratic[pos1] >= ILLEGAL && quadratic[pos2] == MARKER) {
                 quadratic[pos1] -= ILLEGAL;
                 if (quadratic[pos1] == NEUTRAL) {
@@ -1270,7 +1342,54 @@ public class Mapper {
     }
 
     /**
-     * Speed-optimized version of shuffle6.
+     * Caching-based version of shuffle7 that strived to avoid coordinate system conversions.
+     *
+     * Shuffling by finding all ILLEGALS and sorting them randomly, then removing locing MARKERs for each ILLEGAL one
+     * at a time until the number of freed markers is {@code >= directFreed + minIndirectFreed}.
+     * The markers are refilled, starting with the indirectly freed, the marked delta is noted and a rollback is
+     * performed. The pos1/pos2 priority is primarily the ones with the lowest priority, secondarily the lowest index
+     * number.
+     * This goes on for maxTrials. If minGained is <= markedDelta, the permutation is applied to the board.
+     * @param seed used for the Random.
+     * @param minIndirectFreed the minimum number of indirectly freed markers before continuing.
+     * @param maxTrials the number of trials to run before selecting the best candidate.
+     * @param minGained at least this amount of marks must be gained in order to apply the best result.
+     * @return number of marks gained (can be negative).
+     */
+    public int shuffle8(int seed, int minIndirectFreed, int maxTrials, int minGained) {
+        final Random random = new Random(seed);
+
+        List<Integer> locked = streamAllValid()
+                .filter(pos -> quadratic[pos] >= ILLEGAL)
+                .boxed()
+                .collect(Collectors.toList());
+
+        final Mapper initial = copy(false);
+        final Mapper best = copy(false);
+        int bestDelta = Integer.MIN_VALUE;
+
+        for (int trial = 0 ; trial < maxTrials ; trial++) {
+            Collections.shuffle(locked, random);
+            int delta = findDeltaForFreedCached(locked, minIndirectFreed);
+//            int delta2 = findDeltaForFreed(locked, minIndirectFreed, true);
+//            if (delta != delta2) {
+//                throw new IllegalStateException("Inconsistent delta: "+ delta + " vs " + delta2);
+//            }
+            if (delta > bestDelta) {
+                bestDelta = delta;
+                best.assignFrom(this);
+            }
+            this.assignFrom(initial); // Reset for new trial
+        }
+        if (bestDelta < minGained) {
+            return 0;
+        }
+        this.assignFrom(best);
+        return bestDelta;
+    }
+
+    /**
+     * Speed-optimized version of shuffle6 by using snapshot functionality instead of rollback.
      *
      * Shuffling by finding all ILLEGALS and sorting them randomly, then removing locing MARKERs for each ILLEGAL one
      * at a time until the number of freed markers is {@code >= directFreed + minIndirectFreed}.
@@ -1338,7 +1457,8 @@ public class Mapper {
                     return;
                 }
                 // TODO: Priorities does not get properly rolled back, so we can only select properly if not updating priorities
-                int mPos = updatePriorities ? pos1 : priority[pos1] < priority[pos2] ? pos1 : pos2;
+                // TODO: Randomize here instead of choosing
+                int mPos = updatePriorities ? pos1 : priority[pos1] > priority[pos2] ? pos1 : pos2;
                 removedMarkers.add(new XYPos(mPos));
                 removeMarker(mPos, updatePriorities);
             });
@@ -1354,15 +1474,47 @@ public class Mapper {
         return delta;
     }
 
+    // Index based version of findDeltaForFreedA without rollback & priorities
+    private int findDeltaForFreedCached(List<Integer> locked, int minIndirectFreed) {
+        final int initialMarks = marked;
+        final int initialNeutrals = getNeutralCount();
+        if (initialNeutrals != 0) {
+            System.out.println("shuffle5: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
+        }
+        // TODO: Consider using dedicated int[] backed structure
+        List<Integer> explicitlyUnlocked = new ArrayList<>();
+        List<Integer> removedMarkers = new ArrayList<>();
+
+        // Iterate until we have indirectly freed enough
+        for (Integer lPos: locked) {
+            if (getNeutralCount() > initialNeutrals+explicitlyUnlocked.size()+removedMarkers.size()+minIndirectFreed) {
+                break;
+            }
+            explicitlyUnlocked.add(lPos);
+            visitTriplesCached(lPos, (pos1, pos2) -> {
+                if (quadratic[pos1] != MARKER || quadratic[pos2] != MARKER) {
+                    return;
+                }
+                // TODO: Randomize here instead of choosing
+                int mPos = priority[pos1] > priority[pos2] ? pos1 : pos2;
+                removedMarkers.add(mPos);
+                removeMarkerCached(mPos);
+            });
+        }
+//        System.out.printf("marked=%d, initial=%d, removed=%d, minIndirectFreed=%d\n",
+//                          marked, initialMarks, removedMarkers.size(), minIndirectFreed);
+        //removedMarkers.forEach(pos -> System.out.print(pos + "(" + getQuadratic(pos) + ") "));
+        return findDeltaForFreedCached(explicitlyUnlocked, removedMarkers, initialMarks);
+    }
+
     private int findDeltaForFreed(List<XYPos> explicitUnlocked, List<XYPos> removedMarkers,
                                   int initialMarks, boolean updatePriorities, boolean rollback) {
         // Find all indirectly freed elements
-        List<XYPos> indirectFreed = streamAllValid()
+        Stream<XYPos> indirectFreed = streamAllValid()
                 .filter(pos -> quadratic[pos] == NEUTRAL)
                 .boxed()
                 .map(XYPos::new)
-                .filter(pos -> !(explicitUnlocked.contains(pos) || removedMarkers.contains(pos)))
-                .collect(Collectors.toList());
+                .filter(pos -> !(explicitUnlocked.contains(pos) || removedMarkers.contains(pos)));
 
         // TODO: Why is Indirect always empty?
 //        System.out.printf("Indirect: %s\nExplicit: %s\nRemoved:  %s\n", indirectFreed, explicitUnlocked, removedMarkers);
@@ -1375,13 +1527,13 @@ public class Mapper {
 //        System.out.println("RemovedMarkers " + removedMarkers);
 //        System.out.println("Remarktest " + reMarkedTest);
 
+        Stream<XYPos> directFreed = Stream.concat(explicitUnlocked.stream(), removedMarkers.stream());
 
         // Set markers prioritized by indirect, lightest and removed
-        List<XYPos> reMarked =
-                Stream.concat(indirectFreed.stream(), Stream.concat(explicitUnlocked.stream(), removedMarkers.stream()))
-                        .filter(pos -> getQuadratic(pos) == NEUTRAL)
-                        .peek(pos -> setMarker(pos, updatePriorities))
-                        .collect(Collectors.toList());
+        List<XYPos> reMarked = Stream.concat(indirectFreed, directFreed)
+                .filter(pos -> getQuadratic(pos) == NEUTRAL)
+                .peek(pos -> setMarker(pos, updatePriorities))
+                .collect(Collectors.toList());
 
         int freed = getMarkedCount() - initialMarks;
         if (!rollback) {
@@ -1394,6 +1546,22 @@ public class Mapper {
                 .filter(pos -> getQuadratic(pos) == NEUTRAL)
                 .forEach(pos -> setMarker(pos, updatePriorities));
         return freed;
+    }
+
+    private int findDeltaForFreedCached(List<Integer> explicitUnlocked, List<Integer> removedMarkers, int initialMarks) {
+        // Find all indirectly freed elements
+        Stream<Integer> indirectFreed = streamAllValid()
+                .filter(pos -> quadratic[pos] == NEUTRAL)
+                .filter(pos -> !(explicitUnlocked.contains(pos) || removedMarkers.contains(pos)))
+                .boxed();
+        Stream<Integer> directFreed = Stream.concat(explicitUnlocked.stream(), removedMarkers.stream());
+
+        // Set markers prioritized by indirect, lightest and removed
+        Stream.concat(indirectFreed, directFreed)
+                .filter(pos -> quadratic[pos] == NEUTRAL)
+                .forEach(this::setMarkerCached);
+
+        return getMarkedCount() - initialMarks;
     }
 
     /**
@@ -1873,12 +2041,24 @@ public class Mapper {
 
     /**
      * Iterate all triples connected to origo.
+     * @param origo index into quadratic.
+     */
+    public void visitTriplesCached(final int origo, TripleCallback callback) {
+        visitTriplesCached(origo%width, origo/width, callback);
+    }
+    /**
+     * Iterate all triples connected to origo.
      * @param origoX start X in the quadratic coordinate system.
      * @param origoY start Y in the quadratic coordinate system.
      */
     public void visitTriplesCached(final int origoX, final int origoY, TripleCallback callback) {
         final int origo = origoX + origoY*width;
         final int max = quadratic.length;
+
+        if (origoX >= width || origoY >= height) {
+            throw new IllegalArgumentException(
+                    "board is (" + width + ", " + height + ") but origo (" + origoX + ", " + origoY + ") was requested");
+        }
 
         if (tripleColumnDeltasIntersect == null) {
             fillTripleRowDeltas();
@@ -1891,6 +2071,10 @@ public class Mapper {
             final int delta = deltasRadial[i];
             final int pos1 = origo + delta;
             final int pos2 = pos1 + delta;
+//            if (pos2 < max && pos1 > max) {
+//                System.out.printf("origo=%d/%s, pos1=%d/%s, pos2=%d/%s, delta=%d\n",
+//                                  origo, new XYPos(origo), pos1, new XYPos(pos1), pos2, new XYPos(pos2), delta);
+//            }
             if (pos2 < 0 || pos2 >= max || quadratic[pos1] == INVALID || quadratic[pos2] == INVALID) {
                 continue;
             }
@@ -2322,6 +2506,7 @@ public class Mapper {
                     default:
                         int red = Math.min(255, 64 + element);
                         bi.setRGB(x, y, red << 16);
+                        //bi.setRGB(x, y, 0x999999);
                         break;
                 }
             }

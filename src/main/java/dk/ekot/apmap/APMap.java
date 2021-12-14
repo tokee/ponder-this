@@ -32,48 +32,47 @@ import java.util.stream.Collectors;
 public class APMap {
     private static final Logger log = LoggerFactory.getLogger(APMap.class);
 
+    public enum SHUFFLE_IMPL {s7, s8;
+
+        public static SHUFFLE_IMPL getDefault() {
+            return s7;
+        }
+    };
+
     public static final int[] EDGES = new int[]{
-            2, 6, 11, 18, 27, 38, 50, 65, 81, 98,
-            118, 139, 162, 187,
-            214, 242, 273,
-            305, 338, 374,
-            411, 450, 491,
-            534, 578};
+            2, 6, 11, 18, 27, 38, 50, 65, 81, 98, 118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 33, 33}, {11, 79, 80}, {18, 147, 153}, {27, 240, 266}, {38, 402, 420},
-            {50, 518, 621}, {65, 768, 884}, {81, 926, 1193}, {98, 1200, 1512},
-            {118, 1620, 1973}, {139, 1884, 2418}, {162, 2039, 2921}, {187, 3072, 3518},
-            {214, 3184, 4284}, {242, 3487, 5057}, {273, 4141, 5831},
-            {305, 4827, 6753}, {338, 5838, 7783}, {374, 6102, 8962},
-            {411, 6738, 10060}, {450, 7750, 11123}, {491, 8668, 12534},
-            {534, 10815, 14046}, {578, 12288, 15457}};
+            {2, 6, 6}, {6, 33, 33}, {11, 80, 80}, {18, 149, 153}, {27, 244, 266}, {38, 413, 420},
+            {50, 548, 621}, {65, 772, 884}, {81, 942, 1193}, {98, 1258, 1512},
+            {118, 1716, 1973}, {139, 2001, 2418}, {162, 2274, 2921}, {187, 3072, 3518},
+            {214, 3222, 4284}, {242, 3565, 5057}, {273, 4190, 5831},
+            {305, 4902, 6753}, {338, 5944, 7783}, {374, 6256, 8962},
+            {411, 6877, 10062}, {450, 7831, 11152}, {491, 8787, 12610},
+            {534, 10896, 14108}, {578, 12293, 15643}};
 
     public static final int[] IMPROVABLE = new int[]{
-            11, 18, 27, 38, 50, 65, 81, 98,
-            118, 139, 162, 187,
-            214, 242, 273,
-            305, 338, 374,
-            411, 450, 491,
-            534, 578};
+            18, 27, 38, 50, 65, 81, 98, 118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
 
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
     // 65: adHoc finished in 33223ms
     public static void adHoc(String args[]) {
-        int RUN[] = new int[]{50};
+        int RUN[] = new int[]{578};
         //int RUN[] = IMPROVABLE;
         //int RUN[] = EDGES;
         //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
+        //APMap.saveImage(578); if (1==1) return;
         //System.out.println(map); if (1==1) return;
         
         //Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
+        //dumpRelativePosition(); if (1==1) return;
 
-
+        // 110s with s7
         Arrays.stream(RUN).boxed().parallel()
                 .map(APMap::loadJSON)
-                .forEach(json -> shuffleFromJSON(json, 100, 1000, 3, -10)); if (1 == 1) return;
+                .forEach(json -> shuffleFromJSON(json, 500, 200, 10, -10, SHUFFLE_IMPL.s7)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
@@ -85,58 +84,12 @@ public class APMap {
         //System.out.println(new Mapper(3)); if (1==1) return;
         //        new APMap().go(6, 10000000);
 
-        //Arrays.stream(TASKS).
-          //      boxed().
-            //    forEach(task -> new Mapper(task).dumpDeltaStats());
-        //new Mapper(140).dumpDeltaStats(); if (1==1) return;
-        // edge=100, valids=29701, uniqueDeltas=59550, sumDeltas=330772500, minDeltas=7354, averageDeltas=11136, maxDeltas=22200, time=6s
-        // edge=120, valids=42841, uniqueDeltas=85860, sumDeltas=688208400, minDeltas=10624, averageDeltas=16064, maxDeltas=32040, time=14s
-        // edge=140, valids=58381, uniqueDeltas=116970, sumDeltas=1278062100, minDeltas=14494, averageDeltas=21891, maxDeltas=43680, time=24s
-
-        //System.out.println(new APMap().goQuadratic(65, 10_000, true, 2_000)); if (1==1) return;
-        //processRemaining(1_000);
-
         // 118 + 139 responds well to pre-filled priority, 162 + 187 does not
 
 
         boolean SHOW_BEST = true;
 
         testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
-    }
-
-    // Arguments: "s7" <runs> <permutations> <minIndirect> <minGained> <edge*>
-    public static void shuffle7(String args[]) {
-        if (args.length < 6) {
-            System.out.println("shuffle7: \"s7\" <runs> <permutations> <minIndirect> <minGained> <edge*>");
-            return;
-        }
-        int index = 1;
-        int runs = Integer.parseInt(args[index++]);
-        int permutations = Integer.parseInt(args[index++]);
-        int minIndirects = Integer.parseInt(args[index++]);
-        int minGained = Integer.parseInt(args[index++]);
-
-        int[] edges = new int[args.length-index];
-        for (int i = index ; i < args.length ; i++) {
-            edges[i-index] = Integer.parseInt(args[i]);
-        }
-
-        System.out.printf(Locale.ROOT, "shuffle7: runs=%d, permutations=%d, minIndirects=%d, minGained=%d, edges=%s\n",
-                          runs, permutations, minIndirects, minGained, Arrays.toString(edges));
-        Arrays.stream(edges).boxed().parallel()
-                .map(APMap::loadJSON)
-                .forEach(json -> shuffleFromJSON(json, runs, permutations, minIndirects, minGained));
-    }
-
-    private static void saveImage(int edge) {
-        Mapper map = new Mapper(edge);
-        String json = loadJSON(edge);
-        map.addJSONMarkers(json);
-        try {
-            map.saveToImage();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public static void main(String[] args) {
@@ -147,8 +100,8 @@ public class APMap {
             return;
         }
 
-        if ("s7".equals(args[0])) {
-            shuffle7(args);
+        if ("s7".equals(args[0]) || "s8".equals(args[0])) {
+            shuffle(args, SHUFFLE_IMPL.valueOf(args[0]));
             return;
         }
 
@@ -166,6 +119,55 @@ public class APMap {
         int STALE_MS = Integer.parseInt(args[0])*1000;
 
         testMultipleEdges(edges, SHOW_BEST, STALE_MS);
+    }
+
+    private static void dumpRelativePosition() {
+        List<String> sb = new ArrayList<>();
+        for (int[] b : BESTS) {
+            System.out.printf("edge=%3d, personal=%5d, global=%5d, fraction=%.2f\n",
+                              b[0], b[1], b[2], 1.0*b[1]/b[2]);
+            sb.add(String.format(Locale.ROOT, "%.2f:edge=%3d, personal=%5d, global=%5d, fraction=%.2f",
+                                 1.0*b[1]/b[2], b[0], b[1], b[2], 1.0*b[1]/b[2]));
+        }
+        Collections.sort(sb);
+        System.out.println("----");
+        sb.stream().map(s -> s.split("[:]")[1]).forEach(System.out::println);
+    }
+
+    // Arguments: <impl> <runs> <permutations> <minIndirect> <minGained> <edge*>
+    public static void shuffle(String[] args, SHUFFLE_IMPL impl) {
+        if (args.length < 6) {
+            System.out.println("shuffle: \"" + impl + "\" <runs> <permutations> <minIndirect> <minGained> <edge*>");
+            System.out.println("Valid edges: " + Arrays.toString(EDGES));
+            return;
+        }
+        int index = 1;
+        int runs = Integer.parseInt(args[index++]);
+        int permutations = Integer.parseInt(args[index++]);
+        int minIndirects = Integer.parseInt(args[index++]);
+        int minGained = Integer.parseInt(args[index++]);
+
+        int[] edges = new int[args.length-index];
+        for (int i = index ; i < args.length ; i++) {
+            edges[i-index] = Integer.parseInt(args[i]);
+        }
+
+        System.out.printf(Locale.ROOT, "shuffle7: runs=%d, permutations=%d, minIndirects=%d, minGained=%d, edges=%s\n",
+                          runs, permutations, minIndirects, minGained, Arrays.toString(edges));
+        Arrays.stream(edges).boxed().parallel()
+                .map(APMap::loadJSON)
+                .forEach(json -> shuffleFromJSON(json, runs, permutations, minIndirects, minGained, impl));
+    }
+
+    private static void saveImage(int edge) {
+        Mapper map = new Mapper(edge);
+        String json = loadJSON(edge);
+        map.addJSONMarkers(json);
+        try {
+            map.saveToImage();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void doShuffle(int edge) {
@@ -218,9 +220,10 @@ public class APMap {
         shuffleFromJSON(json, RUNS, MAX_PERMUTATIONS);
     }
     private static void shuffleFromJSON(String json, int runs, int maxPermutations) {
-        shuffleFromJSON(json, runs, maxPermutations, 3, -10);
+        shuffleFromJSON(json, runs, maxPermutations, 3, -10, SHUFFLE_IMPL.getDefault());
     }
-    private static void shuffleFromJSON(String json, int runs, int maxPermutations, int minIndirects, int minGained) {
+    private static void shuffleFromJSON(
+            String json, int runs, int maxPermutations, int minIndirects, int minGained, SHUFFLE_IMPL impl) {
         final long startTime = System.currentTimeMillis();
         final int seed = new Random().nextInt();
 
@@ -232,13 +235,15 @@ public class APMap {
 
         System.out.printf(Locale.ROOT, "edge=%d loaded and prioritized  with marked=%d in %d seconds\n",
                           board.edge, board.marked, (System.currentTimeMillis()-startTime)/1000);
-        doShuffle(board, runs, seed, maxPermutations, minIndirects, minGained);
+        doShuffle(board, runs, seed, maxPermutations, minIndirects, minGained, impl);
     }
 
     private static void doShuffle(Mapper board, int runs, int seed, int maxPermutations) {
-        doShuffle(board, runs, seed, maxPermutations, 3, -10);
+        doShuffle(board, runs, seed, maxPermutations, 3, -10, SHUFFLE_IMPL.getDefault());
     }
-    private static void doShuffle(Mapper board, int runs, int seed, int maxPermutations, int minIndirects, int minGained) {
+    private static void doShuffle(
+            Mapper board, int runs, int seed, int maxPermutations, int minIndirects, int minGained,
+            SHUFFLE_IMPL impl) {
         final long startTime = System.currentTimeMillis();
         Random random = new Random(seed);
         final int initial = board.marked;
@@ -256,10 +261,20 @@ public class APMap {
             seed = random.nextInt();
             //int gained = board.shuffle2(seed, maxPermutations);
             //int gained = board.shuffle5(seed, Math.max(2, board.edge/2), 500, maxPermutations, -1);
-            int gained = board.shuffle7(seed, minIndirects, maxPermutations, minGained);
-            if (gained == 0 || board.marked < best) {
-                System.out.printf(Locale.ROOT, "edge=%3d, run=%3d/%d, marks=%d/%d (%d gained)\n",
-                                  board.edge, run+1, runs, board.getMarkedCount(), initial, gained);
+            int gained;
+            switch (impl) {
+                case s7:
+                    gained = board.shuffle7(seed, minIndirects, maxPermutations, minGained);
+                    break;
+                case s8:
+                    gained = board.shuffle8(seed, minIndirects, maxPermutations, minGained);
+                    break;
+                default: throw new UnsupportedOperationException(
+                        "Shuffle implementation '" + impl + "' not supported yet");
+            }
+            if (gained == 0 || board.marked <= best) {
+                System.out.printf(Locale.ROOT, "edge=%3d, run=%3d/%d, marks:[current=%d, initial=%d, best=%d] (%2d gained)\n",
+                                  board.edge, run+1, runs, board.getMarkedCount(), initial, best, gained);
             } else {
                 System.out.printf(Locale.ROOT, "edge=%d, seed=%d, perms=%d, run=%d/%d gained %d with total %d/%d%s: %s\n",
                                   board.edge, seed, maxPermutations, run + 1, runs, gained, board.marked, initial,
