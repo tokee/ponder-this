@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -89,6 +90,11 @@ public class Mapper {
     private int[][] tripleColumnDeltasRadial;
     // Triple intersect camdidates for the given column
     private int[][] tripleColumnDeltasIntersect;
+
+    // The elements where the MARKER at locks[pos] contributes to ILLEGALs
+    // Entry: [OTHER_MARKER, ILLEGAL]
+    // Explicitly updated by {@link #updateLocks()}.
+    private int[][] locks;
 
     int marked = 0;
     int neutrals;
@@ -1160,12 +1166,50 @@ public class Mapper {
 
     /**
      * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
+     * Warning: Long startup time to cache ILLEGALsd for MARKERs. Fast after that.
+     * @param pos quadratic coordinates.
+     */
+    public void removeMarkerLockedCache(int pos) {
+        if (quadratic[pos] != MARKER) {
+            int x = pos%width;
+            int y = pos/width;
+            throw new IllegalStateException("Tried removing MARKER from (" + x + ", " + y + ") but it was " +
+                                            getQuadratic(x, y) + " instead of the expected " + MARKER);
+        }
+        quadratic[pos] = NEUTRAL;
+        --marked;
+        ++neutrals;
+        if (locks == null) {
+            updateLocks();
+        }
+        final int[] posLocks = this.locks[pos];
+        if (posLocks != null) {
+            for (int i = 0 ; i < posLocks.length ; i+=2) {
+                int mark = posLocks[i];
+                int lock = posLocks[i+1];
+                // TODO: Do we need the check for MARKER?
+                if (quadratic[mark] == MARKER && quadratic[lock] >= ILLEGAL) {
+                    quadratic[lock] -= ILLEGAL;
+                    if (quadratic[lock] == NEUTRAL) {
+                        ++neutrals;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
      * Warning: Slow as it uses division and modulo.
      * @param pos quadratic coordinates.
      * @param updatePriorities if true, priorities are also adjusted.
      */
     public void removeMarker(int pos, boolean updatePriorities) {
-        removeMarker(pos%width, pos/width, updatePriorities);
+        if (locks != null && !updatePriorities) {
+            removeMarkerLockedCache(pos);
+        } else {
+            removeMarker(pos % width, pos / width, updatePriorities);
+        }
     }
     /**
      * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
@@ -1342,6 +1386,109 @@ public class Mapper {
     }
 
     /**
+     * Cached locks version of shuffle7.
+     *
+     * Shuffling by finding all ILLEGALS and sorting them randomly, then removing locing MARKERs for each ILLEGAL one
+     * at a time until the number of freed markers is {@code >= directFreed + minIndirectFreed}.
+     * The markers are refilled, starting with the indirectly freed, the marked delta is noted and a rollback is
+     * performed. The pos1/pos2 priority is primarily the ones with the lowest priority, secondarily the lowest index
+     * number.
+     * This goes on for maxTrials. If minGained is <= markedDelta, the permutation is applied to the board.
+     * @param seed used for the Random.
+     * @param minIndirectFreed the minimum number of indirectly freed markers before continuing.
+     * @param maxTrials the number of trials to run before selecting the best candidate.
+     * @param minGained at least this amount of marks must be gained in order to apply the best result.
+     * @return number of marks gained (can be negative).
+     */
+    public int shuffle9(int seed, int minIndirectFreed, int maxTrials, int minGained) {
+        final Random random = new Random(seed);
+
+        List<Integer> locked = streamAllValid()
+                .filter(pos -> quadratic[pos] >= ILLEGAL)
+                .boxed()
+                .collect(Collectors.toList());
+
+        final Mapper initial = copy(false);
+        final Mapper best = copy(false);
+        int bestDelta = Integer.MIN_VALUE;
+        updateLocks();
+
+        for (int trial = 0 ; trial < maxTrials ; trial++) {
+            Collections.shuffle(locked, random);
+            int delta = findDeltaForFreedDestructive(locked, minIndirectFreed);
+            if (delta > bestDelta) {
+                if (best.neutrals != 0) {
+                    throw new IllegalStateException("Error: Expected 0 neutrals but got " + best.neutrals);
+                }
+                bestDelta = delta;
+                best.assignFrom(this);
+            }
+            this.assignFrom(initial); // Reset for new trial
+        }
+
+        if (bestDelta < minGained) {
+            return 0;
+        }
+        this.assignFrom(best);
+        return bestDelta;
+    }
+
+    /**
+     * Frees ILLEGAL elements by removing 1 marker from each locking triple until the number of indirectly freed
+     * elements is at least minIndirectFreed.
+     * After removal the board is refilled, starting with the indirectly freed elements.
+     *
+     * This method is destructive to the secondary states of the board (priorities and INVALID-scores).
+     * Intended use is to reset the state with {@link #assignFrom(Mapper)} after use, unless the MARKERs are to be
+     * extracted (i.e. the produced board had the highest number of gained MARKERs.
+     * @param locked list of elements to unlock. Will be iterated sequentially.
+     * @param minIndirectFreed the number of elements that must be indirectly freed.
+     * @return the number of MARKERs gained (might be negative).
+     */
+    private int findDeltaForFreedDestructive(List<Integer> locked, int minIndirectFreed) {
+        final int initialMarks = marked;
+        final int initialNeutrals = getNeutralCount();
+        if (initialNeutrals != 0) {
+            System.out.println("findDeltaForFreedA: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
+        }
+        List<Integer> explicitlyUnlocked = new ArrayList<>();
+        List<Integer> removedMarkers = new ArrayList<>();
+
+        // Iterate until we have indirectly freed enough
+        for (Integer lPos: locked) {
+            if (getNeutralCount() > initialNeutrals+explicitlyUnlocked.size()+removedMarkers.size()+minIndirectFreed) {
+                break;
+            }
+            explicitlyUnlocked.add(lPos);
+            visitTriples(lPos%width, lPos/width, (pos1, pos2) -> {
+                if (quadratic[pos1] != MARKER || quadratic[pos2] != MARKER) {
+                    return;
+                }
+                // TODO: Randomize here instead of choosing?
+                int mPos = priority[pos1] > priority[pos2] ? pos1 : pos2;
+                removedMarkers.add(mPos);
+                removeMarker(mPos, false);
+            });
+        }
+
+        // Find all indirectly freed elements
+        Stream<Integer> indirectFreed = streamAllValid()
+                .filter(pos -> quadratic[pos] == NEUTRAL)
+                .boxed()
+                .filter(pos -> !(explicitlyUnlocked.contains(pos) || removedMarkers.contains(pos)));
+
+
+        Stream<Integer> directFreed = Stream.concat(explicitlyUnlocked.stream(), removedMarkers.stream());
+
+        // Set markers prioritized by indirect, lightest and removed
+        Stream.concat(indirectFreed, directFreed)
+                .filter(pos -> quadratic[pos] == NEUTRAL)
+                .forEach(pos -> setMarker(pos, false));
+
+        return getMarkedCount() - initialMarks;
+    }
+
+    /**
      * Caching-based version of shuffle7 that strived to avoid coordinate system conversions.
      *
      * Shuffling by finding all ILLEGALS and sorting them randomly, then removing locing MARKERs for each ILLEGAL one
@@ -1415,7 +1562,6 @@ public class Mapper {
         final Mapper initial = copy(false);
         final Mapper best = copy(false);
         int bestDelta = Integer.MIN_VALUE;
-
         for (int trial = 0 ; trial < maxTrials ; trial++) {
             Collections.shuffle(locked, random);
             int delta = findDeltaForFreedA(locked, minIndirectFreed, false, false);
@@ -1441,7 +1587,7 @@ public class Mapper {
         final int initialMarks = marked;
         final int initialNeutrals = getNeutralCount();
         if (initialNeutrals != 0) {
-            System.out.println("shuffle5: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
+            System.out.println("findDeltaForFreedA: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
         }
         List<XYPos> explicitlyUnlocked = new ArrayList<>();
         List<XYPos> removedMarkers = new ArrayList<>();
@@ -1456,8 +1602,7 @@ public class Mapper {
                 if (quadratic[pos1] != MARKER || quadratic[pos2] != MARKER) {
                     return;
                 }
-                // TODO: Priorities does not get properly rolled back, so we can only select properly if not updating priorities
-                // TODO: Randomize here instead of choosing
+                // TODO: Randomize here instead of choosing?
                 int mPos = updatePriorities ? pos1 : priority[pos1] > priority[pos2] ? pos1 : pos2;
                 removedMarkers.add(new XYPos(mPos));
                 removeMarker(mPos, updatePriorities);
@@ -1479,7 +1624,7 @@ public class Mapper {
         final int initialMarks = marked;
         final int initialNeutrals = getNeutralCount();
         if (initialNeutrals != 0) {
-            System.out.println("shuffle5: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
+            System.out.println("findDeltaForFreedCached: Warning: Expected 0 neutrals to start with but found " + initialNeutrals);
         }
         // TODO: Consider using dedicated int[] backed structure
         List<Integer> explicitlyUnlocked = new ArrayList<>();
@@ -2164,6 +2309,40 @@ public class Mapper {
         Collections.sort(intersect);
         return new Pair<>(radial.stream().mapToInt(Integer::intValue).toArray(),
                           intersect.stream().mapToInt(Integer::intValue).toArray());
+    }
+
+    /**
+     * Updates {@link #locks}.
+     */
+    public void updateLocks() {
+        final long startTime = System.currentTimeMillis();
+        locks = new int[quadratic.length][];
+        AtomicLong lockedCount = new AtomicLong(0);
+        streamAllValid().forEach(pos -> {
+            if (quadratic[pos] != MARKER) {
+                return;
+            }
+            List<Integer> illegals = new ArrayList<>();
+            visitTriples(pos%width, pos/width, (trip1, trip2) -> {
+                if (quadratic[trip1] == MARKER) {
+                    illegals.add(trip1);
+                    illegals.add(trip2);
+                } else if (quadratic[trip2] == MARKER) {
+                    illegals.add(trip2);
+                    illegals.add(trip1);
+                }
+            });
+            locks[pos] = illegals.stream().mapToInt(Integer::intValue).toArray();
+            lockedCount.addAndGet(illegals.size());
+        });
+        log.debug(String.format(
+                Locale.ROOT, "edge=%d: Created lock structure with %d locks for %d marks (~%dMB) in %d ms",
+                edge, lockedCount.get(), marked, lockedCount.get()*4/1048576, System.currentTimeMillis()-startTime));
+    }
+
+    public void clearLocks() {
+        log.debug("edge=" + edge + ": Disabling locks");
+        locks = null;
     }
 
     /**

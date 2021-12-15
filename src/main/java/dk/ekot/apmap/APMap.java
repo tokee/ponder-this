@@ -32,10 +32,10 @@ import java.util.stream.Collectors;
 public class APMap {
     private static final Logger log = LoggerFactory.getLogger(APMap.class);
 
-    public enum SHUFFLE_IMPL {s7, s8;
+    public enum SHUFFLE_IMPL {s7, s8, s9;
 
         public static SHUFFLE_IMPL getDefault() {
-            return s7;
+            return s9;
         }
     };
 
@@ -47,10 +47,10 @@ public class APMap {
             {2, 6, 6}, {6, 33, 33}, {11, 80, 80}, {18, 149, 153}, {27, 244, 266}, {38, 413, 420},
             {50, 548, 621}, {65, 772, 884}, {81, 942, 1193}, {98, 1258, 1512},
             {118, 1716, 1973}, {139, 2001, 2418}, {162, 2274, 2921}, {187, 3072, 3518},
-            {214, 3222, 4284}, {242, 3565, 5057}, {273, 4190, 5831},
-            {305, 4902, 6753}, {338, 5944, 7783}, {374, 6256, 8962},
-            {411, 6877, 10062}, {450, 7831, 11152}, {491, 8787, 12610},
-            {534, 10896, 14108}, {578, 12293, 15643}};
+            {214, 3222, 4284}, {242, 3580, 5057}, {273, 4190, 5831},
+            {305, 4934, 6753}, {338, 5987, 7783}, {374, 6314, 8962},
+            {411, 6914, 10062}, {450, 7874, 11152}, {491, 8820, 12610},
+            {534, 10941, 14108}, {578, 12313, 15643}};
 
     public static final int[] IMPROVABLE = new int[]{
             18, 27, 38, 50, 65, 81, 98, 118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
@@ -59,7 +59,7 @@ public class APMap {
 
     // 65: adHoc finished in 33223ms
     public static void adHoc(String args[]) {
-        int RUN[] = new int[]{578};
+        int RUN[] = new int[]{18};
         //int RUN[] = IMPROVABLE;
         //int RUN[] = EDGES;
         //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
@@ -72,7 +72,10 @@ public class APMap {
         // 110s with s7
         Arrays.stream(RUN).boxed().parallel()
                 .map(APMap::loadJSON)
-                .forEach(json -> shuffleFromJSON(json, 500, 200, 10, -10, SHUFFLE_IMPL.s7)); if (1 == 1) return;
+                .forEach(json -> shuffleFromJSON(json, 2, 10000, 2, 0, SHUFFLE_IMPL.s9)); if (1 == 1) return;
+
+                // 411: s9: 1_095 318ms, s7 1_775_643ms
+                //.forEach(json -> shuffleFromJSON(json, 2, 10000, 2, 0, SHUFFLE_IMPL.s7)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
@@ -100,7 +103,7 @@ public class APMap {
             return;
         }
 
-        if ("s7".equals(args[0]) || "s8".equals(args[0])) {
+        if (args[0].startsWith("s")) {
             shuffle(args, SHUFFLE_IMPL.valueOf(args[0]));
             return;
         }
@@ -252,7 +255,9 @@ public class APMap {
             System.out.println("--- " + +board.marked);
         }
 
-        System.out.println("Initiating shuffle for edge=" + board.edge);
+        System.out.printf(Locale.ROOT, "Initiating shuffle for edge=%d, seed=%d, maxPermutations=%d, minIndirects=%d, " +
+                                       "minGained=%d, impl=%s\n",
+                          board.edge, seed, maxPermutations, minIndirects, minGained, impl);
         int best = board.marked;
         int worst = board.marked;
         Mapper bestBoard = board;
@@ -268,6 +273,9 @@ public class APMap {
                     break;
                 case s8:
                     gained = board.shuffle8(seed, minIndirects, maxPermutations, minGained);
+                    break;
+                case s9:
+                    gained = board.shuffle9(seed, minIndirects, maxPermutations, minGained);
                     break;
                 default: throw new UnsupportedOperationException(
                         "Shuffle implementation '" + impl + "' not supported yet");
@@ -693,6 +701,17 @@ public class APMap {
 
     Make a snapshot-alternative to rollbacks that stores the full state of Mapper. One way would be to add an
     assign(otherMap) method that requires the otherMap to have matching layout.
+
+    -----------------
+    Idea #24 20211214:
+
+    Create trackLocked() that stores an array of ILLEGAL elements for each mark (doable as there are at most ~15K).
+    Run trackLocked() at the start of shuffling. This makes it cheaper to remove an element.
+    When a permutation has been tried, an assign is performed, restoring the arrays of ILLEGAL elements.
+
+    Overall this should work well when the number of permutations is high.
+
+    Bonus: Store an array of triples with marks for each ILLEGAL element. Problem: High memory use.
 
      */
 
