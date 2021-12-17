@@ -45,12 +45,12 @@ public class APMap {
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
             {2, 6, 6}, {6, 33, 33}, {11, 80, 80}, {18, 149, 153}, {27, 244, 266}, {38, 413, 420},
-            {50, 548, 621}, {65, 772, 884}, {81, 942, 1193}, {98, 1258, 1512},
+            {50, 548, 621}, {65, 772, 884}, {81, 946, 1193}, {98, 1258, 1512},
             {118, 1716, 1973}, {139, 2001, 2418}, {162, 2274, 2921}, {187, 3072, 3518},
-            {214, 3222, 4284}, {242, 3580, 5057}, {273, 4190, 5831},
-            {305, 4934, 6753}, {338, 5987, 7783}, {374, 6314, 8962},
-            {411, 6914, 10062}, {450, 7874, 11152}, {491, 8820, 12610},
-            {534, 10941, 14108}, {578, 12313, 15643}};
+            {214, 3222, 4284}, {242, 3597, 5057}, {273, 4190, 5831},
+            {305, 4989, 6753}, {338, 6010, 7783}, {374, 6371, 8962},
+            {411, 6958, 10062}, {450, 7929, 11152}, {491, 8848, 12610},
+            {534, 10974, 14108}, {578, 12328, 15643}};
 
     public static final int[] IMPROVABLE = new int[]{
             18, 27, 38, 50, 65, 81, 98, 118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
@@ -59,7 +59,7 @@ public class APMap {
 
     // 65: adHoc finished in 33223ms
     public static void adHoc(String args[]) {
-        int RUN[] = new int[]{18};
+        int RUN[] = new int[]{81};
         //int RUN[] = IMPROVABLE;
         //int RUN[] = EDGES;
         //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
@@ -69,13 +69,11 @@ public class APMap {
         //Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
         //dumpRelativePosition(); if (1==1) return;
 
-        // 110s with s7
+        // 411: s9: 1_095 318ms, s7 1_775_643ms
         Arrays.stream(RUN).boxed().parallel()
                 .map(APMap::loadJSON)
-                .forEach(json -> shuffleFromJSON(json, 2, 10000, 2, 0, SHUFFLE_IMPL.s9)); if (1 == 1) return;
-
-                // 411: s9: 1_095 318ms, s7 1_775_643ms
-                //.forEach(json -> shuffleFromJSON(json, 2, 10000, 2, 0, SHUFFLE_IMPL.s7)); if (1 == 1) return;
+                .forEach(json -> shuffleFromJSON(json, 500, 100, 2, 0, SHUFFLE_IMPL.s9)); if (1 == 1) return;
+                //.forEach(json -> shuffleFromJSON(json, 2, 10000, 2, 0, SHUFFLE_IMPL.s9)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
@@ -155,8 +153,8 @@ public class APMap {
             edges[i-index] = Integer.parseInt(args[i]);
         }
 
-        System.out.printf(Locale.ROOT, "shuffle7: runs=%d, permutations=%d, minIndirects=%d, minGained=%d, edges=%s\n",
-                          runs, permutations, minIndirects, minGained, Arrays.toString(edges));
+        System.out.printf(Locale.ROOT, "shuffle %s: runs=%d, permutations=%d, minIndirects=%d, minGained=%d, edges=%s\n",
+                          impl, runs, permutations, minIndirects, minGained, Arrays.toString(edges));
         Arrays.stream(edges).boxed().parallel()
                 .map(APMap::loadJSON)
                 .forEach(json -> shuffleFromJSON(json, runs, permutations, minIndirects, minGained, impl));
@@ -275,6 +273,7 @@ public class APMap {
                     gained = board.shuffle8(seed, minIndirects, maxPermutations, minGained);
                     break;
                 case s9:
+                    seed = 9131004; // TODO: Remove
                     gained = board.shuffle9(seed, minIndirects, maxPermutations, minGained);
                     break;
                 default: throw new UnsupportedOperationException(

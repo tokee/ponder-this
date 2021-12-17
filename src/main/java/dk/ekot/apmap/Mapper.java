@@ -288,7 +288,7 @@ public class Mapper {
     }
 
     /**
-     * Checks if the markers on the board are legally places (no complete triples).
+     * Checks if the markers on the board are legally placed (no non-legal triples).
      * This is a slow process.
      */
     public void validate() {
@@ -1062,6 +1062,184 @@ public class Mapper {
     }
 
     /**
+     * Marks the given quadratic position.
+     * Only uses the provided relevantElements to check for triples: {@code [origo, origo+delta/2, origo+delta]},
+     * {@code [origo, origo+delta, origo+delta*2]} and {@code [origo-delta, origo, origo+delta]}.
+     * Triple fields are updated with @link #ILLEGAL.
+     * @param origo quadratic coordinates.
+     * @param relevantElements a list of elements to check for possible triples.
+     */
+    private void setMarker(int origo, List<Integer> relevantElements) {
+        if (quadratic[origo] == MARKER) {
+            throw new IllegalStateException("Already marked " + origo + " " + new XYPos(origo));
+        }
+        quadratic[origo] = MARKER;
+        ++marked;
+        --neutrals;
+        final int origoX = origo%width;
+        final int origoY = origo/width;
+        for (int candidate: relevantElements) {
+            final int candidateX = candidate%width;
+            final int candidateY = candidate/width;
+
+            int deltaX = candidateX-origoX;
+            int deltaY = candidateY-origoY;
+
+            int middle = (origoX+(deltaX>>1)) + (origoY+(deltaY>>1))*width;
+            if ((deltaX&1) == 0 && (deltaY&1) == 0) { // We can divide by 2
+                updateIllegal(middle, candidate);
+            }
+            int pos2x = origoX + (deltaX<<1);
+            int pos2y = origoY + (deltaY<<1);
+            if (pos2x >=0 && pos2x < width && pos2y >= 0 && pos2y < height) {
+                int outer = pos2x+pos2y*width;
+                updateIllegal(candidate, outer);
+            }
+            int pos1x = origoX - deltaX;
+            int pos1y = origoY - deltaY;
+            int mirror = pos1x+pos1y*width;
+            if (pos1x >=0 && pos1x < width && pos1y >= 0 && pos1y < height) {
+                updateIllegal(mirror, candidate);
+            }
+        }
+    }
+
+    // TODO: Resurrect this
+    private void setMarkerNonworking(int origo, List<Integer> relevantElements) {
+        quadratic[origo] = MARKER;
+        ++marked;
+        --neutrals;
+        for (int candidate: relevantElements) {
+            int delta = candidate-origo;
+            if ((delta&1) == 0) { // We can divide with 2
+                updateIllegal(origo + (delta >> 1), candidate);
+            }
+            updateIllegal(candidate, origo+(delta<<1));
+            updateIllegal(origo-delta, origo+delta);
+        }
+    }
+
+    private void updateIllegal(int pos1, int pos2) {
+        if (pos1 < 0 || pos2 < 0 || pos1 >= quadratic.length || pos2 >= quadratic.length || pos1 == pos2) {
+            return;
+        }
+        if (quadratic[pos1] == MARKER && (quadratic[pos2] == NEUTRAL || quadratic[pos2] >= ILLEGAL)) {
+            if ((quadratic[pos2] += ILLEGAL) == ILLEGAL) {
+                --neutrals;
+            }
+        } else if (quadratic[pos2] == MARKER && (quadratic[pos1] == NEUTRAL || quadratic[pos1] >= ILLEGAL)) {
+            if ((quadratic[pos1] += ILLEGAL) == ILLEGAL) {
+                --neutrals;
+            }
+        }
+    }
+
+    public List<Integer> getNeutralsFromPotentialMarker(int origo, List<Integer> relevantElements) {
+        if (quadratic[origo] != NEUTRAL) {
+            throw new IllegalStateException(
+                    "Attempted to mark (" + origo + ") bit but it already had state " + quadratic[origo]);
+        }
+
+        final int origoX = origo%width;
+        final int origoY = origo/width;
+        List<Integer> neutrals = new ArrayList<>();
+        neutrals.add(origo);
+        for (int candidate: relevantElements) {
+            final int candidateX = candidate%width;
+            final int candidateY = candidate/width;
+            
+            int deltaX = candidateX-origoX;
+            int deltaY = candidateY-origoY;
+
+//            System.out.printf("Origo=%d%s, candidate=%d%s, deltaMajor=(%d, %d), deltaXminor=(%d, %d), middleMajor=%s, middleMinor=(%d, %d)\n",
+//                              origo, new XYPos(origo), candidate, new XYPos(candidate), deltaX, deltaY,
+//                              candidateX-origoX, candidateY-origoY, new XYPos(origo + (delta >> 1)), middleX, middleY);
+
+            // old assign[o=45182(242, 140)(q=0), m1=49022(230, 152)(q=0), m2=47102(236, 146)(q=1)] m1
+            // candidate=49022(230, 152), origo=(242, 140), middle=-2147436546(-153, -6689833), delta(-12, 12), board=51681(321, 161)----------------
+            {
+                int middle = (origoX + (deltaX >> 1)) + (origoY + (deltaY >> 1)) * width;
+//            System.out.printf("candidate=%d(%d, %d), origo=(%d, %d), middle=%d(%d, %d), delta(%d, %d), board=%d(%d, %d)----------------\n",
+//                              candidate, candidateX, candidateY, origoX, origoY, middle, middle%width, middle/width, deltaX, deltaY, quadratic.length, width, height);
+                if ((deltaX & 1) == 0 && (deltaY & 1) == 0) { // We can divide by 2
+                    getNeutralsHelper(origo, middle, candidate, neutrals, "contract");
+                }
+            }
+
+            {
+                int pos2x = origoX + (deltaX << 1);
+                int pos2y = origoY + (deltaY << 1);
+                if (pos2x >= 0 && pos2x < width && pos2y >= 0 && pos2y < height) {
+                    int outer = pos2x + pos2y * width;
+                    getNeutralsHelper(origo, candidate, outer, neutrals, "extend");
+                }
+            }
+
+            {
+                int pos1x = origoX - deltaX;
+                int pos1y = origoY - deltaY;
+                int mirror = pos1x + pos1y * width;
+                if (pos1x >= 0 && pos1x < width && pos1y >= 0 && pos1y < height) {
+                    getNeutralsHelper(origo, mirror, candidate, neutrals, "intersect");
+                }
+            }
+        }
+        return neutrals;
+
+    }
+    private void getNeutralsHelper(int origo, int pos1, int pos2, List<Integer> neutrals, String type) {
+        if (pos1 < 0 || pos2 < 0 || pos1 >= quadratic.length || pos2 >= quadratic.length || pos1 == pos2) {
+            return;
+        }
+        System.out.printf("newcheck [o=%d%s(q=%d), m1=%d%s(q=%d), m2=%d%s(q=%d)] %s\n",
+                          origo, new XYPos(origo), quadratic[origo],
+                          pos1, new XYPos(pos1), quadratic[pos1],
+                          pos2, new XYPos(pos2), quadratic[pos2], type);
+        if (quadratic[pos1] == MARKER && (quadratic[pos2] == NEUTRAL || quadratic[pos2] >= ILLEGAL)) {
+            if (quadratic[pos2] == NEUTRAL) {
+                System.out.printf("*** new [o=%d, m=%d, n=%d] %s\n", origo, pos1, pos2, type);
+                neutrals.add(pos2);
+            }
+        } else if (quadratic[pos2] == MARKER && (quadratic[pos1] == NEUTRAL || quadratic[pos1] >= ILLEGAL)) {
+            if (quadratic[pos1] == NEUTRAL) {
+                System.out.printf("*** new [o=%d, m=%d, n=%d] %s\n", origo, pos2, pos1, type);
+                neutrals.add(pos1);
+            }
+        }
+    }
+    public List<Integer> getNeutralsFromPotentialMarker(final int x, final int y) {
+        List<Integer> neutrals = new ArrayList<>();
+        final int origo = y*width+x;
+        neutrals.add(origo);
+
+        visitTriples(x, y, (pos1, pos2) -> {
+            final int pos1Element = quadratic[pos1];
+            final int pos2Element = quadratic[pos2];
+
+            if (pos1Element == MARKER) { // pos2element is either NEUTRAL (0) or ILLEGAL (5+) // && pos2Element == NEUTRAL) {
+                if (pos2Element == NEUTRAL) {
+                  /*  System.out.printf("old assign [o=%d%s(q=%d), m1=%d%s(q=%d), m2=%d%s(q=%d)] %s\n",
+                                      origo, new XYPos(origo), quadratic[origo],
+                                      pos1, new XYPos(pos1), quadratic[pos1],
+                                      pos2, new XYPos(pos2), quadratic[pos2], "m2");*/
+                    neutrals.add(pos2);
+                }
+            } else if (pos2Element == MARKER) { // && pos1Element == NEUTRAL) {
+                if (pos1Element == NEUTRAL) {
+                /*    System.out.printf("old assign[o=%d%s(q=%d), m1=%d%s(q=%d), m2=%d%s(q=%d)] %s\n",
+                                      origo, new XYPos(origo), quadratic[origo],
+                                      pos1, new XYPos(pos1), quadratic[pos1],
+                                      pos2, new XYPos(pos2), quadratic[pos2], "m1");*/
+                    neutrals.add(pos1);
+                }
+            }
+        });
+        return neutrals;
+    }
+
+
+
+    /**
      * Marks the given quadratic (x, y).
      * Uses the {@link #tripleDeltas} to resolve all fields that are neutral and where setting a mark would cause
      * a triple (arithmetic progression). The fields are updated with {}@link #ILLEGAL}.
@@ -1170,6 +1348,17 @@ public class Mapper {
      * @param pos quadratic coordinates.
      */
     public void removeMarkerLockedCache(int pos) {
+        removeMarker(pos, neutral -> {});
+    }
+
+    /**
+     * Removes a MARKER from the given position and updates all relevant ILLEGAL elements by checking triples.
+     * Warning: Long startup time to cache ILLEGALsd for MARKERs. Fast after that.
+     * Released NEUTRALs fed to the neutralCollector.
+     * @param pos quadratic coordinates.
+     * @param neutralCollector called with all freed neutrals, including the given pos.
+     */
+    private void removeMarker(int pos, Consumer<Integer> neutralCollector) {
         if (quadratic[pos] != MARKER) {
             int x = pos%width;
             int y = pos/width;
@@ -1177,12 +1366,10 @@ public class Mapper {
                                             getQuadratic(x, y) + " instead of the expected " + MARKER);
         }
         quadratic[pos] = NEUTRAL;
+        neutralCollector.accept(pos);
         --marked;
         ++neutrals;
-        if (locks == null) {
-            updateLocks();
-        }
-        final int[] posLocks = this.locks[pos];
+        final int[] posLocks = getCachedLocks(pos);
         if (posLocks != null) {
             for (int i = 0 ; i < posLocks.length ; i+=2) {
                 int mark = posLocks[i];
@@ -1192,10 +1379,21 @@ public class Mapper {
                     quadratic[lock] -= ILLEGAL;
                     if (quadratic[lock] == NEUTRAL) {
                         ++neutrals;
+                        neutralCollector.accept(lock);
                     }
                 }
             }
         }
+    }
+
+    private int[] getCachedLocks(int origo) {
+        if (locks == null) {
+            locks = new int[quadratic.length][];
+        }
+        if (locks[origo] == null) {
+            cacheLocksIfMarked(origo);
+        }
+        return locks[origo];
     }
 
     /**
@@ -1226,6 +1424,7 @@ public class Mapper {
      * @param updatePriorities if true, priorities are also adjusted.
      */
     public void removeMarker(int x, int y, boolean updatePriorities) {
+        System.out.println("---");
         if (getQuadratic(x, y) != MARKER) {
             throw new IllegalStateException("Tried removing MARKER from (" + x + ", " + y + ") but it was " +
                                             getQuadratic(x, y) + " instead of the expected " + MARKER);
@@ -1411,7 +1610,7 @@ public class Mapper {
         final Mapper initial = copy(false);
         final Mapper best = copy(false);
         int bestDelta = Integer.MIN_VALUE;
-        updateLocks();
+        cacheAllLocks(); // TODO: Much faster to to bulk up front instead of JIT. Why!?
 
         for (int trial = 0 ; trial < maxTrials ; trial++) {
             Collections.shuffle(locked, random);
@@ -1430,6 +1629,7 @@ public class Mapper {
             return 0;
         }
         this.assignFrom(best);
+        clearLocks(); // Important as the board has changed!
         return bestDelta;
     }
 
@@ -1453,7 +1653,12 @@ public class Mapper {
         }
         List<Integer> explicitlyUnlocked = new ArrayList<>();
         List<Integer> removedMarkers = new ArrayList<>();
+        final List<Integer> allUnlocked = new ArrayList<>();
 
+/*        {
+            validate();
+            System.out.println("Validate passed before remove");
+        }*/
         // Iterate until we have indirectly freed enough
         for (Integer lPos: locked) {
             if (getNeutralCount() > initialNeutrals+explicitlyUnlocked.size()+removedMarkers.size()+minIndirectFreed) {
@@ -1467,25 +1672,73 @@ public class Mapper {
                 // TODO: Randomize here instead of choosing?
                 int mPos = priority[pos1] > priority[pos2] ? pos1 : pos2;
                 removedMarkers.add(mPos);
-                removeMarker(mPos, false);
+  //              removeMarker(mPos, false);
+                removeMarker(mPos, allUnlocked::add);
             });
         }
-
         // Find all indirectly freed elements
-        Stream<Integer> indirectFreed = streamAllValid()
-                .filter(pos -> quadratic[pos] == NEUTRAL)
-                .boxed()
+//        Stream<Integer> indirectFreed = streamAllValid()
+//                .filter(pos -> quadratic[pos] == NEUTRAL)
+//                .boxed()
+//                .filter(pos -> !(explicitlyUnlocked.contains(pos) || removedMarkers.contains(pos)));
+
+        Stream<Integer> indirectFreed = allUnlocked.stream()
                 .filter(pos -> !(explicitlyUnlocked.contains(pos) || removedMarkers.contains(pos)));
-
-
         Stream<Integer> directFreed = Stream.concat(explicitlyUnlocked.stream(), removedMarkers.stream());
 
+        //Collection<Integer> markThis = Stream.concat(indirectFreed, directFreed).collect(Collectors.toList());
+/*        {
+            System.out.println("Validating basic after remove...");
+            validate();
+            System.out.println("Validating destructive after remove...");
+            validateDestructive(allUnlocked, markThis);
+            System.out.println("Validation passed after remove, before set");
+        }*/
+
         // Set markers prioritized by indirect, lightest and removed
+        //         markThis.stream()
         Stream.concat(indirectFreed, directFreed)
                 .filter(pos -> quadratic[pos] == NEUTRAL)
-                .forEach(pos -> setMarker(pos, false));
+                .forEach(pos -> setMarker(pos, false)); // This works
+//                .forEach(pos -> setMarker(pos, allUnlocked)); // TODO: This setMarker produces invalid results
+/*                .peek(pos -> {
+                    Set<Integer> old = new HashSet<>(getNeutralsFromPotentialMarker(pos%width, pos/width));
+                    Set<Integer> current = new HashSet<>(getNeutralsFromPotentialMarker(pos, allUnlocked));
+                    if (old.size() != current.size()) {
+                        throw new IllegalStateException("Oh no:\n" + old + "\n" + current + " using " + allUnlocked);
+                    }
+
+                })
+                .forEach(pos -> setMarker(pos, allUnlocked)); // TODO: This setMarker produces invalid results*/
+//        .forEach(pos -> setMarker(pos, false)); // This works
+
+/*        {
+            validate();
+            System.out.println("Validation passed after set");
+        }*/
 
         return getMarkedCount() - initialMarks;
+    }
+
+    private void validateDestructive(List<Integer> allUnlocked, Collection<Integer> markThis) {
+        Mapper oldFinder = new Mapper(this, false);
+        Mapper newFinder = new Mapper(this, false);
+        markThis.stream()
+                .filter(pos -> newFinder.quadratic[pos] == NEUTRAL)
+                .forEach(pos -> newFinder.setMarker(pos, false));
+        markThis.stream()
+                .filter(pos -> oldFinder.quadratic[pos] == NEUTRAL)
+                .forEach(pos -> oldFinder.setMarker(pos, allUnlocked));
+        System.out.println("Checking equality");
+        if (!oldFinder.toJSON().equals(newFinder.toJSON())) {
+            System.out.println("Discrepancy between old and new method:");
+            System.out.printf("old (correct) marked=%d, neutrals=%d: %s\n", oldFinder.marked, oldFinder.neutrals, oldFinder.toJSON());
+            System.out.printf("new (correct) marked=%d, neutrals=%d: %s\n", newFinder.marked, newFinder.neutrals, newFinder.toJSON());
+        }
+        System.out.println("Validating old...");
+        oldFinder.validate();
+        System.out.println("Validating new...");
+        newFinder.validate();
     }
 
     /**
@@ -2312,32 +2565,41 @@ public class Mapper {
     }
 
     /**
-     * Updates {@link #locks}.
+     * Updates all marked entries in {@link #locks}.
      */
-    public void updateLocks() {
+    public void cacheAllLocks() {
         final long startTime = System.currentTimeMillis();
         locks = new int[quadratic.length][];
         AtomicLong lockedCount = new AtomicLong(0);
         streamAllValid().forEach(pos -> {
-            if (quadratic[pos] != MARKER) {
-                return;
-            }
-            List<Integer> illegals = new ArrayList<>();
-            visitTriples(pos%width, pos/width, (trip1, trip2) -> {
-                if (quadratic[trip1] == MARKER) {
-                    illegals.add(trip1);
-                    illegals.add(trip2);
-                } else if (quadratic[trip2] == MARKER) {
-                    illegals.add(trip2);
-                    illegals.add(trip1);
-                }
-            });
-            locks[pos] = illegals.stream().mapToInt(Integer::intValue).toArray();
-            lockedCount.addAndGet(illegals.size());
+            lockedCount.addAndGet(cacheLocksIfMarked(pos));
         });
-        log.debug(String.format(
-                Locale.ROOT, "edge=%d: Created lock structure with %d locks for %d marks (~%dMB) in %d ms",
-                edge, lockedCount.get(), marked, lockedCount.get()*4/1048576, System.currentTimeMillis()-startTime));
+//        log.debug(String.format(
+//                Locale.ROOT, "edge=%d: Created lock structure with %d locks for %d marks (~%dMB) in %d ms",
+//                edge, lockedCount.get(), marked, lockedCount.get()*4/1048576, System.currentTimeMillis()-startTime));
+    }
+
+    /**
+     * Updates the given entry in {@link #locks} if marked.
+     * @param pos the entry in {@link #quadratic} to update.
+     * @return the number of elements that was cached for the pos.
+     */
+    private int cacheLocksIfMarked(int pos) {
+        if (quadratic[pos] != MARKER) {
+            return 0;
+        }
+        List<Integer> illegals = new ArrayList<>();
+        visitTriples(pos % width, pos / width, (trip1, trip2) -> {
+            if (quadratic[trip1] == MARKER) {
+                illegals.add(trip1);
+                illegals.add(trip2);
+            } else if (quadratic[trip2] == MARKER) {
+                illegals.add(trip2);
+                illegals.add(trip1);
+            }
+        });
+        locks[pos] = illegals.stream().mapToInt(Integer::intValue).toArray();
+        return illegals.size();
     }
 
     public void clearLocks() {
