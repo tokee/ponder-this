@@ -435,4 +435,29 @@ public class MapperTest extends TestCase {
         }
 
     }
+
+    public void testSetPriority() {
+        Mapper board = new Mapper(2);
+        board.setPriorityHex(0, 0, 1);
+        board.setPriorityHex(1, 0, 2);
+        board.setPriorityHex(0, 1, 3);
+        board.setPriorityHex(1, 1, 4);
+        board.setPriorityHex(2, 1, 5);
+        System.out.println(board);
+
+        Mapper board3 = new Mapper(3);
+        board3.setPriorityHex(0, 0, 1);
+        board3.setPriorityHex(1, 0, 2);
+        board3.setPriorityHex(0, 1, 3);
+        board3.setPriorityHex(1, 1, 4);
+        board3.setPriorityHex(2, 1, 5);
+        board3.setPriorityHex(0, 2, 6);
+        System.out.println(board3);
+    }
+
+    public void testCornerPriority() {
+        Mapper board = new Mapper(30);
+        board.adjustPrioritiesShape6Corners3Inner();
+        System.out.println(board);
+    }
 }

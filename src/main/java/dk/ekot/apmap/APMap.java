@@ -48,9 +48,9 @@ public class APMap {
             {50, 548, 621}, {65, 772, 884}, {81, 946, 1193}, {98, 1258, 1512},
             {118, 1716, 1973}, {139, 2001, 2418}, {162, 2274, 2921}, {187, 3072, 3518},
             {214, 3222, 4284}, {242, 3597, 5057}, {273, 4190, 5831},
-            {305, 4989, 6753}, {338, 6010, 7783}, {374, 6371, 8962},
-            {411, 6958, 10062}, {450, 7929, 11152}, {491, 8848, 12610},
-            {534, 10974, 14108}, {578, 12328, 15643}};
+            {305, 4991, 6753}, {338, 6012, 7783}, {374, 6373, 8962},
+            {411, 6958, 10062}, {450, 7931, 11152}, {491, 8848, 12610},
+            {534, 10976, 14108}, {578, 12329, 15643}};
 
     public static final int[] IMPROVABLE = new int[]{
             18, 27, 38, 50, 65, 81, 98, 118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
@@ -150,7 +150,7 @@ public class APMap {
 
         int[] edges = new int[args.length-index];
         for (int i = index ; i < args.length ; i++) {
-            edges[i-index] = Integer.parseInt(args[i]);
+            edges[i-index] = Integer.parseInt(args[i].replace(",", ""));
         }
 
         System.out.printf(Locale.ROOT, "shuffle %s: runs=%d, permutations=%d, minIndirects=%d, minGained=%d, edges=%s\n",
@@ -302,11 +302,11 @@ public class APMap {
             System.out.println("--- " + bestBoard.marked);
         }
         System.out.printf(Locale.ROOT, "edge=%d, %s" +
-                                       "shuffle7(seed=%d, perms=%d): " +
+                                       "shuffle %s (seed=%d, perms=%d): " +
                                        "worst=%d, initial=%d, best=%d, oldBest=%d, " +
                                        "time=%ss: %s\n",
                           board.edge, getPersonalbest(board.edge) < best ? "IMPROVEMENT " : "",
-                          seed, maxPermutations,
+                          impl, seed, maxPermutations,
                           worst, initial, best, getPersonalbest(board.edge),
                           (System.currentTimeMillis() - startTime) / 1000, bestBoard.toJSON());
     }

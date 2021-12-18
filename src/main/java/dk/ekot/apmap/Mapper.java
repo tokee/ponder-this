@@ -998,6 +998,58 @@ public class Mapper {
     }
 
     /**
+     * Adjust all priorities so that best places are the six corners and three inner areas.
+     */
+    public void adjustPrioritiesShape6Corners3Inner() {
+        final int GOOD = 0;
+        final int BAD = 1000;
+
+        // Fill with bad
+        visitAllXY((x, y) -> {
+            adjustPriority(x, y, BAD);
+        });
+
+        for (int hexY = 0 ; hexY < edge/3 ; hexY++) {
+            // Fill tl, tr, bl, br
+            for (int hexX = 0 ; hexX < edge/3 ; hexX++) {
+                // tl
+                setPriorityHex(hexX, hexY, GOOD);
+                // tr
+                setPriorityHex((edge+hexY)-hexX-1, hexY, GOOD);
+                // bl
+                setPriorityHex(hexX, edge*2-2-hexY, GOOD);
+                // br
+                setPriorityHex((edge+hexY)-hexX-1, edge*2-2-hexY, GOOD);
+            }
+            // Fill ml, mr
+            for (int hexX = 0 ; hexX < hexY ; hexX++) {
+                int mltopY = hexY + edge*2/3;
+                // ml-top
+                setPriorityHex(hexX, mltopY, GOOD);
+                // mr-top
+                setPriorityHex((edge+mltopY)-hexX-1, mltopY, GOOD);
+
+                int mlbottomY = edge*2-2-(hexY + edge*2/3);
+                // ml-bottom
+                setPriorityHex(hexX, mlbottomY, GOOD);
+                // mr-bottom
+                setPriorityHex((edge*3-2-mlbottomY)-hexX-1, mlbottomY, GOOD);
+            }
+        }
+        // Fill Area 1, 2, 3
+        for (int hexY = 0 ; hexY < edge*3/9+1 ; hexY++) {
+            for (int hexX = 0 ; hexX < hexY ; hexX++) {
+                int topY = edge*4/9 + hexY;
+                setPriorityHex(hexX+(edge/4), topY, GOOD);
+                setPriorityHex(hexX+(edge+edge/4-1), topY, GOOD);
+
+                int bottomY = edge+topY;
+                setPriorityHex((edge/4-bottomY)+hexX, bottomY, GOOD);
+            }
+        }
+    }
+
+    /**
      * Adjust all priorities so that the center position is best and the edges are worst.
      */
     public void adjustPrioritiesCenterGood() {
@@ -1424,7 +1476,6 @@ public class Mapper {
      * @param updatePriorities if true, priorities are also adjusted.
      */
     public void removeMarker(int x, int y, boolean updatePriorities) {
-        System.out.println("---");
         if (getQuadratic(x, y) != MARKER) {
             throw new IllegalStateException("Tried removing MARKER from (" + x + ", " + y + ") but it was " +
                                             getQuadratic(x, y) + " instead of the expected " + MARKER);
@@ -1481,6 +1532,17 @@ public class Mapper {
                 }
             }
         });
+    }
+
+    /**
+     * Set the priority at the given hex coordinates.
+     * @param hexX x coordinate in the hex coordinate system used by the APMap challenge.
+     * @param hexY y coordinate in the hex coordinate system used by the APMap challenge.
+     * @param priority the priority to set.
+     */
+    public void setPriorityHex(int hexX, int hexY, int priority) {
+        int marginX = Math.abs(hexY-(height>>1));
+        this.priority[marginX+(hexX<<1) + hexY*width] = priority;
     }
 
     /**
