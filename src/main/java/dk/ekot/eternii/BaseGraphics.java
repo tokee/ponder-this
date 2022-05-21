@@ -27,7 +27,7 @@ import java.awt.image.BufferedImage;
 public class BaseGraphics {
     private static final Logger log = LoggerFactory.getLogger(BaseGraphics.class);
 
-    public static BufferedImage rotate90(BufferedImage src) {
+    public static BufferedImage rotate270(BufferedImage src) {
         int w = src.getWidth();
         int h = src.getHeight();
         BufferedImage dest = new BufferedImage(h, w, src.getType());
@@ -39,12 +39,12 @@ public class BaseGraphics {
 
     // TODO: Make this a real 180 degree rotation
     public static BufferedImage rotate180(BufferedImage src) {
-        return rotate90(rotate90(src));
+        return rotate270(rotate270(src));
     }
 
     // TODO: Make this a real 270 degree rotation
-    public static BufferedImage rotate270(BufferedImage src) {
-        return rotate90(rotate90(rotate90(src)));
+    public static BufferedImage rotate90(BufferedImage src) {
+        return rotate270(rotate270(rotate270(src)));
     }
 
     public static void displayImage(BufferedImage img) {
@@ -54,7 +54,7 @@ public class BaseGraphics {
 
         jFrame.setLayout(new FlowLayout());
 
-        jFrame.setSize(img.getWidth(), img.getHeight());
+        jFrame.setSize(img.getWidth()+20, img.getHeight()+50);
         JLabel jLabel = new JLabel();
 
         jLabel.setIcon(imageIcon);

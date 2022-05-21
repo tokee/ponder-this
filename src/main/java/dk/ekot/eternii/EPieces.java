@@ -38,8 +38,10 @@ public class EPieces {
     private final int[] e;
     private final int[] s;
     private final int[] w;
+    private final int[] type; // 0=base, 1=edge, 2=corner
 
     private BufferedImage[] edges = null;
+
     private BufferedImage[] pieceImages = null;
     private BufferedImage[] pieceImages90 = null;
     private BufferedImage[] pieceImages180 = null;
@@ -51,6 +53,7 @@ public class EPieces {
         e = new int[total];
         s = new int[total];
         w = new int[total];
+        type = new int[total];
         if (total == 256) {
             init256();
         } else {
@@ -92,6 +95,7 @@ public class EPieces {
                 e[piece] = MAP.charAt(Integer.parseInt(tokens[1]))-'a';
                 s[piece] = MAP.charAt(Integer.parseInt(tokens[2]))-'a';
                 w[piece] = MAP.charAt(Integer.parseInt(tokens[3]))-'a';
+                type[piece] = (n[piece] == 0 ? 1 : 0) + (e[piece] == 0 ? 1 : 0) + (s[piece] == 0 ? 1 : 0) + (w[piece] == 0 ? 1 : 0);
                 ++piece;
             }
 
@@ -141,9 +145,9 @@ public class EPieces {
     public String toDisplayString(int piece, int rotation) {
         switch (rotation) {
             case 0: return toCS(n[piece]) + toCS(e[piece]) + toCS(s[piece]) + toCS(w[piece]);
-            case 1: return toCS(w[piece]) + toCS(n[piece]) + toCS(e[piece]) + toCS(s[piece]);
-            case 2: return toCS(s[piece]) + toCS(w[piece]) + toCS(n[piece]) + toCS(e[piece]);
             case 3: return toCS(e[piece]) + toCS(s[piece]) + toCS(w[piece]) + toCS(n[piece]);
+            case 2: return toCS(s[piece]) + toCS(w[piece]) + toCS(n[piece]) + toCS(e[piece]);
+            case 1: return toCS(w[piece]) + toCS(n[piece]) + toCS(e[piece]) + toCS(s[piece]);
         }
         throw new IllegalArgumentException("Invalid rotation " + rotation);
     }
@@ -157,6 +161,7 @@ public class EPieces {
     }
 
     public BufferedImage getPieceImage(int piece, int rotation) {
+        System.out.println("Delivering " + piece + " rot " + rotation);
         switch (rotation) {
             case 0: return pieceImages[piece];
             case 1: return pieceImages90[piece];
@@ -166,4 +171,27 @@ public class EPieces {
         throw new IllegalArgumentException("Invalid rotation " + rotation);
     }
 
+    /**
+     * Resolve piece from String format (4 characters) from https://e2.bucas.name/
+     */
+    public int getPieceFromString(String pieceStr) {
+        for (int piece = 0 ; piece < total ; piece++) {
+            for (int rotation = 0 ; rotation < 4 ; rotation++) {
+                if (pieceStr.equals(toDisplayString(piece, rotation))) {
+                    return piece;
+                }
+            }
+        }
+        throw new IllegalStateException("Unable to resolve '" + pieceStr + "'");
+    }
+    public int getRotationFromString(String pieceStr) {
+        for (int piece = 0 ; piece < total ; piece++) {
+            for (int rotation = 0 ; rotation < 4 ; rotation++) {
+                if (pieceStr.equals(toDisplayString(piece, rotation))) {
+                    return rotation;
+                }
+            }
+        }
+        throw new IllegalStateException("Unable to resolve '" + pieceStr + "'");
+    }
 }
