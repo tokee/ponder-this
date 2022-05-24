@@ -124,7 +124,7 @@ public class EPieces {
             s[i] = edges.charAt(i*4+2)-'a';
             w[i] = edges.charAt(i*4+3)-'a';
         }      */
-        }
+    }
 
     private void generatePieceImages() {
         pieceImages = new BufferedImage[total];

@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -47,97 +48,100 @@ public class EdgeTracker {
      * @param edge3 an edge or -1 if not present.
      * @param edge4 an edge or -1 if not present.
      * @param delta the value to add to the counters.
+     * return false if one or more trackers reched a negative count.             
      */
-    public void add(int edge1, int edge2, int edge3, int edge4, int delta) {
+    public boolean add(int edge1, int edge2, int edge3, int edge4, int delta) {
         // Four
         if (edge1 != -1 && edge2 != -1 && edge3 != -1 && edge4 != -1) { // Called often so this is optimized
-            addFour(edge1, edge2, edge3, edge4, delta);
-            addThree(edge2, edge3, edge4, delta);
-            addThree(edge3, edge4, edge1, delta);
-            addThree(edge4, edge1, edge2, delta);
-            addTwo(edge1, edge2, delta);
-            addTwo(edge2, edge3, delta);
-            addTwo(edge3, edge4, delta);
-            addTwo(edge4, edge1, delta);
-            addOne(edge1, delta);
-            addOne(edge2, delta);
-            addOne(edge3, delta);
-            addOne(edge4, delta);
-            addOpposing(edge1, edge3, delta);
-            addOpposing(edge2, edge4, delta);
-            return;
+            return addFour(edge1, edge2, edge3, edge4, delta)||
+                   addThree(edge2, edge3, edge4, delta)||
+                   addThree(edge3, edge4, edge1, delta)||
+                   addThree(edge4, edge1, edge2, delta)||
+                   addTwo(edge1, edge2, delta)||
+                   addTwo(edge2, edge3, delta)||
+                   addTwo(edge3, edge4, delta)||
+                   addTwo(edge4, edge1, delta)||
+                   addOne(edge1, delta)||
+                   addOne(edge2, delta)||
+                   addOne(edge3, delta)||
+                   addOne(edge4, delta)||
+                   addOpposing(edge1, edge3, delta)||
+                   addOpposing(edge2, edge4, delta);
         }
 
+        boolean allOK = true;
         // Three
         if (edge1 != -1 && edge2 != -1 && edge3 != -1) {
-            addThree(edge1, edge2, edge3, delta);
+            allOK &= addThree(edge1, edge2, edge3, delta);
         }
         if (edge2 != -1 && edge3 != -1 && edge4 != -1) {
-            addThree(edge2, edge3, edge4, delta);
+            allOK &= addThree(edge2, edge3, edge4, delta);
         }
         if (edge3 != -1 && edge4 != -1 && edge1 != -1) {
-            addThree(edge3, edge4, edge1, delta);
+            allOK &= addThree(edge3, edge4, edge1, delta);
         }
         if (edge4 != -1 && edge1 != -1 && edge2 != -1) {
-            addThree(edge4, edge1, edge2, delta);
+            allOK &= addThree(edge4, edge1, edge2, delta);
         }
 
         // Two
         if (edge1 != -1 && edge2 != -1) {
-            addTwo(edge1, edge2, delta);
+            allOK &= addTwo(edge1, edge2, delta);
         }
         if (edge2 != -1 && edge3 != -1) {
-            addTwo(edge2, edge3, delta);
+            allOK &= addTwo(edge2, edge3, delta);
         }
         if (edge3 != -1 && edge4 != -1) {
-            addTwo(edge3, edge4, delta);
+            allOK &= addTwo(edge3, edge4, delta);
         }
         if (edge4 != -1 && edge1 != -1) {
-            addTwo(edge4, edge1, delta);
+            allOK &= addTwo(edge4, edge1, delta);
         }
 
         // One
         if (edge1 != -1) {
-            addOne(edge1, delta);
+            allOK &= addOne(edge1, delta);
         }
         if (edge2 != -1) {
-            addOne(edge2, delta);
+            allOK &= addOne(edge2, delta);
         }
         if (edge3 != -1) {
-            addOne(edge3, delta);
+            allOK &= addOne(edge3, delta);
         }
         if (edge4 != -1) {
-            addOne(edge4, delta);
+            allOK &= addOne(edge4, delta);
         }
 
         // Opposing
         if (edge1 != -1 && edge3 == -1) {
-            addOpposing(edge1, edge3, delta);
+            allOK &= addOpposing(edge1, edge3, delta);
         }
         if (edge2 != -1 && edge4 == -1) {
-            addOpposing(edge2, edge4, delta);
+            allOK &= addOpposing(edge2, edge4, delta);
         }
+        return allOK;
     }
 
-    public void addOne(int edgeType1, int delta) {
-        one.add(edgeType1, delta);
+    public boolean addOne(int edgeType1, int delta) {
+        return one.add(edgeType1, delta);
     }
     public int getOne(int edgeType1) {
         return one.get(edgeType1);
     }
 
-    public void addTwo(int edgeType1, int edgeType2, int delta) {
-        two.add(EF * edgeType1 + edgeType2, delta);
+    public boolean addTwo(int edgeType1, int edgeType2, int delta) {
+        return two.add(EF * edgeType1 + edgeType2, delta);
     }
     public int getTwo(int edgeType1, int edgeType2) {
         return two.get(EF * edgeType1 + edgeType2);
     }
 
-    public void addOpposing(int edgeType1, int edgeType2, int delta) {
-        opposing.add(EF * edgeType1 + edgeType2, delta);
+    public boolean addOpposing(int edgeType1, int edgeType2, int delta) {
+        boolean allOK = opposing.add(EF * edgeType1 + edgeType2, delta);
         if (edgeType1 != edgeType2) {
-            opposing.add(EF * edgeType2 + edgeType1, delta);
+            allOK &= opposing.add(EF * edgeType2 + edgeType1, delta);
         }
+        return allOK;
     }
     public int getOpposing(int edgeType1, int edgeType2) {
         if (edgeType1 != edgeType2) {
@@ -147,15 +151,17 @@ public class EdgeTracker {
         return opposing.get(EF * edgeType1 + edgeType2);
     }
 
-    public void addThree(int edgeType1, int edgeType2, int edgeType3, int delta) {
-        three.add(EF * EF * edgeType1 + EF * edgeType2 + edgeType3, delta);
+    public boolean addThree(int edgeType1, int edgeType2, int edgeType3, int delta) {
+        return three.add(EF * EF * edgeType1 + EF * edgeType2 + edgeType3, delta);
     }
     public int getThree(int edgeType1, int edgeType2, int edgeType3) {
         return three.get(EF * EF * edgeType1 + EF * edgeType2 + edgeType3);
     }
 
-    public void addFour(int edgeType1, int edgeType2, int edgeType3, int edgeType4, int delta) {
-        visitFour(edgeType1, edgeType2, edgeType3, edgeType4, key -> four.add(key, delta));
+    public boolean addFour(int edgeType1, int edgeType2, int edgeType3, int edgeType4, int delta) {
+        AtomicBoolean allOK = new AtomicBoolean(true);
+        visitFour(edgeType1, edgeType2, edgeType3, edgeType4, key -> allOK.set(allOK.get() && four.add(key, delta)));
+        return allOK.get();
     }
     public int getFour(int edgeType1, int edgeType2, int edgeType3, int edgeType4) {
         AtomicInteger sum = new AtomicInteger(0);
@@ -171,8 +177,16 @@ public class EdgeTracker {
 
 
     public static class Counter extends HashMap<Integer, Integer> {
-        private void add(int key, int delta) {
-            put(key, get(key)+delta);
+        /**
+         *
+         * @param key
+         * @param delta
+         * @return true if the new count is >= 0
+         */
+        private boolean add(int key, int delta) {
+            int count = get(key)+delta;
+            put(key, count);
+            return count >= 0;
         }
         private void dec(int key) {
             put(key, get(key)-1);

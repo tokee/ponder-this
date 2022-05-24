@@ -111,8 +111,9 @@ public class EBoard {
      */
     public void placeFast(int x, int y, int piece, int rotation) {
         // Remove surrounding registers
-        updateTracker9(x, y, -1);
+        updateTracker9(x, y, +1);
         board[x][y] = (rotation<<16)|piece;
+
     }
 
     /**
@@ -130,16 +131,17 @@ public class EBoard {
     /**
      * Update the tracker for the field (x, y).
      * @param delta the amount to update with (typically -1 or 1).
+     * @return false if the updating resulted in at least 1 tracker reaching a negative state.
      */
-    private void updateTracker(int x, int y, int delta) {
+    private boolean updateTracker(int x, int y, int delta) {
         if (board[x][y] != -1) { // No action if occupied
-            return;
+            return true;
         }
         int topEdge = lenientGetBottomEdge(x, y-1);
         int rightEdge = lenientGetLeftEdge(x+1, y);
         int bottomEdge = lenientGetTopEdge(x+1, y);
         int leftEdge = lenientGetRightEdge(x-1, y);
-        tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
+        return tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
     }
 
 
