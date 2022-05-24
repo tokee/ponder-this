@@ -19,6 +19,10 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 /**
@@ -61,6 +65,7 @@ public class EBoard {
     private static final Logger log = LoggerFactory.getLogger(EBoard.class);
 
     private final EPieces pieces;
+    private final Set<Integer> bag = new HashSet<>(); // Bag of free pieces
 
     private final int width;
     private final int height;
@@ -82,7 +87,7 @@ public class EBoard {
     /**
      * Positions the given piece on the board and throws IllegalArgumentexception if it is not a valid placement.
      */
-    public boolean place(int x, int y, int piece, int rotation) {
+    public boolean placeDefuncts(int x, int y, int piece, int rotation) {
         if (board[x][y] != -1) {
             throw new IllegalArgumentException("There is already a piece at (" + x + ", " + y + "): " + board[x][y]);
         }
@@ -107,13 +112,75 @@ public class EBoard {
     }
 
     /**
-     * Positions the given piece on the board with no checks for validity.
+     * Remove the piece at the given position, updating the tracker.
+     * @param x
+     * @param y
      */
-    public void placeFast(int x, int y, int piece, int rotation) {
+    public void removePiece(int x, int y) {
+        int piece = getPiece(x, y);
+        if (piece == -1) {
+            throw new IllegalStateException("removePiece(" + x + ", " + y + ") called but the field has no piece");
+        }
+        // Remove piece from board
+        updateTracker9(x, y, +1);
+        board[x][y] = -1;
+        updateTracker9(x, y, -1);
+
+        // Register piece as free
+        updatePieceTracking(piece, +1);
+        bag.add(piece);
+    }
+
+    /**
+     * Positions the given piece on the board, updating the tracker and removing the piece from the bag.
+     * @return if the positioning resulted in a negative tracker and was rolled back.
+     */
+    public boolean placePiece(int x, int y, int piece, int rotation) {
+        if (board[x][y] != -1) {
+            throw new IllegalStateException(
+                    "placePiece(" + x + ", " + y + ", ...) called but the field already had a piece");
+        }
         // Remove surrounding registers
         updateTracker9(x, y, +1);
         board[x][y] = (rotation<<16)|piece;
+        if (!updateTracker9(x, y, -1)) {
+            // At least one tracker is negative so we rollback
+            updateTracker9(x, y, +1);
+            board[x][y] = -1;
+            updateTracker9(x, y, -1);
+            return false;
+        }
+        if (!updatePieceTracking(piece, -1)) {
+            updatePieceTracking(piece, 1);
+            // At least one tracker is negative so we rollback
+            updateTracker9(x, y, +1);
+            board[x][y] = -1;
+            updateTracker9(x, y, -1);
+            return false;
+        }
+        if (!bag.add(piece)) {
+           throw new IllegalStateException("Tried adding piece " + piece + " as free but it was already registered");
+        }
+        return true;
+    }
 
+    /**
+     * Register edges from the given pieces and add them to the board bag.
+     * @param pieces the pieces to register.
+     */
+    public void addFreePieces(Collection<Integer> pieces) {
+        pieces.forEach(piece -> updatePieceTracking(piece, 1));
+        this.bag.addAll(pieces);
+    }
+
+    /**
+     * Register edges from the given piece.
+     * @param piece the piece to register.
+     * @param delta the amount to adjust the edge counters with.
+     */
+    private boolean updatePieceTracking(int piece, int delta) {
+        return tracker.add(pieces.getTop(piece, 0), pieces.getRight(piece, 0),
+                                     pieces.getBottom(piece, 0), pieces.getLeft(piece, 0), delta);
     }
 
     /**
@@ -122,10 +189,12 @@ public class EBoard {
      * @param origoY start Y.
      * @param delta the amount to update with (typically -1 or 1).
      */
-    private void updateTracker9(int origoX, int origoY, int delta) {
+    private boolean updateTracker9(int origoX, int origoY, int delta) {
+        AtomicBoolean allOK = new AtomicBoolean(true);
         visit9(origoX, origoY, (x, y) -> {
-            updateTracker(x, y, delta);
+            allOK.set(allOK.get() && updateTracker(x, y, delta));
         });
+        return allOK.get();
     }
 
     /**
@@ -241,7 +310,7 @@ public class EBoard {
                 int piece = pieces.getPieceFromString(full.substring(i, i + 4));
                 int rotation = pieces.getRotationFromString(full.substring(i, i + 4));
                 //System.out.println("G " + piece + " " + rotation + ": " + pieces.toDisplayString(piece, rotation));
-                placeFast(x, y, piece, rotation);
+                placePiece(x, y, piece, rotation);
             }
         }
     }

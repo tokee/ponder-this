@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Holds the pieces/tiles.
@@ -44,6 +46,9 @@ public class EPieces {
     private final int[] s;
     private final int[] w;
     private final int[] type; // 0=base, 1=edge, 2=corner
+
+    // Holds pieces (not compounds)
+    private final Set<Integer> bag = new HashSet<>();
 
     private BufferedImage[] edges = null;
 
@@ -101,6 +106,7 @@ public class EPieces {
                 s[piece] = MAP.charAt(Integer.parseInt(tokens[2]))-'a';
                 w[piece] = MAP.charAt(Integer.parseInt(tokens[3]))-'a';
                 type[piece] = (n[piece] == 0 ? 1 : 0) + (e[piece] == 0 ? 1 : 0) + (s[piece] == 0 ? 1 : 0) + (w[piece] == 0 ? 1 : 0);
+                bag.add(piece);
                 ++piece;
             }
 
@@ -197,6 +203,14 @@ public class EPieces {
             }
         }
         throw new IllegalStateException("Unable to resolve '" + pieceStr + "'");
+    }
+
+    public Set<Integer> getBag() {
+        return bag;
+    }
+
+    public void putInBag(int piece){
+        bag.add(piece);
     }
 
     public int getType(int piece) {

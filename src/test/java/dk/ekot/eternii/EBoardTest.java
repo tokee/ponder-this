@@ -1,7 +1,6 @@
 package dk.ekot.eternii;
 
 import junit.framework.TestCase;
-import org.junit.Test;
 
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +22,7 @@ public class EBoardTest extends TestCase {
         EBoard board = new EBoard(EPieces.getEternii(), 16, 16);
         for (int y = 0 ; y < 16 ; y++) {
             for (int x = 0 ; x < 16 ; x++) {
-                board.placeFast(x, y, y*16+x, 0);
+                board.placePiece(x, y, y * 16 + x, 0);
             }
         }
         board.displayBoard();
@@ -40,9 +39,18 @@ public class EBoardTest extends TestCase {
 
     public void testBlankTracker() {
         EBoard board = new EBoard(EPieces.getEternii(), 16, 16);
-        assertEquals("There should be the expected number of negative counts for the corner pieces",
+        assertEquals("There should be the expected number of counts for the corner pieces",
                      -4, board.getTracker().getTwo(EPieces.EDGE_EDGE, EPieces.EDGE_EDGE));
-        assertEquals("There should be the expected number of negative counts for the board edge pieces",
+        assertEquals("There should be the expected number of counts for the board edge pieces",
                      -4*16, board.getTracker().getOne(EPieces.EDGE_EDGE));
+    }
+    public void testBaggedTracker() {
+        EPieces pieces = EPieces.getEternii();
+        EBoard board = new EBoard(pieces, 16, 16);
+        board.addFreePieces(pieces.getBag());
+        assertEquals("There should be the expected number of counts for the corner pieces",
+                     0, board.getTracker().getTwo(EPieces.EDGE_EDGE, EPieces.EDGE_EDGE));
+        assertEquals("There should be the expected number of counts for the board edge pieces",
+                     0, board.getTracker().getOne(EPieces.EDGE_EDGE));
     }
 }

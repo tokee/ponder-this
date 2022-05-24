@@ -50,74 +50,75 @@ public class EdgeTracker {
      * @param delta the value to add to the counters.
      * return false if one or more trackers reched a negative count.             
      */
+    // NOTE: The binary boolean operators are on purpose as we want the side effects
     public boolean add(int edge1, int edge2, int edge3, int edge4, int delta) {
         // Four
         if (edge1 != -1 && edge2 != -1 && edge3 != -1 && edge4 != -1) { // Called often so this is optimized
-            return addFour(edge1, edge2, edge3, edge4, delta)||
-                   addThree(edge2, edge3, edge4, delta)||
-                   addThree(edge3, edge4, edge1, delta)||
-                   addThree(edge4, edge1, edge2, delta)||
-                   addTwo(edge1, edge2, delta)||
-                   addTwo(edge2, edge3, delta)||
-                   addTwo(edge3, edge4, delta)||
-                   addTwo(edge4, edge1, delta)||
-                   addOne(edge1, delta)||
-                   addOne(edge2, delta)||
-                   addOne(edge3, delta)||
-                   addOne(edge4, delta)||
-                   addOpposing(edge1, edge3, delta)||
+            return addFour(edge1, edge2, edge3, edge4, delta) |
+                   addThree(edge2, edge3, edge4, delta) |
+                   addThree(edge3, edge4, edge1, delta) |
+                   addThree(edge4, edge1, edge2, delta) |
+                   addTwo(edge1, edge2, delta) |
+                   addTwo(edge2, edge3, delta) |
+                   addTwo(edge3, edge4, delta) |
+                   addTwo(edge4, edge1, delta) |
+                   addOne(edge1, delta) |
+                   addOne(edge2, delta) |
+                   addOne(edge3, delta) |
+                   addOne(edge4, delta) |
+                   addOpposing(edge1, edge3, delta) |
                    addOpposing(edge2, edge4, delta);
         }
 
         boolean allOK = true;
         // Three
         if (edge1 != -1 && edge2 != -1 && edge3 != -1) {
-            allOK &= addThree(edge1, edge2, edge3, delta);
+            allOK = allOK & addThree(edge1, edge2, edge3, delta);
         }
         if (edge2 != -1 && edge3 != -1 && edge4 != -1) {
-            allOK &= addThree(edge2, edge3, edge4, delta);
+            allOK = allOK & addThree(edge2, edge3, edge4, delta);
         }
         if (edge3 != -1 && edge4 != -1 && edge1 != -1) {
-            allOK &= addThree(edge3, edge4, edge1, delta);
+            allOK = allOK & addThree(edge3, edge4, edge1, delta);
         }
         if (edge4 != -1 && edge1 != -1 && edge2 != -1) {
-            allOK &= addThree(edge4, edge1, edge2, delta);
+            allOK = allOK & addThree(edge4, edge1, edge2, delta);
         }
 
         // Two
         if (edge1 != -1 && edge2 != -1) {
-            allOK &= addTwo(edge1, edge2, delta);
+            allOK = allOK & addTwo(edge1, edge2, delta);
         }
         if (edge2 != -1 && edge3 != -1) {
-            allOK &= addTwo(edge2, edge3, delta);
+            allOK = allOK & addTwo(edge2, edge3, delta);
         }
         if (edge3 != -1 && edge4 != -1) {
-            allOK &= addTwo(edge3, edge4, delta);
+            allOK = allOK & addTwo(edge3, edge4, delta);
         }
         if (edge4 != -1 && edge1 != -1) {
-            allOK &= addTwo(edge4, edge1, delta);
+            allOK = allOK & addTwo(edge4, edge1, delta);
         }
 
         // One
         if (edge1 != -1) {
-            allOK &= addOne(edge1, delta);
+            allOK = allOK & addOne(edge1, delta);
         }
         if (edge2 != -1) {
-            allOK &= addOne(edge2, delta);
+            allOK = allOK & addOne(edge2, delta);
         }
         if (edge3 != -1) {
-            allOK &= addOne(edge3, delta);
+            allOK = allOK & addOne(edge3, delta);
         }
         if (edge4 != -1) {
-            allOK &= addOne(edge4, delta);
+            allOK = allOK & addOne(edge4, delta);
         }
 
         // Opposing
         if (edge1 != -1 && edge3 == -1) {
-            allOK &= addOpposing(edge1, edge3, delta);
+            allOK = allOK & addOpposing(edge1, edge3, delta);
         }
         if (edge2 != -1 && edge4 == -1) {
-            allOK &= addOpposing(edge2, edge4, delta);
+            allOK = allOK & addOpposing(edge2, edge4, delta);
         }
         return allOK;
     }
