@@ -37,4 +37,12 @@ public class EBoardTest extends TestCase {
         board.displayBoard();
         Thread.sleep(1000000L);
     }
+
+    public void testBlankTracker() {
+        EBoard board = new EBoard(EPieces.getEternii(), 16, 16);
+        assertEquals("There should be the expected number of negative counts for the corner pieces",
+                     -4, board.getTracker().getTwo(EPieces.EDGE_EDGE, EPieces.EDGE_EDGE));
+        assertEquals("There should be the expected number of negative counts for the board edge pieces",
+                     -4*16, board.getTracker().getOne(EPieces.EDGE_EDGE));
+    }
 }

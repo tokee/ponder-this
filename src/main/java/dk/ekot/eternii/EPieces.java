@@ -28,10 +28,15 @@ import java.nio.charset.StandardCharsets;
 /**
  * Holds the pieces/tiles.
  */
+// compound = (rotation << 16 | piece)
 public class EPieces {
     private static final Logger log = LoggerFactory.getLogger(EPieces.class);
 
-    public static final int MAX_EDGE_ID = 25; //
+    public static final int CORNER = 2;
+    public static final int EDGE = 1;
+    public static final int INNER = 0;
+
+    public static final int EDGE_EDGE = 0; // The outermost edges (black/grey)
 
     private final int total;
     private final int[] n;
@@ -145,11 +150,11 @@ public class EPieces {
     public String toDisplayString(int piece, int rotation) {
         switch (rotation) {
             case 0: return toCS(n[piece]) + toCS(e[piece]) + toCS(s[piece]) + toCS(w[piece]);
-            case 3: return toCS(e[piece]) + toCS(s[piece]) + toCS(w[piece]) + toCS(n[piece]);
-            case 2: return toCS(s[piece]) + toCS(w[piece]) + toCS(n[piece]) + toCS(e[piece]);
             case 1: return toCS(w[piece]) + toCS(n[piece]) + toCS(e[piece]) + toCS(s[piece]);
+            case 2: return toCS(s[piece]) + toCS(w[piece]) + toCS(n[piece]) + toCS(e[piece]);
+            case 3: return toCS(e[piece]) + toCS(s[piece]) + toCS(w[piece]) + toCS(n[piece]);
+            default: throw new IllegalArgumentException("Invalid rotation " + rotation);
         }
-        throw new IllegalArgumentException("Invalid rotation " + rotation);
     }
 
     private String toCS(int edge) {
@@ -161,7 +166,6 @@ public class EPieces {
     }
 
     public BufferedImage getPieceImage(int piece, int rotation) {
-        System.out.println("Delivering " + piece + " rot " + rotation);
         switch (rotation) {
             case 0: return pieceImages[piece];
             case 1: return pieceImages90[piece];
@@ -193,5 +197,46 @@ public class EPieces {
             }
         }
         throw new IllegalStateException("Unable to resolve '" + pieceStr + "'");
+    }
+
+    public int getType(int piece) {
+        return type[piece];
+    }
+
+    public int getLeft(int piece, int rotation) {
+        switch (rotation) {
+            case 0: return w[piece];
+            case 1: return s[piece];
+            case 2: return e[piece];
+            case 3: return n[piece];
+            default: throw new IllegalArgumentException("Invalid rotation " + rotation);
+        }
+    }
+    public int getTop(int piece, int rotation) {
+        switch (rotation) {
+            case 0: return n[piece];
+            case 1: return w[piece];
+            case 2: return s[piece];
+            case 3: return e[piece];
+            default: throw new IllegalArgumentException("Invalid rotation " + rotation);
+        }
+    }
+    public int getRight(int piece, int rotation) {
+        switch (rotation) {
+            case 0: return e[piece];
+            case 1: return n[piece];
+            case 2: return w[piece];
+            case 3: return s[piece];
+            default: throw new IllegalArgumentException("Invalid rotation " + rotation);
+        }
+    }
+    public int getBottom(int piece, int rotation) {
+        switch (rotation) {
+            case 0: return s[piece];
+            case 1: return e[piece];
+            case 2: return n[piece];
+            case 3: return w[piece];
+            default: throw new IllegalArgumentException("Invalid rotation " + rotation);
+        }
     }
 }
