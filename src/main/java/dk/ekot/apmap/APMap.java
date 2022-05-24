@@ -44,41 +44,48 @@ public class APMap {
 
     public static final int[][] BESTS = new int[][]{
             // edge, local, global,
-            {2, 6, 6}, {6, 33, 33}, {11, 80, 80}, {18, 149, 153}, {27, 244, 266}, {38, 413, 420},
+            {2, 6, 6}, {6, 33, 33}, {11, 80, 80}, {18, 151, 153}, {27, 253, 266}, {38, 415, 420},
             {50, 548, 621}, {65, 772, 884}, {81, 946, 1193}, {98, 1258, 1512},
             {118, 1716, 1973}, {139, 2001, 2418}, {162, 2274, 2921}, {187, 3072, 3518},
-            {214, 3222, 4284}, {242, 3597, 5057}, {273, 4190, 5831},
-            {305, 4991, 6753}, {338, 6012, 7783}, {374, 6373, 8962},
-            {411, 6958, 10062}, {450, 7931, 11152}, {491, 8848, 12610},
-            {534, 10976, 14108}, {578, 12329, 15643}};
+            {214, 3222, 4284}, {242, 3599, 5057}, {273, 4190, 5831},
+            {305, 4998, 6753}, {338, 6018, 7783}, {374, 6378, 8962},
+            {411, 6962, 10062}, {450, 7938, 11152}, {491, 8851, 12610},
+            {534, 10980, 14108}, {578, 12331, 15643}};
 
     public static final int[] IMPROVABLE = new int[]{
             18, 27, 38, 50, 65, 81, 98, 118, 139, 162, 187, 214, 242, 273, 305, 338, 374, 411, 450, 491, 534, 578};
 
+    public static final int[] FORCED_CORNERS = new int[]{65, 187, 214, 534, 578};
+
     // java -cp target/ponder-this-0.1-SNAPSHOT-jar-with-dependencies.jar dk.ekot.apmap.APMap
 
-    // 65: adHoc finished in 33223ms
     public static void adHoc(String args[]) {
-        int RUN[] = new int[]{81};
+        boolean SHOW_BEST = true;
+        int STALE_MS = 30*1000;
+        int RUN[] = new int[]{11};
         //int RUN[] = IMPROVABLE;
         //int RUN[] = EDGES;
         //Arrays.stream(EDGES).parallel().forEach(APMap::saveImage); if (1==1) return;
-        //APMap.saveImage(578); if (1==1) return;
+        //Arrays.stream(RUN).parallel().forEach(APMap::saveImage); if (1==1) return;
+        //APMap.saveImage(65); if (1==1) return;
         //System.out.println(map); if (1==1) return;
         
         //Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
         //dumpRelativePosition(); if (1==1) return;
+        // 6c: 365/372/360/369/367
+        // cb6c: 377/375/370/372/371  375/372/377
+        buildThenShuffle(18, SHOW_BEST, STALE_MS, PriorityAdjuster.FILLER.centerBadSixCorners, SHUFFLE_IMPL.s7, 5000, 2000, 10, -5); if (1 == 1) return;
 
-        // 411: s9: 1_095 318ms, s7 1_775_643ms
+        testMultipleEdges(RUN, SHOW_BEST, STALE_MS, PriorityAdjuster.FILLER.neutral, true); if (1 == 1) return;
+
         Arrays.stream(RUN).boxed().parallel()
                 .map(APMap::loadJSON)
-                .forEach(json -> shuffleFromJSON(json, 500, 100, 2, 0, SHUFFLE_IMPL.s9)); if (1 == 1) return;
+                .forEach(json -> shuffleFromJSON(json, 500, 100, 2, 0, SHUFFLE_IMPL.s7, PriorityAdjuster.FILLER.sixCorners)); if (1 == 1) return;
                 //.forEach(json -> shuffleFromJSON(json, 2, 10000, 2, 0, SHUFFLE_IMPL.s9)); if (1 == 1) return;
 //        Arrays.stream(RUN).boxed().parallel().forEach(APMap::doShuffle); if (1 == 1) return;
 
         // testMarking();
         //if (1==1) return;
-        int STALE_MS = 30*1000;
 
         //goFlat(6); if (1 == 1) return;
 
@@ -88,9 +95,14 @@ public class APMap {
         // 118 + 139 responds well to pre-filled priority, 162 + 187 does not
 
 
-        boolean SHOW_BEST = true;
 
-        testMultipleEdges(RUN, SHOW_BEST, STALE_MS);
+    }
+
+    private static void buildThenShuffle(int edge, boolean showBest, int staleMS, PriorityAdjuster.FILLER filler,
+                                         SHUFFLE_IMPL shuffleImpl, int runs, int maxPermutations, int minIndirects, int minGained) {
+        int seed = new Random().nextInt();
+        Mapper board = new APMap().goQuadratic(edge, staleMS, showBest, true, filler);
+        doShuffle(board, runs, seed, maxPermutations, minIndirects, minGained, shuffleImpl);
     }
 
     public static void main(String[] args) {
@@ -119,7 +131,7 @@ public class APMap {
 
         int STALE_MS = Integer.parseInt(args[0])*1000;
 
-        testMultipleEdges(edges, SHOW_BEST, STALE_MS);
+        testMultipleEdges(edges, SHOW_BEST, STALE_MS, PriorityAdjuster.FILLER.getDefault(), false);
     }
 
     private static void dumpRelativePosition() {
@@ -157,7 +169,7 @@ public class APMap {
                           impl, runs, permutations, minIndirects, minGained, Arrays.toString(edges));
         Arrays.stream(edges).boxed().parallel()
                 .map(APMap::loadJSON)
-                .forEach(json -> shuffleFromJSON(json, runs, permutations, minIndirects, minGained, impl));
+                .forEach(json -> shuffleFromJSON(json, runs, permutations, minIndirects, minGained, impl, PriorityAdjuster.FILLER.sixCorners));
     }
 
     private static void saveImage(int edge) {
@@ -180,7 +192,7 @@ public class APMap {
 
         // TODO: Fails with edge==50!?
         // TODO: 18 seems to work well (134), 27 (221), 38 (fail),
-        Mapper board = new APMap().goQuadratic(edge, 10_000, true,  true);
+        Mapper board = new APMap().goQuadratic(edge, 10_000, true, true, PriorityAdjuster.FILLER.getDefault());
         System.out.println("Cheap run finished after " + (System.currentTimeMillis()-startTime)/1000 + " seconds");
         doShuffle(board, RUNS, seed, MAX_PERMUTATIONS);
     }
@@ -221,17 +233,19 @@ public class APMap {
         shuffleFromJSON(json, RUNS, MAX_PERMUTATIONS);
     }
     private static void shuffleFromJSON(String json, int runs, int maxPermutations) {
-        shuffleFromJSON(json, runs, maxPermutations, 3, -10, SHUFFLE_IMPL.getDefault());
+        shuffleFromJSON(json, runs, maxPermutations, 3, -10,
+                        SHUFFLE_IMPL.getDefault(), PriorityAdjuster.FILLER.getDefault());
     }
     private static void shuffleFromJSON(
-            String json, int runs, int maxPermutations, int minIndirects, int minGained, SHUFFLE_IMPL impl) {
+            String json, int runs, int maxPermutations, int minIndirects, int minGained,
+            SHUFFLE_IMPL impl, PriorityAdjuster.FILLER priorityFiller) {
         final long startTime = System.currentTimeMillis();
         final int seed = new Random().nextInt();
 
         int edge = Mapper.getEdgeFromJSON(json);
 
         Mapper board = new Mapper(edge);
-        board.adjustPrioritiesCenterBad(); // The cheap one used in goQuadratic
+        PriorityAdjuster.adjustPriorities(board, priorityFiller);
         board.addJSONMarkers(json);
 
         System.out.printf(Locale.ROOT, "edge=%d loaded and prioritized  with marked=%d in %d seconds\n",
@@ -273,7 +287,6 @@ public class APMap {
                     gained = board.shuffle8(seed, minIndirects, maxPermutations, minGained);
                     break;
                 case s9:
-                    seed = 9131004; // TODO: Remove
                     gained = board.shuffle9(seed, minIndirects, maxPermutations, minGained);
                     break;
                 default: throw new UnsupportedOperationException(
@@ -320,14 +333,14 @@ public class APMap {
         return -1;
     }
 
-    private static void testMultipleEdges(int[] edges, boolean showBest, int staleMS) {
+    private static void testMultipleEdges(int[] edges, boolean showBest, int staleMS, PriorityAdjuster.FILLER filler, boolean returnOnFirstBottom) {
         long startTime = System.currentTimeMillis();
 
         System.out.printf(Locale.ROOT, "Testing with staleMS=%d: %s", staleMS, Arrays.toString(edges));
 
         List<Mapper> results = Arrays.stream(edges).parallel().
                 boxed().
-                map(task -> new APMap().goQuadratic(task, staleMS, showBest, false)).
+                map(task -> new APMap().goQuadratic(task, staleMS, showBest, returnOnFirstBottom, filler)).
                 collect(Collectors.toList());
 
         System.out.println("\nAll results:");
@@ -368,7 +381,7 @@ public class APMap {
         ForkJoinPool customThreadPool = new ForkJoinPool(3); // Seems to fit in default JVM heap allocation
         customThreadPool.submit(() -> {
             results.addAll(tests.parallelStream().
-                                   map(task -> new APMap().goQuadratic(task, maxStaleMS, true, false)).
+                                   map(task -> new APMap().goQuadratic(task, maxStaleMS, true, false, PriorityAdjuster.FILLER.getDefault())).
                                    collect(Collectors.toList()));
         }).join();
         
@@ -403,16 +416,16 @@ public class APMap {
         System.out.println("***********************************");
     }
 
-    private Mapper goQuadratic(int edge) {
+/*    private Mapper goQuadratic(int edge) {
         return goQuadratic(edge, Integer.MAX_VALUE, true, Integer.MAX_VALUE, false);
     }
     private Mapper goQuadratic(int edge, boolean showBest, boolean returnOnFirstBottom) {
         return goQuadratic(edge, Integer.MAX_VALUE, showBest, Integer.MAX_VALUE, returnOnFirstBottom);
+    }*/
+    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, boolean returnOnFirstBottom, PriorityAdjuster.FILLER filler) {
+        return goQuadratic(edge, maxStaleMS, showBest, Integer.MAX_VALUE, returnOnFirstBottom, filler);
     }
-    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, boolean returnOnFirstBottom) {
-        return goQuadratic(edge, maxStaleMS, showBest, Integer.MAX_VALUE, returnOnFirstBottom);
-    }
-    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, int showBoardIntervalMS, boolean returnOnFirstBottom) {
+    private Mapper goQuadratic(int edge, int maxStaleMS, boolean showBest, int showBoardIntervalMS, boolean returnOnFirstBottom, PriorityAdjuster.FILLER filler) {
         log.info("Initializing for edge " + edge + "...");
         long initTime = -System.currentTimeMillis();
         Mapper board = new Mapper(edge);
@@ -424,7 +437,7 @@ public class APMap {
         long walkTime = -System.currentTimeMillis();
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Comparator.comparing(Mapper.LazyPos::getPriorityChanges).thenComparing(Mapper.LazyPos::getPos),true);
         //walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, Mapper.getPriorityChangesComparator(), true);
-        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, true, returnOnFirstBottom);
+        walker.walkFlexible(maxStaleMS, showBest, showBoardIntervalMS, true, returnOnFirstBottom, filler);
         //walker.walkStraight(maxStaleMS, showBest);
         walkTime += System.currentTimeMillis();
 
@@ -711,6 +724,20 @@ public class APMap {
     Overall this should work well when the number of permutations is high.
 
     Bonus: Store an array of triples with marks for each ILLEGAL element. Problem: High memory use.
+
+    -----------------
+    Idea #25 20211218:
+
+    Observation: 65, 187, 214, 534, 578 seems "stuck" in a structure with 3 main areas.
+                 The seem to be stuck at local maxima.
+                 All other make structures where all 6 corners has clusters and with 3 smaller clusters around the
+                 middle.
+                 adjustPrioritiesShape6Corners3Inner assigns priorities to these areas, forcing the initial fill
+                 to take roughly that shape.
+
+    Idea: Re-run the stuck structures to get the 6corner-initial figure then shuffle to try and break free from the
+          local maxima.
+
 
      */
 

@@ -40,7 +40,7 @@ public class MapWalker {
     }
 
     public void walkFlexible(int maxStaleMS, boolean showBest, int showBoardIntervalMS, boolean updatePriorities,
-                             boolean returnOnFirstBottom) {
+                             boolean returnOnFirstBottom, PriorityAdjuster.FILLER priorityFiller) {
         final long startTime = System.currentTimeMillis();
 
         long maxNanoTime = System.nanoTime() + maxStaleMS*1000000L;
@@ -49,9 +49,10 @@ public class MapWalker {
         if (startingPos == null) {
             throw new IllegalStateException("Cannot find initial starting point for edge=" + board.edge);
         }
-        board.adjustPrioritiesCenterBad();
+        //board.adjustPrioritiesCenterBad(); // Best 20211218
         //board.adjustPrioritiesCenterGood();
         //board.adjustPrioritiesByTripleCount(); // Very heavy!
+        PriorityAdjuster.adjustPriorities(board, priorityFiller);
         int depth = 0;
         PositionsPool pool = new PositionsPool(100, board.valids, (pDepth, positions) -> {
             if (pDepth == 0) {

@@ -294,7 +294,7 @@ public class MapperTest extends TestCase {
     public void testAdjustPriorities(int edge) {
         System.out.println("----");
         Mapper board = new Mapper(edge);
-        board.adjustPrioritiesByTripleCount();
+        PriorityAdjuster.adjustPrioritiesByTripleCount(board);
         System.out.println(board);
     }
 
@@ -457,7 +457,7 @@ public class MapperTest extends TestCase {
 
     public void testCornerPriority() {
         Mapper board = new Mapper(30);
-        board.adjustPrioritiesShape6Corners3Inner();
+        PriorityAdjuster.adjustPrioritiesShape6Corners3Inner(board);
         System.out.println(board);
     }
 }
