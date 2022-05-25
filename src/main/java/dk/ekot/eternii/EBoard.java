@@ -21,6 +21,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -262,7 +263,7 @@ public class EBoard {
             }
             for (int x = origoX-1 ; x < origoY+1 ; x++) {
                 if (x < 0 || x >= width) {
-                    continue;
+                    continue;                                                       
                 }
                 fields.add(new Field(x, y));
             }
@@ -270,6 +271,18 @@ public class EBoard {
         return fields.stream();
     }
 
+    /**
+     * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
+     */
+    private Stream<Pair<Field, List<Piece>>> getOrderedFreeFields() {
+        Comparator<Pair<Field, List<Piece>>> comparator =
+                Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.right.size())
+                        .thenComparingInt(pair -> pair.left.getOuterEdgeCount())
+                        .thenComparingInt(pair -> pair.left.y*width + pair.left.x);
+        return streamAllFields()
+                .filter(Field::isFree)
+                .map(field -> new Pair<>(field, field.getPieces()));
+    }
 
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
@@ -377,8 +390,8 @@ public class EBoard {
                 if (compound == -1) {
                     continue;
                 }
-                int piece = compound&0xFFFF;
-                int rot = compound>>16;
+//                int piece = compound&0xFFFF;
+//                int rot = compound>>16;
 //                System.out.printf("Drawing (%d, %d) piece=%d, rotation=%d, non-rot=%s, rot=%s\n",
 //                                  x, y, piece, rot, pieces.toDisplayString(piece, 0), pieces.toDisplayString(piece, rot));
                 boardImage.getGraphics().drawImage(
@@ -388,19 +401,15 @@ public class EBoard {
         BaseGraphics.displayImage(boardImage);
     }
 
-    public EdgeTracker getTracker() {
-        return tracker;
-    }
-
     /**
      * @return true if the piece fits on the board (edges matches).
      */
     private boolean fits(int x, int y, int piece, int rotation) {
         int outerEdge;
-        return (((outerEdge = lenientGetBottomEdge(x, y-1)) == -1 || outerEdge == pieces.getTop(piece, rotation)) &&
-                ((outerEdge = lenientGetLeftEdge(x, y-1)) == -1 || outerEdge == pieces.getRight(piece, rotation) &&
-                ((outerEdge = lenientGetTopEdge(x, y-1)) == -1 || outerEdge == pieces.getBottom(piece, rotation) &&
-                ((outerEdge = lenientGetRightEdge(x, y-1)) == -1 || outerEdge == pieces.getLeft(piece, rotation));
+        return ((outerEdge = lenientGetBottomEdge(x, y-1)) == -1 || outerEdge == pieces.getTop(piece, rotation)) &&
+               ((outerEdge = lenientGetLeftEdge(x, y-1)) == -1 || outerEdge == pieces.getRight(piece, rotation)) &&
+               ((outerEdge = lenientGetTopEdge(x, y-1)) == -1 || outerEdge == pieces.getBottom(piece, rotation)) &&
+               ((outerEdge = lenientGetRightEdge(x, y-1)) == -1 || outerEdge == pieces.getLeft(piece, rotation));
     }
 
     /**
@@ -452,6 +461,13 @@ public class EBoard {
             return isFree() ? -1 : pieces.getLeft(getPiece(), getRotation());
         }
 
+        public int getOuterEdgeCount() {
+            return (lenientGetBottomEdge(x, y-1) == -1 ? 0 : 1) +
+                   (lenientGetLeftEdge(x+1, y) == -1 ? 0 : 1) +
+                   (lenientGetTopEdge(x, y+1) == -1 ? 0 : 1) +
+                   (lenientGetRightEdge(x-1, y) == -1 ? 0 : 1);
+        }
+
         /**
          * @return true if the field is empty or has a piece that matches the surrounding edges.
          */
@@ -474,5 +490,33 @@ public class EBoard {
             return -1;
         }
 
+        public List<Piece> getPieces() {
+            throw new UnsupportedOperationException("Not implemented yet");
+        }
+    }
+
+    public static class Pair<S, T> {
+        public final S left;
+        public final T right;
+
+        public Pair(S left, T right) {
+            this.left = left;
+            this.right = right;
+        }
+    }
+
+    /**
+     * Specific Piece representation;
+     */
+    private static class Piece {
+        public final int piece;
+        public final int rotation;
+        public final int compound;
+
+        public Piece(int piece, int rotation) {
+            this.piece = piece;
+            this.rotation = rotation;
+            compound = (rotation << 16) | (rotation & 0xFFFF);
+        }
     }
 }
