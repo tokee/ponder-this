@@ -57,8 +57,11 @@ import java.util.stream.Stream;
  * If at any point during #3 and #4 any tracker becomes negative, mark the attempt as failed
  * 6) If the attempt was failed, rollback the positioning and the tracking
  *
- * The field for the next piece is selected by locating the pieces surrounded by the most edges, then the field with
- * the least amount of matching pieces, then the top left free field.
+ * The field for the next piece is selected by priority:
+ * 0) Free fields
+ * 1) Fields with the least matching pieces
+ * 2) Fields with the most surrounding edges
+ * 3) Top left field
  *
  * Known weakness:
  * Tracking all combinations for a piece leads to the same piece counting multiple times:
@@ -116,8 +119,6 @@ public class EBoard {
 
     /**
      * Remove the piece at the given position, updating the tracker and adding the piece to the free bag.
-     * @param x
-     * @param y
      */
     public void removePiece(int x, int y) {
         int piece = getPiece(x, y);
@@ -391,6 +392,20 @@ public class EBoard {
         return tracker;
     }
 
+    /**
+     * @return true if the piece fits on the board (edges matches).
+     */
+    private boolean fits(int x, int y, int piece, int rotation) {
+        int outerEdge;
+        return (((outerEdge = lenientGetBottomEdge(x, y-1)) == -1 || outerEdge == pieces.getTop(piece, rotation)) &&
+                ((outerEdge = lenientGetLeftEdge(x, y-1)) == -1 || outerEdge == pieces.getRight(piece, rotation) &&
+                ((outerEdge = lenientGetTopEdge(x, y-1)) == -1 || outerEdge == pieces.getBottom(piece, rotation) &&
+                ((outerEdge = lenientGetRightEdge(x, y-1)) == -1 || outerEdge == pieces.getLeft(piece, rotation));
+    }
+
+    /**
+     * Fields are dynamic, meaning that the pieces on the fields can change between calls to fields.
+     */
     public class Field {
         private final int x;
         private final int y;
@@ -436,5 +451,28 @@ public class EBoard {
         public int getLeftEdge() {
             return isFree() ? -1 : pieces.getLeft(getPiece(), getRotation());
         }
+
+        /**
+         * @return true if the field is empty or has a piece that matches the surrounding edges.
+         */
+        public boolean isValid() {
+            return isFree() || fits(x, y, getPiece(), getRotation());
+        }
+
+
+        /**
+         * Checks the 4 possible rotations of the given piece to see if it fits the field.
+         * @param piece
+         * @return the matching rotation or -1 if no match.
+         */
+        public int getValidRotation(int piece) {
+            for (int rotation = 0 ; rotation < 4 ; rotation++) {
+                if (fits(x, y, piece, rotation)) {
+                    return rotation;
+                }
+            }
+            return -1;
+        }
+
     }
 }
