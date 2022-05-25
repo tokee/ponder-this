@@ -18,12 +18,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
 /**
  * Eternity II board (flexible size)
@@ -65,7 +68,7 @@ public class EBoard {
     private static final Logger log = LoggerFactory.getLogger(EBoard.class);
 
     private final EPieces pieces;
-    private final Set<Integer> bag = new HashSet<>(); // Bag of free pieces
+    private final Set<Integer> freeBag = new HashSet<>(); // Bag of free pieces
 
     private final int width;
     private final int height;
@@ -112,7 +115,7 @@ public class EBoard {
     }
 
     /**
-     * Remove the piece at the given position, updating the tracker.
+     * Remove the piece at the given position, updating the tracker and adding the piece to the free bag.
      * @param x
      * @param y
      */
@@ -128,11 +131,11 @@ public class EBoard {
 
         // Register piece as free
         updatePieceTracking(piece, +1);
-        bag.add(piece);
+        freeBag.add(piece);
     }
 
     /**
-     * Positions the given piece on the board, updating the tracker and removing the piece from the bag.
+     * Positions the given piece on the board, updating the tracker and removing the piece from the free bag.
      * @return if the positioning resulted in a negative tracker and was rolled back.
      */
     public boolean placePiece(int x, int y, int piece, int rotation) {
@@ -158,8 +161,8 @@ public class EBoard {
             updateTracker9(x, y, -1);
             return false;
         }
-        if (!bag.add(piece)) {
-           throw new IllegalStateException("Tried adding piece " + piece + " as free but it was already registered");
+        if (!freeBag.remove(piece)) {
+           throw new IllegalStateException("Tried removing piece " + piece + " from the free bag but it was not there");
         }
         return true;
     }
@@ -170,7 +173,7 @@ public class EBoard {
      */
     public void addFreePieces(Collection<Integer> pieces) {
         pieces.forEach(piece -> updatePieceTracking(piece, 1));
-        this.bag.addAll(pieces);
+        this.freeBag.addAll(pieces);
     }
 
     /**
@@ -219,23 +222,53 @@ public class EBoard {
      * @param delta the amount to update with (typically -1 or 1).
      */
     private void updateTrackerAll(int delta) {
-        for (int y = 0 ; y < height ; y++) {
-            for (int x = 0 ; x < width ; x++) {
-                if (board[x][y] != -1) { // No action if occupied
-                    return;
-                }
-                int topEdge = lenientGetBottomEdge(x, y-1);
-                int rightEdge = lenientGetLeftEdge(x+1, y);
-                int bottomEdge = lenientGetTopEdge(x, y+1);
-                int leftEdge = lenientGetRightEdge(x-1, y);
+        streamAllFields()
+                .filter(Field::isFree)
+                .forEach(field -> {
+                    int topEdge = lenientGetBottomEdge(field.getX(), field.getY()-1);
+                    int rightEdge = lenientGetLeftEdge(field.getX()+1, field.getY());
+                    int bottomEdge = lenientGetTopEdge(field.getX(), field.getY()+1);
+                    int leftEdge = lenientGetRightEdge(field.getX()-1, field.getY());
 //                if (topEdge != -1 || rightEdge != -1 || bottomEdge != -1 || leftEdge != -1) {
 //                    System.out.println("(" + x + ", " + y + ") " + topEdge + " " + rightEdge + " " + bottomEdge + " " + leftEdge);
 //                }
-                tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
+                    tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
 
+                });
+    }
+
+    private Stream<Field> streamAllFields() {
+        if (allFields == null) {
+            allFields = new ArrayList<>(width*height);
+            for (int y = 0 ; y < height ; y++) {
+                for (int x = 0; x < width; x++) {
+                    allFields.add(new Field(x, y));
+                }
             }
         }
+        return allFields.stream();
     }
+    private List<Field> allFields;
+
+    /**
+     * All fields from (origoX-1, origoY-1) to (origoX+1, origoY+1) that are on the board.
+     */
+    private Stream<Field> streamValidFields9(int origoX, int origoY) {
+        List<Field> fields = new ArrayList<>(9);
+        for (int y = origoY-1 ; y < origoY+1 ; y++) {
+            if (y < 0 || y >= height) {
+                continue;
+            }
+            for (int x = origoX-1 ; x < origoY+1 ; x++) {
+                if (x < 0 || x >= width) {
+                    continue;
+                }
+                fields.add(new Field(x, y));
+            }
+        }
+        return fields.stream();
+    }
+
 
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
@@ -356,5 +389,52 @@ public class EBoard {
 
     public EdgeTracker getTracker() {
         return tracker;
+    }
+
+    public class Field {
+        private final int x;
+        private final int y;
+
+        public Field(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public int getX() {
+            return x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public int getPiece() {
+            return board[x][y] == -1 ? -1 : board[x][y] & 0xFFFF;
+        }
+
+        public int getRotation() {
+            return board[x][y] == -1 ? -1 : board[x][y] >> 16;
+        }
+
+        public boolean hasPiece() {
+            return board[x][y] != -1;
+        }
+        
+        public boolean isFree() {
+            return board[x][y] == -1;
+        }
+        
+        public int getTopEdge() {
+            return isFree() ? -1 : pieces.getTop(getPiece(), getRotation());
+        }
+        public int getRightEdge() {
+            return isFree() ? -1 : pieces.getRight(getPiece(), getRotation());
+        }
+        public int getBottomEdge() {
+            return isFree() ? -1 : pieces.getBottom(getPiece(), getRotation());
+        }
+        public int getLeftEdge() {
+            return isFree() ? -1 : pieces.getLeft(getPiece(), getRotation());
+        }
     }
 }
