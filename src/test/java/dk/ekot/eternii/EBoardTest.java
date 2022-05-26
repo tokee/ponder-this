@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import static com.ibm.icu.impl.ValidIdentifiers.Datatype.x;
+
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -42,6 +44,29 @@ public class EBoardTest extends TestCase {
         //board.placeAll("acdaaacddaaccdaaacpcacocadtcaendaboeabgbacrbaencabveacvbadpcaabddsdapgmstmrgsutmplouomnlttkmusrtowmshtrwrvmtnwlmuwswvgwwllogbachdgcamtlgrgrttqvgosnqntkskkntrwpkmmrwrmhmmpjnlsnpsphswnspopprcabpcqealhwqruhhvtkunlktkpllnkpgprhkrkmnhvrkjshvnnnshhunsknhppskbaepeteawvwthnlvkvrnkvwvlwvvppvwhhrpmkqhrphkhtvpnqgtvntqnpgnsuvpeaeueqbawsoqlgosrusgwokuvntovoknrrmoqunrhlsuuqrlgqmqttlqgwstvwlweadwbhcaourhoujusuvukjhuttpjkvrtmqlvngwqsqugrpnqmonplnkosvpnlgvvdadgckfarvwkjnnvvhunhlghplulrlsllkilwhqkuqlhnqoqnouqkqmopqrqvprqdaepfhcawushnkouuhwkgimhuksismwkijjmqovjllwoorglujtrmlljrqwlrtrqeadtcrfasmtrorhmwvlrmujvsthuwhptjumhvgouwvjggsgvtopslugowovuriqodadifqeatjoqhhwjlsnhjprshjqppppjmiwpomnijovmggkopniggrinvmkrqhwmdadheseaoiiswquintmqrkgtqtjkplmtwoklnjrovvijkokviqwoiigqklqiwmuldabmelfaijjluhsjmwuhgsjwjgismkigkgikrjkgistjkqjswtqqgigtqooiuisobaeifufajsiussksujosjrijilpririlijurklqjthjljnthqwingiiwommisommeafofwdailiwkvulomjvinjmpgtniwtguiowqphijijptvviijnviggjmpqgmmupfaemdcaaidacufadjbafjbabtfabtdafofadhbafjfabvcafnfacgfafqfafubafeaab");
         new BoardVisualiser(board);
         Thread.sleep(1000000L);
+    }
+
+    public void testRotationCorner() {
+        EBoard board = new EBoard(EPieces.getEternii(), 16, 16);
+        {
+            EBoard.Field field = board.getField(0, 0); // Top left corner
+            assertEquals("The rotation of the corner piece should match",
+                         3, field.getValidRotation(0));
+        }
+        {
+            EBoard.Field field = board.getField(1, 15); // Bottom edge
+            assertEquals("The rotation of the edge piece should match",
+                         2, field.getValidRotation(4));
+        }
+    }
+
+    public void testRotationEdge() {
+        EBoard board = new EBoard(EPieces.getEternii(), 16, 16);
+        {
+            EBoard.Field field = board.getField(1, 15); // Bottom edge
+            assertEquals("The rotation of the edge piece should match",
+                         2, field.getValidRotation(4));
+        }
     }
 
     public void testDisplayBoardRandom() throws InterruptedException {

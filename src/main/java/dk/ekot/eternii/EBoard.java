@@ -211,7 +211,7 @@ public class EBoard {
         }
         int topEdge = lenientGetBottomEdge(x, y-1);
         int rightEdge = lenientGetLeftEdge(x+1, y);
-        int bottomEdge = lenientGetTopEdge(x+1, y);
+        int bottomEdge = lenientGetTopEdge(x, y+1);
         int leftEdge = lenientGetRightEdge(x-1, y);
         return tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
     }
@@ -282,6 +282,15 @@ public class EBoard {
     }
 
     /**
+     * @return next free field with its valid pieces or null if there are no more free fields.
+     */
+    public Pair<Field, List<Piece>> getFreePieceStrategyA() {
+        return getOrderedFreeFields()
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */
     private Stream<Pair<Field, List<Piece>>> getOrderedFreeFields() {
@@ -291,8 +300,10 @@ public class EBoard {
                         .thenComparingInt(pair -> pair.left.y*width + pair.left.x);          // Position
         return streamAllFields()
                 .filter(Field::isFree)
-                .map(field -> new Pair<>(field, field.getPieces()))
+                .map(field -> new Pair<>(field, field.getBestPieces()))
+//                .peek(e -> System.out.println("    field(" + e.left.getX() +  ", " + e.left.getY() + "), pieces=" + e.right))
                 .sorted(comparator);
+//                .peek(e -> System.out.println("Best field(" + e.left.getX() +  ", " + e.left.getY() + "), pieces=" + e.right));
     }
 
     /**
@@ -397,13 +408,21 @@ public class EBoard {
     private boolean fits(int x, int y, int piece, int rotation) {
         int outerEdge;
         return ((outerEdge = lenientGetBottomEdge(x, y-1)) == -1 || outerEdge == pieces.getTop(piece, rotation)) &&
-               ((outerEdge = lenientGetLeftEdge(x, y-1)) == -1 || outerEdge == pieces.getRight(piece, rotation)) &&
-               ((outerEdge = lenientGetTopEdge(x, y-1)) == -1 || outerEdge == pieces.getBottom(piece, rotation)) &&
-               ((outerEdge = lenientGetRightEdge(x, y-1)) == -1 || outerEdge == pieces.getLeft(piece, rotation));
+               ((outerEdge = lenientGetLeftEdge(x+1, y)) == -1 || outerEdge == pieces.getRight(piece, rotation)) &&
+               ((outerEdge = lenientGetTopEdge(x, y+1)) == -1 || outerEdge == pieces.getBottom(piece, rotation)) &&
+               ((outerEdge = lenientGetRightEdge(x-1, y)) == -1 || outerEdge == pieces.getLeft(piece, rotation));
     }
 
     public EdgeTracker getEdgeTracker() {
         return tracker;
+    }
+
+    public Field getField(int x, int y) {
+        if (x < 0 || y < 0 || x >= width || y >= height) {
+            throw new IllegalArgumentException(
+                    "There is no field at (" + x + ", " + y + ") on a board of size " + width + "x" + height);
+        }
+        return new Field(x, y);
     }
 
     /**
@@ -484,7 +503,7 @@ public class EBoard {
             return -1;
         }
 
-        public List<Piece> getPieces() {
+        public List<Piece> getBestPieces() {
             if (freeBag.isEmpty()) {
                 return Collections.emptyList();
             }
@@ -503,6 +522,11 @@ public class EBoard {
                     })
                     .collect(Collectors.toList());
         }
+
+        @Override
+        public String toString() {
+            return "field(" + x + ", " + y + ")";
+        }
     }
 
     public static class Pair<S, T> {
@@ -513,12 +537,17 @@ public class EBoard {
             this.left = left;
             this.right = right;
         }
+
+        @Override
+        public String toString() {
+            return "[" + left + ", " + right + "]";
+        }
     }
 
     /**
      * Specific Piece representation;
      */
-    private static class Piece {
+    public static class Piece {
         public final int piece;
         public final int rotation;
         public final int compound;
@@ -528,6 +557,12 @@ public class EBoard {
             this.rotation = rotation;
             compound = (rotation << 16) | (rotation & 0xFFFF);
         }
+
+        @Override
+        public String toString() {
+            return "piece(id=" + piece + ", r=" + rotation + ")";
+        }
+
     }
 
     /**

@@ -167,6 +167,12 @@ public class PieceTracker {
      * @return best matching pieces or empty list if there are no matching pieces.
      */
     public Set<Integer> getBestMatching(int edge1, int edge2, int edge3, int edge4) {
+        // Any
+        if (edge1 == -1 && edge2 == -1 && edge3 == -1 && edge4 == -1) {
+            return all;
+        }
+
+
         // Four
         if (edge1 != -1 && edge2 != -1 && edge3 != -1 && edge4 != -1) {
             return getFours(edge1, edge2, edge3, edge4);
@@ -202,12 +208,13 @@ public class PieceTracker {
 
         // TODO: Consider if this check should be before twos
         // Opposing
-        if (edge1 != -1 && edge3 == -1) {
+        if (edge1 != -1 && edge3 != -1) {
             return getOpposings(edge1, edge3);
         }
-        if (edge2 != -1 && edge4 == -1) {
+        if (edge2 != -1 && edge4 != -1) {
             return getOpposings(edge2, edge4);
         }
+
 
         // One
         if (edge1 != -1) {
@@ -219,11 +226,11 @@ public class PieceTracker {
         if (edge3 != -1) {
             return getOnes(edge3);
         }
-        if (edge4 != -1) {
+        //if (edge4 != -1) {
             return getOnes(edge4);
-        }
+        //}
 
-        return Collections.emptySet();
+        //return all;
     }
 
     private static class PieceHolder extends HashMap<Integer, Set<Integer>> {
