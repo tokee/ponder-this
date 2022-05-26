@@ -79,7 +79,7 @@ public class EBoard {
     private final int height;
 
     private final int[][] board; // (rotation << 16 | piece)
-    private final EdgeTracker tracker = new EdgeTracker();
+    private final EdgeTracker edgeTracker = new EdgeTracker();
 
     private final Set<Observer> observers = new HashSet<>();
 
@@ -96,7 +96,9 @@ public class EBoard {
                 .boxed()
                 .peek(piece -> updatePieceTracking(piece, 1))
                 .forEach(this.freeBag::add);*/
-        updateTrackerAll(-1);
+        log.debug("EdgeTracker blank: " + getEdgeTracker());
+        updateEdgeTrackerAll(-1);
+        log.debug("EdgeTracker after EBoard construction: " + getEdgeTracker());
     }
 
     private boolean isCorner(int x, int y) {
@@ -182,8 +184,8 @@ public class EBoard {
      * @param delta the amount to adjust the edge counters with.
      */
     private boolean updatePieceTracking(int piece, int delta) {
-        return tracker.add(pieces.getTop(piece, 0), pieces.getRight(piece, 0),
-                                     pieces.getBottom(piece, 0), pieces.getLeft(piece, 0), delta);
+        return edgeTracker.add(pieces.getTop(piece, 0), pieces.getRight(piece, 0),
+                               pieces.getBottom(piece, 0), pieces.getLeft(piece, 0), delta);
     }
 
     /**
@@ -196,6 +198,9 @@ public class EBoard {
         AtomicBoolean allOK = new AtomicBoolean(true);
         visit9(origoX, origoY, (x, y) -> {
             allOK.set(allOK.get() && updateTracker(x, y, delta));
+//            if (!allOK.get()) {
+//                System.out.println("Invalidated at " + x + ", " + y);
+//            }
         });
         return allOK.get();
     }
@@ -213,7 +218,7 @@ public class EBoard {
         int rightEdge = lenientGetLeftEdge(x+1, y);
         int bottomEdge = lenientGetTopEdge(x, y+1);
         int leftEdge = lenientGetRightEdge(x-1, y);
-        return tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
+        return edgeTracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
     }
 
 
@@ -221,7 +226,7 @@ public class EBoard {
      * Update the tracker for all fields.
      * @param delta the amount to update with (typically -1 or 1).
      */
-    private void updateTrackerAll(int delta) {
+    private void updateEdgeTrackerAll(int delta) {
         streamAllFields()
                 .filter(Field::isFree)
                 .forEach(field -> {
@@ -230,9 +235,9 @@ public class EBoard {
                     int bottomEdge = lenientGetTopEdge(field.getX(), field.getY()+1);
                     int leftEdge = lenientGetRightEdge(field.getX()-1, field.getY());
 //                if (topEdge != -1 || rightEdge != -1 || bottomEdge != -1 || leftEdge != -1) {
-//                    System.out.println("(" + x + ", " + y + ") " + topEdge + " " + rightEdge + " " + bottomEdge + " " + leftEdge);
+//                    System.out.println("(" + field.getX() + ", " + field.getY() + ") " + topEdge + " " + rightEdge + " " + bottomEdge + " " + leftEdge);
 //                }
-                    tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
+                    edgeTracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
 
                 });
     }
@@ -285,7 +290,7 @@ public class EBoard {
      * @return next free field with its valid pieces or null if there are no more free fields.
      */
     public Pair<Field, List<Piece>> getFreePieceStrategyA() {
-        return getOrderedFreeFields()
+        return getFreePiecesStrategyA()
                 .findFirst()
                 .orElse(null);
     }
@@ -293,7 +298,7 @@ public class EBoard {
     /**
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */
-    private Stream<Pair<Field, List<Piece>>> getOrderedFreeFields() {
+    public Stream<Pair<Field, List<Piece>>> getFreePiecesStrategyA() {
         Comparator<Pair<Field, List<Piece>>> comparator =
                 Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.right.size()) // Valid pieces
                         .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Free edges
@@ -340,15 +345,15 @@ public class EBoard {
     }
 
     private void visit9(int origoX, int origoY, BiConsumer<Integer, Integer> visitor) {
-        for (int vY = origoY-1 ; vY < origoY+1 ; vY++) {
-            if (vY < 0 || vY >= height) {
+        for (int y = origoY-1 ; y <= origoY+1 ; y++) {
+            if (y < 0 || y >= height) {
                 continue;
             }
-            for (int vX = origoX-1 ; vX < origoY+1 ; vX++) {
-                if (vX < 0 || vX >= width) {
+            for (int x = origoX-1 ; x <= origoX+1 ; x++) {
+                if (x < 0 || x >= width) {
                     continue;
                 }
-                visitor.accept(vX, vY);
+                visitor.accept(x, y);
             }
         }
     }
@@ -414,7 +419,7 @@ public class EBoard {
     }
 
     public EdgeTracker getEdgeTracker() {
-        return tracker;
+        return edgeTracker;
     }
 
     public Field getField(int x, int y) {
@@ -423,6 +428,10 @@ public class EBoard {
                     "There is no field at (" + x + ", " + y + ") on a board of size " + width + "x" + height);
         }
         return new Field(x, y);
+    }
+
+    public int getFilledCount() {
+        return width*height- freeBag.size();
     }
 
     /**

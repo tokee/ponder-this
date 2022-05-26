@@ -71,18 +71,18 @@ public class EdgeTracker {
         }
 
         boolean allOK = true;
-        // Three
+        // Three (only one of these can be true as "Four is checked above)
         if (edge1 != -1 && edge2 != -1 && edge3 != -1) {
-            allOK = allOK & addThree(edge1, edge2, edge3, delta);
+            allOK = addThree(edge1, edge2, edge3, delta);
         }
         if (edge2 != -1 && edge3 != -1 && edge4 != -1) {
-            allOK = allOK & addThree(edge2, edge3, edge4, delta);
+            allOK = addThree(edge2, edge3, edge4, delta);
         }
         if (edge3 != -1 && edge4 != -1 && edge1 != -1) {
-            allOK = allOK & addThree(edge3, edge4, edge1, delta);
+            allOK = addThree(edge3, edge4, edge1, delta);
         }
         if (edge4 != -1 && edge1 != -1 && edge2 != -1) {
-            allOK = allOK & addThree(edge4, edge1, edge2, delta);
+            allOK = addThree(edge4, edge1, edge2, delta);
         }
 
         // Two
@@ -114,10 +114,10 @@ public class EdgeTracker {
         }
 
         // Opposing
-        if (edge1 != -1 && edge3 == -1) {
+        if (edge1 != -1 && edge2 == -1 && edge3 != -1 && edge4 == -1) {
             allOK = allOK & addOpposing(edge1, edge3, delta);
         }
-        if (edge2 != -1 && edge4 == -1) {
+        if (edge1 == -1 && edge2 != -1 && edge3 == -1 && edge4 != -1) {
             allOK = allOK & addOpposing(edge2, edge4, delta);
         }
         return allOK;
@@ -199,5 +199,19 @@ public class EdgeTracker {
             Integer count = super.get(key);
             return count == null ? 0 : count;
         }
+
+        @Override
+        public String toString() {
+            return "Counter(#pos=" + values().stream().filter(v -> v > 0).count() +
+                   ", #zero=" + values().stream().filter(v -> v == 0).count() +
+                   ", #neg=" + values().stream().filter(v -> v < 0).count() + ")";
+        }
     }
+
+    @Override
+    public String toString() {
+        return "Edgetracker(one=" + one + ", two=" + two + ", three=" + three + ", four=" + four +
+               ", opposing=" + opposing + ")";
+    }
+
 }

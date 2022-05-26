@@ -233,6 +233,18 @@ public class PieceTracker {
         //return all;
     }
 
+    @Override
+    public String toString() {
+        return "PieceTracker{" +
+               "#one=" + one.size() +
+               ", #two=" + two.size() +
+               ", #three=" + three.size() +
+               ", #opposing=" + opposing.size() +
+               ", #four=" + four.size() +
+               ", #all=" + all.size() +
+               '}';
+    }
+
     private static class PieceHolder extends HashMap<Integer, Set<Integer>> {
         @Override
         public Set<Integer> get(Object key) {

@@ -18,25 +18,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Set;
 
 /**
- * Tries to solve the puzzle by asking for best candidate and selecting the first ones until there are no more
- * candidates. No backtracking or similar.
+ * Tries to solve the puzzle by asking for best field and trying all pieces there are no more pieces (or fields).
+ * No backtracking.
  *
  * Primarily used for testing.
  */
-public class OneWaySolver  implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(OneWaySolver.class);
+public class OneWayAllPiecesSolver implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(OneWayAllPiecesSolver.class);
 
     private final EBoard board;
     private final EPieces pieces;
 
-    public OneWaySolver(EBoard board) {
+    public OneWayAllPiecesSolver(EBoard board) {
         this.board = board;
         pieces = board.getPieces();
     }
 
+    @Override
     public void run() {
         EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free;
         while ((free = board.getFreePieceStrategyA()) != null) {
@@ -45,13 +45,18 @@ public class OneWaySolver  implements Runnable {
                 return;
             }
             EBoard.Field field = free.left;
-            EBoard.Piece piece = free.right.get(0);
-            log.info("Placing at ({}, {}) piece={} rot={}", field.getX(), field.getY(), piece.piece, piece.rotation);
-            if (!board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
-                log.debug(board.getEdgeTracker().toString());
-                System.out.println("Unable to place piece as it invalidates the bag. Stopping run");
+            for (EBoard.Piece piece : free.right) {
+                log.info("Placing at ({}, {}) piece={} rot={}", field.getX(), field.getY(), piece.piece, piece.rotation);
+                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
+                    break;
+                }
+                log.info("Failed placement, trying next (if any)");
+            }
+            if (field.getPiece() == -1) {
+                log.info("Tried all pieces " + free.right + " at " + free.left + " without finding a valid one");
                 break;
             }
         }
+        log.debug(board.getEdgeTracker().toString());
     }
 }
