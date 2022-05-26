@@ -17,8 +17,10 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -65,6 +67,15 @@ public class PieceTracker {
         }
         return true;
     }
+
+    public int size() {
+        return all.size();
+    }
+
+    public boolean isEmpty() {
+        return all.isEmpty();
+    }
+
     private void process(int piece, Consumer<Set<Integer>> adjuster) {
         process(pieces.getTop(piece, 0), pieces.getRight(piece, 0),
                 pieces.getBottom(piece, 0), pieces.getLeft(piece, 0),
@@ -149,7 +160,72 @@ public class PieceTracker {
         callback.accept(EF * EF * EF * edge3 + EF * EF * edge4 + EF * edge1 + edge2);
         callback.accept(EF * EF * EF * edge4 + EF * EF * edge1 + EF * edge2 + edge3);
     }
-    
+
+    /**
+     * Given constraints from the surrounding fields, return the best matching pieces, i.e. if all 4 edges has a color,
+     * only return results from {@link #four}.
+     * @return best matching pieces or empty list if there are no matching pieces.
+     */
+    public Set<Integer> getBestMatching(int edge1, int edge2, int edge3, int edge4) {
+        // Four
+        if (edge1 != -1 && edge2 != -1 && edge3 != -1 && edge4 != -1) {
+            return getFours(edge1, edge2, edge3, edge4);
+        }
+
+        // Three
+        if (edge1 != -1 && edge2 != -1 && edge3 != -1) {
+            return getThrees(edge1, edge2, edge3);
+        }
+        if (edge2 != -1 && edge3 != -1 && edge4 != -1) {
+            return getThrees(edge2, edge3, edge4);
+        }
+        if (edge3 != -1 && edge4 != -1 && edge1 != -1) {
+            return getThrees(edge3, edge4, edge1);
+        }
+        if (edge4 != -1 && edge1 != -1 && edge2 != -1) {
+            return getThrees(edge4, edge1, edge2);
+        }
+
+        // Two
+        if (edge1 != -1 && edge2 != -1) {
+            return getTwos(edge1, edge2);
+        }
+        if (edge2 != -1 && edge3 != -1) {
+            return getTwos(edge2, edge3);
+        }
+        if (edge3 != -1 && edge4 != -1) {
+            return getTwos(edge3, edge4);
+        }
+        if (edge4 != -1 && edge1 != -1) {
+            return getTwos(edge4, edge1);
+        }
+
+        // TODO: Consider if this check should be before twos
+        // Opposing
+        if (edge1 != -1 && edge3 == -1) {
+            return getOpposings(edge1, edge3);
+        }
+        if (edge2 != -1 && edge4 == -1) {
+            return getOpposings(edge2, edge4);
+        }
+
+        // One
+        if (edge1 != -1) {
+            return getOnes(edge1);
+        }
+        if (edge2 != -1) {
+            return getOnes(edge2);
+        }
+        if (edge3 != -1) {
+            return getOnes(edge3);
+        }
+        if (edge4 != -1) {
+            return getOnes(edge4);
+        }
+
+        return Collections.emptySet();
+    }
+
     private static class PieceHolder extends HashMap<Integer, Set<Integer>> {
         @Override
         public Set<Integer> get(Object key) {

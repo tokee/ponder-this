@@ -20,12 +20,14 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -483,12 +485,23 @@ public class EBoard {
         }
 
         public List<Piece> getPieces() {
+            if (freeBag.isEmpty()) {
+                return Collections.emptyList();
+            }
             int top = lenientGetBottomEdge(x, y-1);
             int right = lenientGetLeftEdge(x+1, y);
             int bottom = lenientGetTopEdge(x, y+1);
             int left = lenientGetRightEdge(x-1, y);
-            
-            throw new UnsupportedOperationException("Not implemented yet");
+
+            return freeBag.getBestMatching(top, right, bottom, left).stream()
+                    .map(pid -> new Piece(pid, getValidRotation(pid)))
+                    .peek(p -> {
+                        if (p.rotation == -1) {
+                            throw new IllegalStateException("The piece " + p.piece + " at (" + x + ", " + y + ") " +
+                                                            "could not be rotated into place");
+                        }
+                    })
+                    .collect(Collectors.toList());
         }
     }
 
