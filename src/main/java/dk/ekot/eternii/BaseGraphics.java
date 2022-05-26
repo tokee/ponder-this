@@ -47,7 +47,7 @@ public class BaseGraphics {
         return rotate270(rotate270(rotate270(src)));
     }
 
-    public static void displayImage(BufferedImage img) {
+    public static JComponent displayImage(BufferedImage img) {
         ImageIcon imageIcon = new ImageIcon(img);
         JFrame jFrame;
         jFrame = new JFrame();
@@ -62,5 +62,6 @@ public class BaseGraphics {
         jFrame.setVisible(true);
 
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        return jLabel;
     }
 }

@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -57,6 +58,7 @@ public class EPieces {
     private BufferedImage[] pieceImages90 = null;
     private BufferedImage[] pieceImages180 = null;
     private BufferedImage[] pieceImages270 = null;
+    private BufferedImage blank = null;
 
     public EPieces(int total) {
         this.total = total;
@@ -151,6 +153,9 @@ public class EPieces {
             pieceImages180[i] = BaseGraphics.rotate180(pieceImage);
             pieceImages270[i] = BaseGraphics.rotate270(pieceImage);
         }
+        blank = new BufferedImage(edges[0].getWidth(), edges[0].getHeight(), BufferedImage.TYPE_INT_RGB);
+        blank.getGraphics().setColor(Color.BLACK);
+        blank.getGraphics().fillRect(0, 0, blank.getWidth()-1, blank.getHeight()-1);
     }
 
 
@@ -166,6 +171,10 @@ public class EPieces {
 
     private String toCS(int edge) {
         return Character.toString((char)(edge+'a'));
+    }
+
+    public BufferedImage getBlank() {
+        return blank;
     }
 
     public BufferedImage getEdgeImage(int edge) {

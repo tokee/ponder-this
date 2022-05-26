@@ -17,7 +17,6 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -80,7 +79,7 @@ public class EBoard {
     private final int[][] board; // (rotation << 16 | piece)
     private final EdgeTracker tracker = new EdgeTracker();
 
-    private static final Set<Observer> observers = new HashSet<>();
+    private final Set<Observer> observers = new HashSet<>();
 
     public EBoard(EPieces pieces, int width, int height) {
         this.pieces = pieces;
@@ -119,6 +118,15 @@ public class EBoard {
         // Register piece as free
         updatePieceTracking(piece, +1);
         freeBag.add(piece);
+        notifyObservers(x, y);
+    }
+
+    /**
+     * Positions the piece without updating or checking any of the tracking structures.
+     * Use only for visualisation!
+     */
+    public void placeUntrackedPiece(int x, int y, int piece, int rotation) {
+        board[x][y] = (rotation<<16)|piece;
         notifyObservers(x, y);
     }
 
@@ -225,6 +233,18 @@ public class EBoard {
                     tracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
 
                 });
+    }
+
+    public EPieces getPieces() {
+        return pieces;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 
     private Stream<Field> streamAllFields() {
@@ -334,7 +354,7 @@ public class EBoard {
 
     // Format from https://e2.bucas.name/
     // acdaaepcabteacsbacpcacocadtcaendaboeabgbacrbaencabveacvbadpcaabddsdapgmstmrgsutmplouomnlttkmusrtowmshtrwrvmtnwlmuwswvgwwllogbachdgcamtlgrgrttqvgosnqntkskkntrwpkmmrwrmhmmpjnlsnpsphswnspopprcabpcqealhwqruhhvtkunlktkpllnkpgprhkrkmnhvrkjshvnnnshhunsknhppskbaepeteawvwthnlvkvrnkvwvlwvvppvwhhrpmkqhrphkhtvpnqgtvntqnpgnsuvpeaeueqbawsoqlgosrusgwokuvntovoknrrmoqunrhlsuuqrlgqmqttlqgwstvwlweadwbhcaourhoujusuvukjhuttpjkvrtmqlvngwqsqugrpnqmonplnkosvpnlgvvdadgckfarvwkjnnvvhunhlghplulrlsllkilwhqkuqlhnqoqnouqkqmopqrqvprqdaepfhcawushnkouuhwkgimhuksismwkijjmqovjllwoorglujtrmlljrqwlrtrqeadtcrfasmtrorhmwvlrmujvsthuwhptjumhvgouwvjggsgvtopslugowovuriqodadifqeatjoqhhwjlsnhjprshjqppppjmiwpomnijovmggkopniggrinvmkrqhwmdadheseaoiiswquintmqrkgtqtjkplmtwoklnjrovvijkokviqwoiigqklqiwmuldabmelfaijjluhsjmwuhgsjwjgismkigkgikrjkgistjkqjswtqqgigtqooiuisobaeifufajsiussksujosjrijilpririlijurklqjthjljnthqwingiiwommisommeafofwdailiwkvulomjvinjmpgtniwtguiowqphijijptvviijnviggjmpqgmmupfaemdcaaidacufadjbafjbabtfabtdafofadhbafjfabvcafnfacgfafqfafubafeaab
-    public void placeAll(String full) {
+    public void placeUntrackedAll(String full) {
         if (full.length()/4 != width*height) {
             throw new IllegalArgumentException(
                     "Got full of length " + full.length() + " but expected " + width*height*4);
@@ -346,7 +366,8 @@ public class EBoard {
                 int piece = pieces.getPieceFromString(full.substring(i, i + 4));
                 int rotation = pieces.getRotationFromString(full.substring(i, i + 4));
                 //System.out.println("G " + piece + " " + rotation + ": " + pieces.toDisplayString(piece, rotation));
-                placePiece(x, y, piece, rotation);
+                placeUntrackedPiece(x, y, piece, rotation);
+                notifyObservers(x, y);
             }
         }
     }
@@ -366,28 +387,6 @@ public class EBoard {
             }
         }
         return sb.toString();
-    }
-
-    public void displayBoard() {
-        BufferedImage edge0 = pieces.getEdgeImage(0);
-        final int edgeWidth = edge0.getWidth();
-        final int edgeHeight = edge0.getHeight();
-        BufferedImage boardImage = new BufferedImage(edgeWidth*width, edgeHeight*height, BufferedImage.TYPE_INT_RGB);
-        for (int y = 0 ; y < height ; y++) {
-            for (int x = 0 ; x < width ; x++) {
-                final int compound = board[x][y];
-                if (compound == -1) {
-                    continue;
-                }
-//                int piece = compound&0xFFFF;
-//                int rot = compound>>16;
-//                System.out.printf("Drawing (%d, %d) piece=%d, rotation=%d, non-rot=%s, rot=%s\n",
-//                                  x, y, piece, rot, pieces.toDisplayString(piece, 0), pieces.toDisplayString(piece, rot));
-                boardImage.getGraphics().drawImage(
-                        pieces.getPieceImage(compound&0xFFFF, compound>>16), x*edgeWidth, y*edgeHeight, null);
-            }
-        }
-        BaseGraphics.displayImage(boardImage);
     }
 
     /**
@@ -522,7 +521,7 @@ public class EBoard {
      * Register an observer of board changes.
      * @param observer called when the board changes.
      */
-    public static synchronized void registerObserver(Observer observer) {
+    public synchronized void registerObserver(Observer observer) {
         observers.add(observer);
     }
 
@@ -531,7 +530,7 @@ public class EBoard {
      * @param observer an observer previously added with {@link #registerObserver(Observer)}.
      * @return true if the observer was previously registered, else false.
      */
-    public static synchronized boolean unregisterObserver(Observer observer) {
+    public synchronized boolean unregisterObserver(Observer observer) {
         boolean wasThere = observers.remove(observer);
         log.debug(wasThere ?
                           "Unregistered board update observer {}" :
@@ -543,7 +542,7 @@ public class EBoard {
     /**
      * Notify all observers that the field at position {@code (x, y)} was updated.
      */
-    private static void notifyObservers(int x, int y) {
+    private void notifyObservers(int x, int y) {
         observers.forEach(o -> o.boardChanged(x, y));
     }
 
