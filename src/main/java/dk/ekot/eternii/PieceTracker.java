@@ -19,10 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -54,17 +51,19 @@ public class PieceTracker {
         this.pieces = pieces;
     }
 
-    private void addPiece(int piece) {
+    public void add(int piece) {
         process(piece, set -> set.add(piece));
         if (!all.add(piece)) {
-            throw new IllegalStateException("Add piece " + piece + " called, but the piece was already present");
+            throw new IllegalStateException(
+                    "Add piece " + piece + " called, but the piece was already present in " + all);
         }
     }
-    private void removePiece(int piece) {
+    public boolean remove(int piece) {
         process(piece, set -> set.remove(piece));
         if (!all.remove(piece)) {
             throw new IllegalStateException("Remove piece " + piece + " called, but the piece was not present");
         }
+        return true;
     }
     private void process(int piece, Consumer<Set<Integer>> adjuster) {
         process(pieces.getTop(piece, 0), pieces.getRight(piece, 0),
@@ -100,40 +99,40 @@ public class PieceTracker {
     }
     
     public void processOne(int edge1, Consumer<Set<Integer>> adjuster) {
-        adjuster.accept(one.getPieces(edge1));
+        adjuster.accept(one.get(edge1));
     }
     public Set<Integer> getOnes(int edge1) {
-        return one.getPieces(edge1);
+        return one.get(edge1);
     }
 
     public void processTwo(int edge1, int edge2, Consumer<Set<Integer>> adjuster) {
-        adjuster.accept(two.getPieces(EF * edge1 + edge2));
+        adjuster.accept(two.get(EF * edge1 + edge2));
     }
     public Set<Integer> getTwos(int edge1, int edge2) {
-        return two.getPieces(EF * edge1 + edge2);
+        return two.get(EF * edge1 + edge2);
     }
 
     public void processOpposing(int edge1, int edge2, Consumer<Set<Integer>> adjuster) {
-        adjuster.accept(opposing.getPieces(EF * edge1 + edge2));
+        adjuster.accept(opposing.get(EF * edge1 + edge2));
         if (edge1 != edge2) {
-            adjuster.accept(opposing.getPieces(EF * edge2 + edge1));
+            adjuster.accept(opposing.get(EF * edge2 + edge1));
         }
     }
     public Set<Integer> getOpposings(int edge1, int edge2) {
         if (edge1 != edge2) {
             Set<Integer> joined = new HashSet<>();
-            joined.addAll(opposing.getPieces(EF * edge1 + edge2));
-            joined.addAll(opposing.getPieces(EF * edge2 + edge1));
+            joined.addAll(opposing.get(EF * edge1 + edge2));
+            joined.addAll(opposing.get(EF * edge2 + edge1));
             return joined;
         }
-        return opposing.getPieces(EF * edge1 + edge2);
+        return opposing.get(EF * edge1 + edge2);
     }
 
     public void processThree(int edge1, int edge2, int edge3, Consumer<Set<Integer>> adjuster) {
-        adjuster.accept(three.getPieces(EF * EF * edge1 + EF * edge2 + edge3));
+        adjuster.accept(three.get(EF * EF * edge1 + EF * edge2 + edge3));
     }
     public Set<Integer> getThrees(int edge1, int edge2, int edge3) {
-        return three.getPieces(EF * EF * edge1 + EF * edge2 + edge3);
+        return three.get(EF * EF * edge1 + EF * edge2 + edge3);
     }
 
     public void processFour(int edge1, int edge2, int edge3, int edge4, Consumer<Set<Integer>> adjuster) {
@@ -141,7 +140,7 @@ public class PieceTracker {
     }
     public Set<Integer> getFours(int edge1, int edge2, int edge3, int edge4) {
         Set<Integer> joined = new HashSet<>();
-        visitFour(edge1, edge2, edge3, edge4, key -> joined.addAll(four.getPieces(key)));
+        visitFour(edge1, edge2, edge3, edge4, key -> joined.addAll(four.get(key)));
         return joined;
     }
     private void visitFour(int edge1, int edge2, int edge3, int edge4, Consumer<Integer> callback) {
@@ -152,17 +151,22 @@ public class PieceTracker {
     }
     
     private static class PieceHolder extends HashMap<Integer, Set<Integer>> {
-        public Set<Integer> getPieces(Integer key) {
-            if (!containsKey(key)) {
-                put(key, new HashSet<>());
+        @Override
+        public Set<Integer> get(Object key) {
+            if (!(key instanceof Integer)) {
+                throw new IllegalArgumentException("Key must be a valid Integer but was " + key);
             }
-            return get(key);
+            if (!containsKey(key)) {
+                put((Integer)key, new HashSet<>());
+            }
+            return super.get(key);
         }
+
         public void addPiece(Integer key, Integer piece) {
             if (!containsKey(key)) {
-                put(key, new HashSet<>());
+                super.put(key, new HashSet<>());
             }
-            get(key).add(piece);
+            super.get(key).add(piece);
         }
     }
 }

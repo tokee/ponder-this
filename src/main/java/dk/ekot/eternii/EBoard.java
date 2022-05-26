@@ -72,13 +72,15 @@ public class EBoard {
     private static final Logger log = LoggerFactory.getLogger(EBoard.class);
 
     private final EPieces pieces;
-    private final Set<Integer> freeBag = new HashSet<>(); // Bag of free pieces
+    private final PieceTracker freeBag;
 
     private final int width;
     private final int height;
 
     private final int[][] board; // (rotation << 16 | piece)
     private final EdgeTracker tracker = new EdgeTracker();
+
+    private static final Set<Observer> observers = new HashSet<>();
 
     public EBoard(EPieces pieces, int width, int height) {
         this.pieces = pieces;
@@ -88,29 +90,12 @@ public class EBoard {
         for (int x = 0 ; x < width ; x++) {
             Arrays.fill(board[x], -1);
         }
+        freeBag = new PieceTracker(pieces);
+/*        pieces.allPieces()
+                .boxed()
+                .peek(piece -> updatePieceTracking(piece, 1))
+                .forEach(this.freeBag::add);*/
         updateTrackerAll(-1);
-    }
-
-    /**
-     * Positions the given piece on the board and throws IllegalArgumentexception if it is not a valid placement.
-     */
-    public boolean placeDefuncts(int x, int y, int piece, int rotation) {
-        if (board[x][y] != -1) {
-            throw new IllegalArgumentException("There is already a piece at (" + x + ", " + y + "): " + board[x][y]);
-        }
-        if (pieces.getType(piece) == EPieces.CORNER) {
-            if (!isCorner(x, y)) {
-                throw new IllegalArgumentException("Got a corner piece bit it is not placed at a corner");
-            }
-            if (x == 0 && y == 0) {
-                if (pieces.getLeft(piece, rotation) != EPieces.EDGE_EDGE ||
-                    pieces.getTop(piece, rotation) != EPieces.EDGE) {
-                    throw new IllegalArgumentException(
-                            "The corner piece " + piece + " at (" + x + ", " + y + ") does not face the corner");
-                }
-            }
-        }
-        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     private boolean isCorner(int x, int y) {
@@ -134,6 +119,7 @@ public class EBoard {
         // Register piece as free
         updatePieceTracking(piece, +1);
         freeBag.add(piece);
+        notifyObservers(x, y);
     }
 
     /**
@@ -166,6 +152,7 @@ public class EBoard {
         if (!freeBag.remove(piece)) {
            throw new IllegalStateException("Tried removing piece " + piece + " from the free bag but it was not there");
         }
+        notifyObservers(x, y);
         return true;
     }
 
@@ -173,9 +160,10 @@ public class EBoard {
      * Register edges from the given pieces and add them to the board bag.
      * @param pieces the pieces to register.
      */
-    public void addFreePieces(Collection<Integer> pieces) {
-        pieces.forEach(piece -> updatePieceTracking(piece, 1));
-        this.freeBag.addAll(pieces);
+    public void registerFreePieces(Collection<Integer> pieces) {
+        pieces.stream()
+                .peek(piece -> updatePieceTracking(piece, 1))
+                .forEach(this.freeBag::add);
     }
 
     /**
@@ -276,12 +264,13 @@ public class EBoard {
      */
     private Stream<Pair<Field, List<Piece>>> getOrderedFreeFields() {
         Comparator<Pair<Field, List<Piece>>> comparator =
-                Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.right.size())
-                        .thenComparingInt(pair -> pair.left.getOuterEdgeCount())
-                        .thenComparingInt(pair -> pair.left.y*width + pair.left.x);
+                Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.right.size()) // Valid pieces
+                        .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Free edges
+                        .thenComparingInt(pair -> pair.left.y*width + pair.left.x);          // Position
         return streamAllFields()
                 .filter(Field::isFree)
-                .map(field -> new Pair<>(field, field.getPieces()));
+                .map(field -> new Pair<>(field, field.getPieces()))
+                .sorted(comparator);
     }
 
     /**
@@ -412,6 +401,10 @@ public class EBoard {
                ((outerEdge = lenientGetRightEdge(x, y-1)) == -1 || outerEdge == pieces.getLeft(piece, rotation));
     }
 
+    public EdgeTracker getEdgeTracker() {
+        return tracker;
+    }
+
     /**
      * Fields are dynamic, meaning that the pieces on the fields can change between calls to fields.
      */
@@ -491,6 +484,11 @@ public class EBoard {
         }
 
         public List<Piece> getPieces() {
+            int top = lenientGetBottomEdge(x, y-1);
+            int right = lenientGetLeftEdge(x+1, y);
+            int bottom = lenientGetTopEdge(x, y+1);
+            int left = lenientGetRightEdge(x-1, y);
+            
             throw new UnsupportedOperationException("Not implemented yet");
         }
     }
@@ -519,4 +517,43 @@ public class EBoard {
             compound = (rotation << 16) | (rotation & 0xFFFF);
         }
     }
+
+    /**
+     * Register an observer of board changes.
+     * @param observer called when the board changes.
+     */
+    public static synchronized void registerObserver(Observer observer) {
+        observers.add(observer);
+    }
+
+    /**
+     * Unregisters a previously registered board change observer.
+     * @param observer an observer previously added with {@link #registerObserver(Observer)}.
+     * @return true if the observer was previously registered, else false.
+     */
+    public static synchronized boolean unregisterObserver(Observer observer) {
+        boolean wasThere = observers.remove(observer);
+        log.debug(wasThere ?
+                          "Unregistered board update observer {}" :
+                          "Attempted to unregister configuration update observer {} but is was not found",
+                  observer);
+        return wasThere;
+    }
+
+    /**
+     * Notify all observers that the field at position {@code (x, y)} was updated.
+     */
+    private static void notifyObservers(int x, int y) {
+        observers.forEach(o -> o.boardChanged(x, y));
+    }
+
+    /**
+     * Functional equivalent of {@code BiConsumer<Integer, Integer>} with a less generic method name, to support
+     * registering observers with {@code registerObserver(this)} instead of {@code registerObserver(this::boardChanged}.
+     */
+    @FunctionalInterface
+    public interface Observer {
+        void boardChanged(int x, int y);
+    }
+
 }

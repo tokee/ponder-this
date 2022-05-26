@@ -40,17 +40,17 @@ public class EBoardTest extends TestCase {
     public void testBlankTracker() {
         EBoard board = new EBoard(EPieces.getEternii(), 16, 16);
         assertEquals("There should be the expected number of counts for the corner pieces",
-                     -4, board.getTracker().getTwo(EPieces.EDGE_EDGE, EPieces.EDGE_EDGE));
+                     -4, board.getEdgeTracker().getTwo(EPieces.EDGE_EDGE, EPieces.EDGE_EDGE));
         assertEquals("There should be the expected number of counts for the board edge pieces",
-                     -4*16, board.getTracker().getOne(EPieces.EDGE_EDGE));
+                     -4*16, board.getEdgeTracker().getOne(EPieces.EDGE_EDGE));
     }
     public void testBaggedTracker() {
         EPieces pieces = EPieces.getEternii();
         EBoard board = new EBoard(pieces, 16, 16);
-        board.addFreePieces(pieces.getBag());
+        board.registerFreePieces(pieces.getBag());
         assertEquals("There should be the expected number of counts for the corner pieces",
-                     0, board.getTracker().getTwo(EPieces.EDGE_EDGE, EPieces.EDGE_EDGE));
+                     0, board.getEdgeTracker().getTwo(EPieces.EDGE_EDGE, EPieces.EDGE_EDGE));
         assertEquals("There should be the expected number of counts for the board edge pieces",
-                     0, board.getTracker().getOne(EPieces.EDGE_EDGE));
+                     0, board.getEdgeTracker().getOne(EPieces.EDGE_EDGE));
     }
 }
