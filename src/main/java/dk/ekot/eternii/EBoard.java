@@ -434,6 +434,10 @@ public class EBoard {
         return width*height- freeBag.size();
     }
 
+    public int getFreeCount() {
+        return freeBag.size();
+    }
+
     /**
      * Fields are dynamic, meaning that the pieces on the fields can change between calls to fields.
      */

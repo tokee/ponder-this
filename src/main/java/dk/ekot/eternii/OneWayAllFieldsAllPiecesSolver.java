@@ -38,6 +38,7 @@ public class OneWayAllFieldsAllPiecesSolver implements Runnable {
         pieces = board.getPieces();
     }
 
+    @Override
     public void run() {
         while (true) {
             List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> frees =
