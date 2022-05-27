@@ -36,6 +36,10 @@ public class SolverTest extends TestCase {
         testSolver(BacktrackSolver::new);
     }
 
+    public void testBacktrackReturnSolver() throws InterruptedException {
+        testSolver(BacktrackReturnOnOneSolver::new);
+    }
+
 
     private void testSolver(Function<EBoard, Runnable> solverFactory) throws InterruptedException {
         EBoard board = getBoard();
