@@ -17,7 +17,9 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +33,10 @@ public class BacktrackSolver implements Runnable {
 
     private final EBoard board;
     private int minFree;
+    private final Set<String> encountered = new HashSet<>();
+    private long attempts = 0;
+    private long printDelta = 10000;
+    private long nextPrint = printDelta;
 
     public BacktrackSolver(EBoard board) {
         this.board = board;
@@ -39,7 +45,7 @@ public class BacktrackSolver implements Runnable {
 
     @Override
     public void run() {
-        dive();
+        dive("");
         log.debug(board.getEdgeTracker().toString());
     }
 
@@ -47,13 +53,20 @@ public class BacktrackSolver implements Runnable {
      * Iterates all possible fields and pieces, recursively calling for each piece.
      * @return true if the bottom was reached, else false.
      */
-    private boolean dive() {
+    private boolean dive(String all) {
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
         if (minFree > board.getFreeCount()) {
             minFree = board.getFreeCount();
             System.out.println("Free: " + minFree);
+        }
+        if (attempts >= nextPrint) {
+            System.out.println("Attempts: " + attempts);
+            nextPrint = attempts + printDelta;
+        }
+        if (!encountered.add(all)) {
+            System.out.println("Duplicate: " + all);
         }
 
         List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates =
@@ -64,8 +77,9 @@ public class BacktrackSolver implements Runnable {
             for (EBoard.Piece piece : free.right) {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
+                attempts++;
                 if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
-                    if (dive()) {
+                    if (dive(all + " (" + field.getX() + ", " + field.getY() + ")" + board.getPieces().toDisplayString(piece.piece, piece.rotation))) {
                         return true;
                     }
                     board.removePiece(field.getX(), field.getY());

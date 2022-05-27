@@ -52,7 +52,7 @@ public class SolverTest extends TestCase {
         EPieces pieces = EPieces.getEternii();
         EBoard board = new EBoard(pieces, 16, 16);
         board.registerFreePieces(pieces.getBag());
-        BoardVisualiser visualiser = new BoardVisualiser(board);
+        new BoardVisualiser(board);
         return board;
     }
 

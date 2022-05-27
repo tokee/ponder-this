@@ -158,7 +158,6 @@ public class EPieces {
         blank.getGraphics().fillRect(0, 0, blank.getWidth()-1, blank.getHeight()-1);
     }
 
-
     public String toDisplayString(int piece, int rotation) {
         switch (rotation) {
             case 0: return toCS(n[piece]) + toCS(e[piece]) + toCS(s[piece]) + toCS(w[piece]);
