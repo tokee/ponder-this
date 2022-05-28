@@ -26,6 +26,8 @@ import java.awt.image.BufferedImage;
 public class BoardVisualiser implements EBoard.Observer {
     private static final Logger log = LoggerFactory.getLogger(BoardVisualiser.class);
 
+    public static final int UPDATE_INTERVAL = 100; // Every 100 ms
+    
     private final EBoard board;
     private final EPieces pieces;
     private final JComponent boardDisplayComponent;
@@ -33,6 +35,7 @@ public class BoardVisualiser implements EBoard.Observer {
     private final int edgeWidth;
     private final int edgeHeight;
     private final boolean onlyUpdateOnBetter;
+    private boolean needsUpdate = false;
 
     private int best = 0;
 
@@ -51,7 +54,35 @@ public class BoardVisualiser implements EBoard.Observer {
         boardImage = new BufferedImage(edgeWidth*board.getWidth(), edgeHeight*board.getHeight(), BufferedImage.TYPE_INT_RGB);
         invalidateAll();
         boardDisplayComponent = BaseGraphics.displayImage(boardImage);
+
+        Thread t = new Thread(() -> {
+            while (true) {
+                invalidateConditionally();
+                try {
+                    Thread.sleep(UPDATE_INTERVAL);
+                } catch (InterruptedException e) {
+                    log.debug("Interrupted while sleeping");
+                }
+            }
+        }, "BoardVisualizer");
+        t.setDaemon(true);
+        t.start();
         board.registerObserver(this);
+    }
+
+    private void invalidateConditionally() {
+        if (!needsUpdate) {
+            return;
+        }
+        if (onlyUpdateOnBetter) {
+            if (board.getFilledCount() > best) {
+                best = board.getFilledCount();
+                invalidateAll();
+            }
+            return;
+        }
+        invalidateAll();
+        //updateTile(x, y);
     }
 
     private void invalidateAll() {
@@ -64,15 +95,7 @@ public class BoardVisualiser implements EBoard.Observer {
 
     @Override
     public void boardChanged(int x, int y) {
-        if (onlyUpdateOnBetter) {
-            if (board.getFilledCount() > best) {
-                best = board.getFilledCount();
-                invalidateAll();
-            }
-            return;
-        }
-
-        updateTile(x, y);
+        needsUpdate = true;
     }
 
     private void updateTile(int x, int y) {
@@ -87,4 +110,5 @@ public class BoardVisualiser implements EBoard.Observer {
             boardDisplayComponent.repaint(100L, x*edgeHeight, y*edgeHeight, edgeWidth, edgeHeight);
         }
     }
+
 }
