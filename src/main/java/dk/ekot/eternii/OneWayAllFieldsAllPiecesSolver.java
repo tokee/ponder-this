@@ -31,15 +31,19 @@ public class OneWayAllFieldsAllPiecesSolver implements Runnable {
 
     private final EBoard board;
     private final EPieces pieces;
+    private final Walker walker;
 
-    public OneWayAllFieldsAllPiecesSolver(EBoard board) {
+    public OneWayAllFieldsAllPiecesSolver(EBoard board, Walker walker) {
         this.board = board;
+        this.walker = walker;
         pieces = board.getPieces();
     }
 
     @Override
     public void run() {
         while (true) {
+            throw new UnsupportedOperationException("Disabled");
+            /*
             List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> frees =
                     board.getFreePiecesStrategyA().collect(Collectors.toList());
             boolean foundOne = false;
@@ -65,7 +69,9 @@ public class OneWayAllFieldsAllPiecesSolver implements Runnable {
             if (!foundOne) {
                 break;
             }
+
+             */
         }
-        log.debug(board.getEdgeTracker().toString());
+     //   log.debug(board.getEdgeTracker().toString());
     }
 }

@@ -121,7 +121,8 @@ public class BoardVisualiser implements EBoard.Observer {
         if (!labels[x][y].isEmpty()) {
             AttributedString attributedString = new AttributedString(labels[x][y]);
             attributedString.addAttribute(TextAttribute.FOREGROUND, Color.BLACK);
-            attributedString.addAttribute(TextAttribute.SIZE, 20);
+            attributedString.addAttribute(TextAttribute.BACKGROUND, Color.WHITE);
+            attributedString.addAttribute(TextAttribute.SIZE, 12);
             boardImage.getGraphics().drawString(attributedString.getIterator(), x * edgeWidth + 3, y * edgeHeight + 30);
         }
         if (boardDisplayComponent != null) {

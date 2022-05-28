@@ -29,17 +29,17 @@ public class OneWayAllPiecesSolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(OneWayAllPiecesSolver.class);
 
     private final EBoard board;
-    private final EPieces pieces;
+    private final Walker walker;
 
-    public OneWayAllPiecesSolver(EBoard board) {
+    public OneWayAllPiecesSolver(EBoard board, Walker walker) {
         this.board = board;
-        pieces = board.getPieces();
+        this.walker = walker;
     }
 
     @Override
     public void run() {
         EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free;
-        while ((free = board.getFreePieceStrategyA()) != null) {
+        while ((free = walker.get()) != null) {
 //            System.out.println(board.getEdgeTracker());
             if (free.right.isEmpty()) {
                 return;

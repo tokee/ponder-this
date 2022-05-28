@@ -254,7 +254,7 @@ public class EBoard {
         return height;
     }
 
-    private Stream<Field> streamAllFields() {
+    public Stream<Field> streamAllFields() {
         if (allFields == null) {
             allFields = new ArrayList<>(width*height);
             for (int y = 0 ; y < height ; y++) {
@@ -284,41 +284,6 @@ public class EBoard {
             }
         }
         return fields.stream();
-    }
-
-    /**
-     * @return next free field with its valid pieces or null if there are no more free fields.
-     */
-    public Pair<Field, List<Piece>> getFreePieceStrategyA() {
-        return getFreePiecesStrategyA()
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
-     */
-    public Stream<Pair<Field, List<Piece>>> getFreePiecesStrategyA() {
-        Comparator<Pair<Field, List<Piece>>> comparator = getFieldComparatorA();
-        return streamAllFields()
-                .filter(Field::isFree)
-                .map(field -> new Pair<>(field, field.getBestPieces()))
-//                .peek(e -> System.out.println("    field(" + e.left.getX() +  ", " + e.left.getY() + "), pieces=" + e.right))
-                .sorted(comparator);
-//                .peek(e -> System.out.println("Best field(" + e.left.getX() +  ", " + e.left.getY() + "), pieces=" + e.right));
-    }
-
-    private Comparator<Pair<Field, List<Piece>>> getFieldComparatorA() {
-        return Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.right.size())                         // Least valid pieces
-                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
-                .thenComparingInt(pair -> pair.left.y*width + pair.left.x);
-    }
-
-    private Comparator<Pair<Field, List<Piece>>> getFieldComparatorB() {
-        return Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.left.x == 0 || pair.left.y == 0 || pair.left.x == width - 1 || pair.left.y == height - 1 ? 0 : 1) // Edges first
-                .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
-                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
-                .thenComparingInt(pair -> pair.left.y*width + pair.left.x);
     }
 
     /**

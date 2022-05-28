@@ -2,6 +2,7 @@ package dk.ekot.eternii;
 
 import junit.framework.TestCase;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /*
@@ -21,7 +22,7 @@ import java.util.function.Function;
 public class SolverTest extends TestCase {
 
     public void testNullSolver() throws InterruptedException {
-        testSolver(board -> () -> System.out.println("Doing nothing"));
+        testSolver((board, walker) -> () -> System.out.println("Doing nothing"));
     }
 
     public void testOneWaySolver() throws InterruptedException {
@@ -49,10 +50,11 @@ public class SolverTest extends TestCase {
     }
 
 
-    private void testSolver(Function<EBoard, Runnable> solverFactory) throws InterruptedException {
+    private void testSolver(BiFunction<EBoard, Walker, Runnable> solverFactory) throws InterruptedException {
         EBoard board = getBoard();
+        Walker walker = new WalkerA(board);
 
-        Runnable solver = solverFactory.apply(board);
+        Runnable solver = solverFactory.apply(board, walker);
         long runTime = -System.currentTimeMillis();
         solver.run();
         runTime += System.currentTimeMillis();

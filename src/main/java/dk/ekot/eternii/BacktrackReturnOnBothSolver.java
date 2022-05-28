@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Tries to solve the puzzle by trying all fields, all pieces until there are no more pieces (or fields) or a piece
@@ -30,6 +31,8 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BacktrackReturnOnBothSolver.class);
 
     private final EBoard board;
+    private final Walker walker;
+
     private int minFree;
     private long attempts = 0;
     private long startTime;
@@ -37,8 +40,9 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     private long nextPrintMS = System.currentTimeMillis();
     private String best = "";
 
-    public BacktrackReturnOnBothSolver(EBoard board) {
+    public BacktrackReturnOnBothSolver(EBoard board, Walker walker) {
         this.board = board;
+        this.walker = walker;
         minFree = board.getFreeCount();
     }
 
@@ -70,7 +74,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
-        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = board.getFreePieceStrategyA();
+        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = walker.get();
         if (free == null) {
             return false;
         }
@@ -79,7 +83,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
             attempts++;
-            if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, Integer.toString(depth))) {
+            if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size())) {
                 if (dive(depth+1)) {
                     return true;
                 }

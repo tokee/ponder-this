@@ -31,13 +31,16 @@ public class BacktrackReturnOnOneSolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BacktrackReturnOnOneSolver.class);
 
     private final EBoard board;
+    private final Walker walker;
+
     private int minFree;
     private long attempts = 0;
     private long printDelta = 10000000;
     private long nextPrint = printDelta;
 
-    public BacktrackReturnOnOneSolver(EBoard board) {
+    public BacktrackReturnOnOneSolver(EBoard board, Walker walker) {
         this.board = board;
+        this.walker = walker;
         minFree = board.getFreeCount();
     }
 
@@ -52,7 +55,8 @@ public class BacktrackReturnOnOneSolver implements Runnable {
      * @return true if the bottom was reached, else false.
      */
     private boolean dive() {
-        if (board.getFreeCount() == 0) { // Bottom reached
+        throw new UnsupportedOperationException("Disabled");
+/*        if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
         if (minFree > board.getFreeCount()) {
@@ -89,6 +93,6 @@ public class BacktrackReturnOnOneSolver implements Runnable {
 //                log.info("Tried all pieces " + free.right + " at " + free.left + " without finding a valid one");
 //            }
         }
-        return false;
+        return false;   */
     }
 }

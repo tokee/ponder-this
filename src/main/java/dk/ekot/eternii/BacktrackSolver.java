@@ -32,14 +32,16 @@ public class BacktrackSolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BacktrackSolver.class);
 
     private final EBoard board;
+    private final Walker walker;
     private int minFree;
     private final Set<String> encountered = new HashSet<>();
     private long attempts = 0;
     private long printDelta = 1000000;
     private long nextPrint = printDelta;
 
-    public BacktrackSolver(EBoard board) {
+    public BacktrackSolver(EBoard board, Walker walker) {
         this.board = board;
+        this.walker = walker;
         minFree = board.getFreeCount();
     }
 
@@ -69,6 +71,7 @@ public class BacktrackSolver implements Runnable {
             System.out.println("Duplicate: " + all);
         }
 
+        throw new UnsupportedOperationException("Disabled");/*
         List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates =
                 board.getFreePiecesStrategyA().collect(Collectors.toList());
         for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
@@ -90,6 +93,6 @@ public class BacktrackSolver implements Runnable {
 //                log.info("Tried all pieces " + free.right + " at " + free.left + " without finding a valid one");
 //            }
         }
-        return false;
+        return false;                                         */
     }
 }
