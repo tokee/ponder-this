@@ -20,6 +20,10 @@ import java.util.function.Function;
  */
 public class SolverTest extends TestCase {
 
+    public void testNullSolver() throws InterruptedException {
+        testSolver(board -> () -> System.out.println("Doing nothing"));
+    }
+
     public void testOneWaySolver() throws InterruptedException {
         testSolver(OneWaySolver::new);
     }
@@ -40,6 +44,10 @@ public class SolverTest extends TestCase {
         testSolver(BacktrackReturnOnOneSolver::new);
     }
 
+    public void testBacktrackReturnBothSolver() throws InterruptedException {
+        testSolver(BacktrackReturnOnBothSolver::new);
+    }
+
 
     private void testSolver(Function<EBoard, Runnable> solverFactory) throws InterruptedException {
         EBoard board = getBoard();
@@ -56,6 +64,7 @@ public class SolverTest extends TestCase {
         EPieces pieces = EPieces.getEternii();
         EBoard board = new EBoard(pieces, 16, 16);
         board.registerFreePieces(pieces.getBag());
+        pieces.processEterniiClues(board::placePiece);
         new BoardVisualiser(board);
         return board;
     }

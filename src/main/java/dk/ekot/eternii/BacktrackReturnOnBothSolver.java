@@ -17,35 +17,33 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Tries to solve the puzzle by trying all fields, all pieces until there are no more pieces (or fields).
- * Backtracking when .
+ * Tries to solve the puzzle by trying all fields, all pieces until there are no more pieces (or fields) or a piece
+ * with only 1 possible piece has been tried.
+ * Backtracking.
  *
  * Primarily used for testing.
  */
-public class BacktrackSolver implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(BacktrackSolver.class);
+public class BacktrackReturnOnBothSolver implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(BacktrackReturnOnBothSolver.class);
 
     private final EBoard board;
     private int minFree;
-    private final Set<String> encountered = new HashSet<>();
     private long attempts = 0;
-    private long printDelta = 1000000;
+    private long printDelta = 10000000;
     private long nextPrint = printDelta;
 
-    public BacktrackSolver(EBoard board) {
+    public BacktrackReturnOnBothSolver(EBoard board) {
         this.board = board;
         minFree = board.getFreeCount();
     }
 
     @Override
     public void run() {
-        dive("");
+        dive();
         log.debug(board.getEdgeTracker().toString());
     }
 
@@ -53,42 +51,36 @@ public class BacktrackSolver implements Runnable {
      * Iterates all possible fields and pieces, recursively calling for each piece.
      * @return true if the bottom was reached, else false.
      */
-    private boolean dive(String all) {
+    private boolean dive() {
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
         if (minFree > board.getFreeCount()) {
             minFree = board.getFreeCount();
-            System.out.println("Free: " + minFree);
+            System.out.println("Free: " + minFree + ": " + board.getDisplayURL());
         }
         if (attempts >= nextPrint) {
-            System.out.println("Attempts: " + attempts);
+            System.out.println("Attempts: " + attempts/1000 + "K, free=" + board.getFreeCount() + ", min=" + minFree);
             nextPrint = attempts + printDelta;
         }
-        if (!encountered.add(all)) {
-            System.out.println("Duplicate: " + all);
+
+        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free =
+                board.getFreePiecesStrategyA().findFirst().orElse(null);
+        if (free == null) {
+            return false;
         }
-
-        List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates =
-                board.getFreePiecesStrategyA().collect(Collectors.toList());
-        for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
-            EBoard.Field field = free.left;
-
-            for (EBoard.Piece piece : free.right) {
+        EBoard.Field field = free.left;
+        for (EBoard.Piece piece : free.right) {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
-                attempts++;
-                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
-                    if (dive(all + " (" + field.getX() + ", " + field.getY() + ")" + board.getPieces().toDisplayString(piece.piece, piece.rotation))) {
-                        return true;
-                    }
-                    board.removePiece(field.getX(), field.getY());
+            attempts++;
+            if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
+                if (dive()) {
+                    return true;
                 }
-//                log.debug("Failed placement, trying next (if any)");
+                board.removePiece(field.getX(), field.getY());
             }
-//            if (field.getPiece() == -1) {
-//                log.info("Tried all pieces " + free.right + " at " + free.left + " without finding a valid one");
-//            }
+//                log.debug("Failed placement, trying next (if any)");
         }
         return false;
     }

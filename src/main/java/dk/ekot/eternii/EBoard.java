@@ -300,9 +300,10 @@ public class EBoard {
      */
     public Stream<Pair<Field, List<Piece>>> getFreePiecesStrategyA() {
         Comparator<Pair<Field, List<Piece>>> comparator =
-                Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.right.size()) // Valid pieces
-                        .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Free edges
-                        .thenComparingInt(pair -> pair.left.y*width + pair.left.x);          // Position
+                Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.left.x == 0 || pair.left.y == 0 || pair.left.x == width-1 || pair.left.y == height -1 ? 0 : 1) // Edges first
+                        .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
+                        .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
+                        .thenComparingInt(pair -> pair.left.y*width + pair.left.x);          // Top-left Position
         return streamAllFields()
                 .filter(Field::isFree)
                 .map(field -> new Pair<>(field, field.getBestPieces()))
