@@ -78,7 +78,7 @@ public class BacktrackSolver implements Runnable {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
                 attempts++;
-                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
+                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, "")) {
                     if (dive(all + " (" + field.getX() + ", " + field.getY() + ")" + board.getPieces().toDisplayString(piece.piece, piece.rotation))) {
                         return true;
                     }

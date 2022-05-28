@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * Tries to solve the puzzle by asking for best candidate and selecting the first ones until there are no more
@@ -47,7 +46,7 @@ public class OneWaySolver  implements Runnable {
             EBoard.Field field = free.left;
             EBoard.Piece piece = free.right.get(0);
             log.info("Placing at ({}, {}) piece={} rot={}", field.getX(), field.getY(), piece.piece, piece.rotation);
-            if (!board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
+            if (!board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, "")) {
                 log.debug(board.getEdgeTracker().toString());
                 System.out.println("Unable to place piece as it invalidates the bag. Stopping run");
                 break;

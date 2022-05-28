@@ -47,7 +47,7 @@ public class OneWayAllPiecesSolver implements Runnable {
             EBoard.Field field = free.left;
             for (EBoard.Piece piece : free.right) {
                 log.info("Placing at ({}, {}) piece={} rot={}", field.getX(), field.getY(), piece.piece, piece.rotation);
-                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
+                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, "")) {
                     break;
                 }
                 log.info("Failed placement, trying next (if any)");

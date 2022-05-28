@@ -64,7 +64,7 @@ public class SolverTest extends TestCase {
         EPieces pieces = EPieces.getEternii();
         EBoard board = new EBoard(pieces, 16, 16);
         board.registerFreePieces(pieces.getBag());
-        pieces.processEterniiClues(board::placePiece);
+        pieces.processEterniiClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
         new BoardVisualiser(board);
         new BoardVisualiser(board, true);
         return board;

@@ -122,7 +122,7 @@ public class EBoard {
         // Register piece as free
         updatePieceTracking(piece, +1);
         freeBag.add(piece);
-        notifyObservers(x, y);
+        notifyObservers(x, y, "");
     }
 
     /**
@@ -131,14 +131,14 @@ public class EBoard {
      */
     public void placeUntrackedPiece(int x, int y, int piece, int rotation) {
         board[x][y] = (rotation<<16)|piece;
-        notifyObservers(x, y);
+        notifyObservers(x, y, "");
     }
 
     /**
      * Positions the given piece on the board, updating the tracker and removing the piece from the free bag.
      * @return if the positioning resulted in a negative tracker and was rolled back.
      */
-    public boolean placePiece(int x, int y, int piece, int rotation) {
+    public boolean placePiece(int x, int y, int piece, int rotation, String label) {
         if (board[x][y] != -1) {
             throw new IllegalStateException(
                     "placePiece(" + x + ", " + y + ", ...) called but the field already had a piece");
@@ -164,7 +164,7 @@ public class EBoard {
         if (!freeBag.remove(piece)) {
            throw new IllegalStateException("Tried removing piece " + piece + " from the free bag but it was not there");
         }
-        notifyObservers(x, y);
+        notifyObservers(x, y, label);
         return true;
     }
 
@@ -299,17 +299,26 @@ public class EBoard {
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */
     public Stream<Pair<Field, List<Piece>>> getFreePiecesStrategyA() {
-        Comparator<Pair<Field, List<Piece>>> comparator =
-                Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.left.x == 0 || pair.left.y == 0 || pair.left.x == width-1 || pair.left.y == height -1 ? 0 : 1) // Edges first
-                        .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
-                        .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
-                        .thenComparingInt(pair -> pair.left.y*width + pair.left.x);          // Top-left Position
+        Comparator<Pair<Field, List<Piece>>> comparator = getFieldComparatorA();
         return streamAllFields()
                 .filter(Field::isFree)
                 .map(field -> new Pair<>(field, field.getBestPieces()))
 //                .peek(e -> System.out.println("    field(" + e.left.getX() +  ", " + e.left.getY() + "), pieces=" + e.right))
                 .sorted(comparator);
 //                .peek(e -> System.out.println("Best field(" + e.left.getX() +  ", " + e.left.getY() + "), pieces=" + e.right));
+    }
+
+    private Comparator<Pair<Field, List<Piece>>> getFieldComparatorA() {
+        return Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.right.size())                         // Least valid pieces
+                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
+                .thenComparingInt(pair -> pair.left.y*width + pair.left.x);
+    }
+
+    private Comparator<Pair<Field, List<Piece>>> getFieldComparatorB() {
+        return Comparator.<Pair<Field, List<Piece>>>comparingInt(pair -> pair.left.x == 0 || pair.left.y == 0 || pair.left.x == width - 1 || pair.left.y == height - 1 ? 0 : 1) // Edges first
+                .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
+                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
+                .thenComparingInt(pair -> pair.left.y*width + pair.left.x);
     }
 
     /**
@@ -386,7 +395,7 @@ public class EBoard {
                 int rotation = pieces.getRotationFromString(full.substring(i, i + 4));
                 //System.out.println("G " + piece + " " + rotation + ": " + pieces.toDisplayString(piece, rotation));
                 placeUntrackedPiece(x, y, piece, rotation);
-                notifyObservers(x, y);
+                notifyObservers(x, y, "");
             }
         }
     }
@@ -604,8 +613,8 @@ public class EBoard {
     /**
      * Notify all observers that the field at position {@code (x, y)} was updated.
      */
-    private void notifyObservers(int x, int y) {
-        observers.forEach(o -> o.boardChanged(x, y));
+    private void notifyObservers(int x, int y, String label) {
+        observers.forEach(o -> o.boardChanged(x, y, label));
     }
 
     /**
@@ -614,7 +623,7 @@ public class EBoard {
      */
     @FunctionalInterface
     public interface Observer {
-        void boardChanged(int x, int y);
+        void boardChanged(int x, int y, String label);
     }
 
 }

@@ -18,7 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
+import java.text.AttributedString;
 
 /**
  * Opens a windows showing an {@link EBoard} and tracks changes.
@@ -36,6 +39,7 @@ public class BoardVisualiser implements EBoard.Observer {
     private final int edgeHeight;
     private final boolean onlyUpdateOnBetter;
     private boolean needsUpdate = false;
+    private final String[][] labels;
 
     private int best = 0;
 
@@ -46,6 +50,13 @@ public class BoardVisualiser implements EBoard.Observer {
     public BoardVisualiser(EBoard board, boolean onlyUpdateOnBetter) {
         this.board = board;
         this.onlyUpdateOnBetter = onlyUpdateOnBetter;
+        labels = new String[board.getWidth()][board.getHeight()];
+        for (int x = 0 ; x < labels.length ; x++) {
+            labels[x] = new String[board.getWidth()];
+            for (int y = 0 ; y < board.getHeight() ; y++) {
+                labels[x][y] = "";
+            }
+        }
         pieces = board.getPieces();
 
         BufferedImage edge0 = pieces.getEdgeImage(0);
@@ -94,7 +105,8 @@ public class BoardVisualiser implements EBoard.Observer {
     }
 
     @Override
-    public void boardChanged(int x, int y) {
+    public void boardChanged(int x, int y, String label) {
+        labels[x][y] = label;
         needsUpdate = true;
     }
 
@@ -106,6 +118,12 @@ public class BoardVisualiser implements EBoard.Observer {
             tile = pieces.getPieceImage(piece, rotation);
         }
         boardImage.getGraphics().drawImage(tile, x * edgeWidth, y * edgeHeight, null);
+        if (!labels[x][y].isEmpty()) {
+            AttributedString attributedString = new AttributedString(labels[x][y]);
+            attributedString.addAttribute(TextAttribute.FOREGROUND, Color.BLACK);
+            attributedString.addAttribute(TextAttribute.SIZE, 20);
+            boardImage.getGraphics().drawString(attributedString.getIterator(), x * edgeWidth + 3, y * edgeHeight + 30);
+        }
         if (boardDisplayComponent != null) {
             boardDisplayComponent.repaint(100L, x*edgeHeight, y*edgeHeight, edgeWidth, edgeHeight);
         }

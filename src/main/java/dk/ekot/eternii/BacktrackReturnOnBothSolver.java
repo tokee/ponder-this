@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Tries to solve the puzzle by trying all fields, all pieces until there are no more pieces (or fields) or a piece
@@ -45,8 +44,8 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 
     @Override
     public void run() {
-        startTime = System.currentTimeMillis();
-        dive();
+        startTime = System.currentTimeMillis()-1; // -1 to avoid division by zero
+        dive(0);
         log.debug(board.getEdgeTracker().toString());
     }
 
@@ -54,7 +53,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
      * Iterates all possible fields and pieces, recursively calling for each piece.
      * @return true if the bottom was reached, else false.
      */
-    private boolean dive() {
+    private boolean dive(int depth) {
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
@@ -71,8 +70,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
-        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free =
-                board.getFreePiecesStrategyA().findFirst().orElse(null);
+        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = board.getFreePieceStrategyA();
         if (free == null) {
             return false;
         }
@@ -81,8 +79,8 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
             attempts++;
-            if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
-                if (dive()) {
+            if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, Integer.toString(depth))) {
+                if (dive(depth+1)) {
                     return true;
                 }
                 board.removePiece(field.getX(), field.getY());

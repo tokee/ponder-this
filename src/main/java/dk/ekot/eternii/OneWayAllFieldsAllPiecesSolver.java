@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Tries to solve the puzzle by trying all fields, all pieces until there are no more pieces (or fields).
@@ -51,7 +50,7 @@ public class OneWayAllFieldsAllPiecesSolver implements Runnable {
                 EBoard.Field field = free.left;
                 for (EBoard.Piece piece : free.right) {
                     log.info("Placing at ({}, {}) piece={} rot={}", field.getX(), field.getY(), piece.piece, piece.rotation);
-                    if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
+                    if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, "")) {
                         foundOne = true;
                         break;
                     }

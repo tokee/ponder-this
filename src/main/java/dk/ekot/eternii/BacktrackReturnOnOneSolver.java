@@ -17,9 +17,7 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -75,7 +73,7 @@ public class BacktrackReturnOnOneSolver implements Runnable {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
                 attempts++;
-                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation)) {
+                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, "")) {
                     if (dive()) {
                         return true;
                     }
