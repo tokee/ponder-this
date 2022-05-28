@@ -107,7 +107,14 @@ public class BoardVisualiser implements EBoard.Observer {
     @Override
     public void boardChanged(int x, int y, String label) {
         labels[x][y] = label;
-        needsUpdate = true;
+        if (onlyUpdateOnBetter) { // Update immediately on better
+            if (board.getFilledCount() > best) {
+                best = board.getFilledCount();
+                invalidateAll();
+            }
+        } else {
+            needsUpdate = true;
+        }
     }
 
     private void updateTile(int x, int y) {

@@ -22,19 +22,19 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Prioritises least valid pieces.
+ * Prioritises board edges.
  *
- * Observation: Three corners fairly quickly, then very slow progress.
+ * Observation: Messes about a looong time at the border.
  */
-public class WalkerA implements Walker {
-    private static final Logger log = LoggerFactory.getLogger(WalkerA.class);
+public class WalkerB implements Walker {
+    private static final Logger log = LoggerFactory.getLogger(WalkerB.class);
 
     private final EBoard board;
     private final Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> comparator;
 
-    public WalkerA(EBoard board) {
+    public WalkerB(EBoard board) {
         this.board = board;
-        comparator = getFieldComparatorA();
+        comparator = getFieldComparator();
     }
 
     @Override
@@ -54,10 +54,15 @@ public class WalkerA implements Walker {
                 .sorted(comparator);
     }
 
-    private Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFieldComparatorA() {
-        return Comparator.<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>>comparingInt(pair -> pair.right.size()) // Least valid pieces
+    private Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFieldComparator() {
+        return Comparator.<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>>comparingInt(
+                pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
+                        pair.left.getX() == board.getWidth() - 1 ||
+                        pair.left.getY() == board.getHeight() - 1 ? 0 : 1) // Edges first
+                .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
                 .thenComparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX());
     }
+
 
 }
