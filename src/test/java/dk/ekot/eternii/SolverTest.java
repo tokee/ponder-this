@@ -3,7 +3,6 @@ package dk.ekot.eternii;
 import junit.framework.TestCase;
 
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,7 +51,7 @@ public class SolverTest extends TestCase {
 
     private void testSolver(BiFunction<EBoard, Walker, Runnable> solverFactory) throws InterruptedException {
         EBoard board = getBoard();
-        Walker walker = new WalkerA(board);
+        Walker walker = new WalkerD(board);
 
         Runnable solver = solverFactory.apply(board, walker);
         long runTime = -System.currentTimeMillis();
