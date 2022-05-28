@@ -66,6 +66,7 @@ public class SolverTest extends TestCase {
         board.registerFreePieces(pieces.getBag());
         pieces.processEterniiClues(board::placePiece);
         new BoardVisualiser(board);
+        new BoardVisualiser(board, true);
         return board;
     }
 

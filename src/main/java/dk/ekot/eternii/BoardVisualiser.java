@@ -32,9 +32,17 @@ public class BoardVisualiser implements EBoard.Observer {
     private final BufferedImage boardImage;
     private final int edgeWidth;
     private final int edgeHeight;
+    private final boolean onlyUpdateOnBetter;
+
+    private int best = 0;
 
     public BoardVisualiser(EBoard board) {
+        this(board, false);
+    }
+
+    public BoardVisualiser(EBoard board, boolean onlyUpdateOnBetter) {
         this.board = board;
+        this.onlyUpdateOnBetter = onlyUpdateOnBetter;
         pieces = board.getPieces();
 
         BufferedImage edge0 = pieces.getEdgeImage(0);
@@ -49,13 +57,25 @@ public class BoardVisualiser implements EBoard.Observer {
     private void invalidateAll() {
         for (int y = 0 ; y < board.getHeight() ; y++) {
             for (int x = 0 ; x < board.getWidth() ; x++) {
-                boardChanged(x, y);
+                updateTile(x, y);
             }
         }
     }
 
     @Override
     public void boardChanged(int x, int y) {
+        if (onlyUpdateOnBetter) {
+            if (board.getFilledCount() > best) {
+                best = board.getFilledCount();
+                invalidateAll();
+            }
+            return;
+        }
+
+        updateTile(x, y);
+    }
+
+    private void updateTile(int x, int y) {
         BufferedImage tile = pieces.getBlank();
         int piece = board.getPiece(x, y);
         if (piece != -1) {

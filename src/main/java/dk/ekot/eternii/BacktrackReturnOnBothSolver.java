@@ -33,8 +33,10 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     private final EBoard board;
     private int minFree;
     private long attempts = 0;
-    private long printDelta = 10000000;
-    private long nextPrint = printDelta;
+    private long startTime;
+    private long printDeltaMS = 1000;
+    private long nextPrintMS = System.currentTimeMillis();
+    private String best = "";
 
     public BacktrackReturnOnBothSolver(EBoard board) {
         this.board = board;
@@ -43,6 +45,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 
     @Override
     public void run() {
+        startTime = System.currentTimeMillis();
         dive();
         log.debug(board.getEdgeTracker().toString());
     }
@@ -57,11 +60,15 @@ public class BacktrackReturnOnBothSolver implements Runnable {
         }
         if (minFree > board.getFreeCount()) {
             minFree = board.getFreeCount();
-            System.out.println("Free: " + minFree + ": " + board.getDisplayURL());
+            best = board.getDisplayURL();
+            System.out.println("Free: " + minFree + ": " + best);
+
         }
-        if (attempts >= nextPrint) {
-            System.out.println("Attempts: " + attempts/1000 + "K, free=" + board.getFreeCount() + ", min=" + minFree);
-            nextPrint = attempts + printDelta;
+        if (System.currentTimeMillis() > nextPrintMS) {
+            System.out.printf("Attempts: %dK, free=%d, minFree=%d, attempts/sec=%d, best=%s\n",
+                              attempts/1000, board.getFreeCount(), minFree,
+                              attempts*1000/(System.currentTimeMillis()-startTime), best);
+            nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
         EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free =
