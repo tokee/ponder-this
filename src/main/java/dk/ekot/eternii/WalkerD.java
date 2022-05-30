@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 /**
  * Prioritize MOST free edges and pieces.
  *
+ * Does not get far at all as placing a piece in the open raises edge requirements by 4, quickly draining the bag.
  */
 public class WalkerD implements Walker {
     private static final Logger log = LoggerFactory.getLogger(WalkerD.class);
