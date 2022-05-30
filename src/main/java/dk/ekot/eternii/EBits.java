@@ -63,6 +63,16 @@ public class EBits {
     public static final int SOUTH_EDGE_SHIFT = EDGE_SHIFT;
     public static final int WEST_EDGE_SHIFT = 0;
 
+    public static final long BLANK_STATE;
+    static {
+        long state = setPiece(0L,-1);
+        state = setPieceNorthEdge(state, EPieces.NULL);
+        state = setPieceEastEdge(state, EPieces.NULL);
+        state = setPieceSouthEdge(state, EPieces.NULL);
+        state = setPieceWestEdge(state, EPieces.NULL);
+        BLANK_STATE = state;
+    }
+
     /**
      * @return hash based on which outer edges are set.
      */
@@ -186,5 +196,16 @@ public class EBits {
         long rightmost = (onlyEdges & EDGE_MASK) << (3*EDGE_SHIFT);
         long finalEdges = shifted | rightmost;
         return ((edges >> (4*EDGE_SHIFT)) << (4*EDGE_SHIFT)) | finalEdges;
+    }
+
+    /**
+     * @return bitmap of set edges: North, East, South, Vest
+     */
+    public static int getDefinedEdges(long edges) {
+        // TODO: Optimize this to use masks only
+        return (getNorthEdge(edges) != 0 ? 0b1000 : 0) |
+               (getEastEdge(edges)  != 0 ? 0b0100 : 0) |
+               (getSouthEdge(edges) != 0 ? 0b0010 : 0) |
+               (getWestEdge(edges)  != 0 ? 0b0001 : 0);
     }
 }

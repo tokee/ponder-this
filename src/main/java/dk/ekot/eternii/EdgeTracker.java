@@ -31,18 +31,24 @@ public class EdgeTracker {
     public static final int EF = 30; // Must be > max edge type id (int)
 
     // Edge -> count
-    private final Counter one = new Counter();
+    private final CounterRadix one = new CounterRadix(32);
     // [edge1, edge2 (clockwise immediately after edge1)] -> count
-    private final Counter two = new Counter();
+    private final CounterRadix two = new CounterRadix(32*32);
     // [edge1, edge2 (clockwise immediately after edge1), edge3 (clockwise immediately after edge2)] -> count
-    private final Counter three = new Counter();
+    private final CounterRadix three = new CounterRadix(32*32*32);
     // [edge1, edge2 (at the other side of edge)] -> count. One 180 degree rotation
-    private final Counter opposing = new Counter();
+    private final CounterRadix opposing = new CounterRadix(32*32);
     // [edge1, edge2, edge3, edge4] -> count. All rotations
     private final Counter four = new Counter();
 
-    public boolean add(long state, int delta) {
-
+    /**
+     * Adds all valid permutations of the edges.
+     * return false if one or more trackers reched a negative count.
+     */
+    public boolean add(long edges, int delta) {
+        // TODO: Implement this properly
+        return add(EBits.getNorthEdge(edges), EBits.getEastEdge(edges),
+                   EBits.getSouthEdge(edges), EBits.getWestEdge(edges), delta);
     }
 
     /**
@@ -52,7 +58,7 @@ public class EdgeTracker {
      * @param edge3 an edge or -1 if not present.
      * @param edge4 an edge or -1 if not present.
      * @param delta the value to add to the counters.
-     * return false if one or more trackers reched a negative count.             
+     * return false if one or more trackers reched a negative count.
      */
     // NOTE: The binary boolean operators are on purpose as we want the side effects
     public boolean add(int edge1, int edge2, int edge3, int edge4, int delta) {
@@ -180,6 +186,26 @@ public class EdgeTracker {
         callback.accept(EF * EF * EF * edgeType4 + EF * EF * edgeType1 + EF * edgeType2 + edgeType3);
     }
 
+
+    public static class CounterRadix {
+        final int[] counts;
+        public CounterRadix(int max) {
+            counts = new int[max+1];
+        }
+        /**
+         *
+         * @param key
+         * @param delta
+         * @return true if the new count is >= 0
+         */
+        private boolean add(int key, int delta) {
+            return (counts[key] += delta) >= 0;
+        }
+        private int get(int key) {
+            return counts[key];
+        }
+
+    }
 
     public static class Counter extends HashMap<Integer, Integer> {
         /**

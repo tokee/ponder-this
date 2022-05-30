@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -78,7 +77,7 @@ public class EBoard {
     private final int width;
     private final int height;
 
-    private final int[][] board; // (rotation << 16 | piece)
+    private final long[][] board; // states, as defined in EBits
     private final EdgeTracker edgeTracker = new EdgeTracker();
 
     private final Set<Observer> observers = new HashSet<>();
@@ -87,9 +86,9 @@ public class EBoard {
         this.pieces = pieces;
         this.width = width;
         this.height = height;
-        this.board = new int[width][height];
+        this.board = new long[width][height];
         for (int x = 0 ; x < width ; x++) {
-            Arrays.fill(board[x], -1);
+            Arrays.fill(board[x], EBits.BLANK_STATE);
         }
         freeBag = new PieceTracker(pieces);
 /*        pieces.allPieces()
