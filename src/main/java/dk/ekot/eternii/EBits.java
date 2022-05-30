@@ -63,7 +63,12 @@ public class EBits {
     public static final int SOUTH_EDGE_SHIFT = EDGE_SHIFT;
     public static final int WEST_EDGE_SHIFT = 0;
 
-    // setEdges = 4 bit, edges = 4*5 bits
+    /**
+     * @return hash based on which outer edges are set.
+     */
+    public static int getOuterHash(long state) {
+        return getHash(getExistingOuterEdges(state), state);
+    }
     public static int getHash(int setEdges, long edges) {
         switch (setEdges) {
             // We hope that the compiler is clever enough to see that these are all the numbers from 0-15 (inclusive)
@@ -140,7 +145,7 @@ public class EBits {
     public static long setOuterEdges(long state, long edges) {
         return ((edges & OUTER_EDGES_MASK) << OUTER_EDGES_SHIFT) | state;
     }
-    public static int getOuterEdges(long state) {
+    public static int getExistingOuterEdges(long state) {
         return (int) ((state >> OUTER_EDGES_SHIFT) & OUTER_EDGES_MASK);
     }
     
@@ -167,5 +172,19 @@ public class EBits {
     }
     public static int getWestEdge(long state) {
         return (int) ((state >> WEST_EDGE_SHIFT) & EDGE_MASK);
+    }
+
+    /**
+     * Shift the {@code 4*<5 bits>} edges one edge to the right, moving the rightmost edge in front.
+     * All other bits are kept in place.
+     * @param edges
+     * @return
+     */
+    public static long shiftEdgesRight(long edges) {
+        long onlyEdges = edges & EDGE4_MASK;
+        long shifted = onlyEdges >> EDGE_SHIFT;
+        long rightmost = (onlyEdges & EDGE_MASK) << (3*EDGE_SHIFT);
+        long finalEdges = shifted | rightmost;
+        return ((edges >> (4*EDGE_SHIFT)) << (4*EDGE_SHIFT)) | finalEdges;
     }
 }

@@ -41,6 +41,10 @@ public class EdgeTracker {
     // [edge1, edge2, edge3, edge4] -> count. All rotations
     private final Counter four = new Counter();
 
+    public boolean add(long state, int delta) {
+
+    }
+
     /**
      * Adds all valid permutations of the edges.
      * @param edge1 an edge or -1 if not present.
