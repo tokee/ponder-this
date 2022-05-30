@@ -26,12 +26,14 @@ import java.util.stream.Collectors;
  * Backtracking.
  *
  * Primarily used for testing.
+ *
+ * Note: Always used WalkerA.
  */
 public class BacktrackReturnOnOneSolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BacktrackReturnOnOneSolver.class);
 
     private final EBoard board;
-    private final Walker walker;
+    private final WalkerA walker;
 
     private int minFree;
     private long attempts = 0;
@@ -40,7 +42,7 @@ public class BacktrackReturnOnOneSolver implements Runnable {
 
     public BacktrackReturnOnOneSolver(EBoard board, Walker walker) {
         this.board = board;
-        this.walker = walker;
+        this.walker = new WalkerA(board);
         minFree = board.getFreeCount();
     }
 
@@ -55,8 +57,8 @@ public class BacktrackReturnOnOneSolver implements Runnable {
      * @return true if the bottom was reached, else false.
      */
     private boolean dive() {
-        throw new UnsupportedOperationException("Disabled");
-/*        if (board.getFreeCount() == 0) { // Bottom reached
+        // TODO: Avoid this ugly hack where the Walker is not used
+        if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
         if (minFree > board.getFreeCount()) {
@@ -69,7 +71,7 @@ public class BacktrackReturnOnOneSolver implements Runnable {
         }
 
         List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates =
-                board.getFreePiecesStrategyA().collect(Collectors.toList());
+                walker.getFreePieces().collect(Collectors.toList());
         for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
             EBoard.Field field = free.left;
 
@@ -93,6 +95,6 @@ public class BacktrackReturnOnOneSolver implements Runnable {
 //                log.info("Tried all pieces " + free.right + " at " + free.left + " without finding a valid one");
 //            }
         }
-        return false;   */
+        return false;
     }
 }

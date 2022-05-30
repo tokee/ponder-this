@@ -39,7 +39,7 @@ public class WalkerA implements Walker {
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        return getFreePiecesStrategyA()
+        return getFreePieces()
                 .findFirst()
                 .orElse(null);
     }
@@ -47,7 +47,7 @@ public class WalkerA implements Walker {
     /**
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFreePiecesStrategyA() {
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFreePieces() {
         return board.streamAllFields()
                 .filter(EBoard.Field::isFree)
                 .map(field -> new EBoard.Pair<>(field, field.getBestPieces()))

@@ -27,6 +27,8 @@ import java.awt.image.BufferedImage;
 public class BaseGraphics {
     private static final Logger log = LoggerFactory.getLogger(BaseGraphics.class);
 
+    private static JFrame lastFrame = null;
+
     public static BufferedImage rotate270(BufferedImage src) {
         int w = src.getWidth();
         int h = src.getHeight();
@@ -59,9 +61,13 @@ public class BaseGraphics {
 
         jLabel.setIcon(imageIcon);
         jFrame.add(jLabel);
+        if (lastFrame != null) {
+            jFrame.setLocation(lastFrame.getLocation().x + lastFrame.getWidth() + 100, lastFrame.getLocation().y);
+        }
         jFrame.setVisible(true);
 
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        lastFrame = jFrame;
         return jLabel;
     }
 }

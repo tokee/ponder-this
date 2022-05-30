@@ -51,7 +51,7 @@ public class SolverTest extends TestCase {
 
     private void testSolver(BiFunction<EBoard, Walker, Runnable> solverFactory) throws InterruptedException {
         EBoard board = getBoard();
-        Walker walker = new WalkerD(board);
+        Walker walker = new WalkerB(board);
 
         Runnable solver = solverFactory.apply(board, walker);
         long runTime = -System.currentTimeMillis();
