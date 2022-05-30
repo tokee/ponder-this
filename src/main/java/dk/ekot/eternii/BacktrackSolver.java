@@ -27,12 +27,14 @@ import java.util.stream.Collectors;
  * Backtracking when .
  *
  * Primarily used for testing.
+ *
+ * Note: Always used WalkerA.
  */
 public class BacktrackSolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BacktrackSolver.class);
 
     private final EBoard board;
-    private final Walker walker;
+    private final WalkerA walker;
     private int minFree;
     private final Set<String> encountered = new HashSet<>();
     private long attempts = 0;
@@ -41,7 +43,7 @@ public class BacktrackSolver implements Runnable {
 
     public BacktrackSolver(EBoard board, Walker walker) {
         this.board = board;
-        this.walker = walker;
+        this.walker = new WalkerA(board);
         minFree = board.getFreeCount();
     }
 
@@ -71,9 +73,8 @@ public class BacktrackSolver implements Runnable {
             System.out.println("Duplicate: " + all);
         }
 
-        throw new UnsupportedOperationException("Disabled");/*
         List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates =
-                board.getFreePiecesStrategyA().collect(Collectors.toList());
+                walker.getFreePieces().collect(Collectors.toList());
         for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
             EBoard.Field field = free.left;
 
@@ -93,6 +94,6 @@ public class BacktrackSolver implements Runnable {
 //                log.info("Tried all pieces " + free.right + " at " + free.left + " without finding a valid one");
 //            }
         }
-        return false;                                         */
+        return false;
     }
 }

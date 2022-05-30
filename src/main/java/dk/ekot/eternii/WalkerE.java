@@ -22,24 +22,26 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Prioritises least valid pieces.
+ * Prioritises top-left.
  *
- * Observation: Three corners fairly quickly, then very slow progress.
+ * Observation: Expands in chunks, reaches 70 free in 10 minutes, 61 after an hour or so,
+ * stable for the next hour (40M attempts), then 60 free (60M attempts?).
+ * Speed: ~5000 @ office machine
  */
-public class WalkerA implements Walker {
-    private static final Logger log = LoggerFactory.getLogger(WalkerA.class);
+public class WalkerE implements Walker {
+    private static final Logger log = LoggerFactory.getLogger(WalkerE.class);
 
     private final EBoard board;
     private final Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> comparator;
 
-    public WalkerA(EBoard board) {
+    public WalkerE(EBoard board) {
         this.board = board;
-        comparator = getFieldComparatorA();
+        comparator = getFieldComparator();
     }
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        return getFreePieces()
+        return getFreePiecesStrategyA()
                 .findFirst()
                 .orElse(null);
     }
@@ -47,17 +49,22 @@ public class WalkerA implements Walker {
     /**
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFreePieces() {
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFreePiecesStrategyA() {
         return board.streamAllFields()
                 .filter(EBoard.Field::isFree)
                 .map(field -> new EBoard.Pair<>(field, field.getBestPieces()))
                 .sorted(comparator);
     }
 
-    private Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFieldComparatorA() {
-        return Comparator.<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>>comparingInt(pair -> pair.right.size()) // Least valid pieces
+    private Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFieldComparator() {
+        return Comparator.<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>>comparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()
+                ) // Board edges first
+                .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
-                .thenComparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX());
+                .thenComparingInt(pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
+                                        pair.left.getX() == board.getWidth() - 1 ||
+                                        pair.left.getY() == board.getHeight() - 1 ? 0 : 1);
     }
+
 
 }
