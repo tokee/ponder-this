@@ -1,0 +1,83 @@
+2022-05-29
+
+Basic idea implemented (non-optimized): Keep track of the free edges on board
+and of all free edges for pieces. If an edge (can be 1, 2, 3, 4 or 2-opposing edges)
+becomes negative, the puzzle is in an insolvable state and a backtrack must
+be performed.
+
+This works, but it is hard to judge how feasible it is to find a solution.
+It is slow going (190 free after an hour or so) with nearly just the edges
+permutating, but on the other hand it is better to skip a path early in the path.
+
+TODO/Ideas:
+
+1) Speed is ~1000 pieces/second.
+Optimizing to 100x that should be possible without too much trouble.
+
+Currently the bottleneck is finding the pieces that are valid for a given field.
+Outer edges are resolved for the field and pieces are requested from maps.
+Switching to a more efficient format, such as a bit-packed representation, should
+make it possible to hold the outer edges and a marker for which outer edges are
+defined.
+
+There are 23 edge colors plus "not set". This packs to 5 bits. With 4 edges this
+is 20 bits. Performing fast resolving by packing which edges are defined by a bit
+per edge, this adds 4 bits: <4><5><5><5><5> = 24 bits total.
+
+Keeping with the theme, there are 256 pieces + 1 "no piece" (9 bits) with 4
+rotations (2 bits). Replicating the outer edges structure without the 4
+define-bits (pieces always have 4 colors) adds another 20 bits, for a grand total
+of 24+20+9+2 = 55 bits.
+
+Adding or removing pieces to the field should also update the state long
+described above. This should be fast enough:
+1) Update full state for the origo field
+2) Update surrounding colors for the 8 fields around the origo field
+
+Getting valid pieces for a given field would be reduced to
+
+state = board[x][y]
+edges = (state >>> <Outer-Edges-Define-Bit-shift>) & OEDB_mask
+switch (edges) {
+  case 0b0000: return tracker.getFree()
+  case 0b1000: return tracker.getOne(getHash(edges, state))
+  case 0b0100: return tracker.getOne(getHash(edges, state))
+  ...
+  case 0b1100: return tracker.getTwo(getHash(edges, state))
+  ...
+  case 0b1010: return tracker.getOpposing(getHash(edges, state))
+  ...
+  case 0b1111: return tracker.getFour(getHash(edges, state))
+}
+int getHash(int edges, long state) {
+switch (edges) {
+  case 0b0000: return 0L // Never used
+  case 0b1000: return <shift-mask-outer-north-color>
+  case 0b0100: return <shift-mask-outer-east-color>
+  ...
+  case 0b1100: return <shift-mask-outer-north-and-east-color>
+  ...
+  case 0b1010: return <shift-mask-concatenate-outer-north-and-south-color>
+  ...
+  case 0b1111: return <hash-for-four>
+}
+add(int piece, int rotation, x, y) {
+  ...
+  // set inner state from piece, rotation
+  
+  // Update edge tracker
+  tracker.decOne(getHash(0b1000, state))
+  tracker.decOne(getHash(0b0100, state))
+  ...
+  tracker.decTwo(getHash(0b1100, state))
+  tracker.decTwo(getHash(0b0110, state))
+  ...
+  tracker.decThree(getHash(0b1110, state))
+  ...
+}
+
+
+2) There is not a lot of early elimination.
+When a piece is placed, and the free pieces has exacly 2 free edges of any
+given type and the board does not have this edge as a need, the 2 free pieces
+must be connected.  
