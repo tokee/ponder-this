@@ -42,28 +42,46 @@ public class EBits {
     private static final Logger log = LoggerFactory.getLogger(EBits.class);
 
     public static final int PIECE_SHIFT = 54;
-    public static final long PIECE_MASK = ~(-1L<<9);
+    public static final long PIECE_MASK = (~(-1L<<9)) << PIECE_SHIFT;
 
     public static final int ROTATION_SHIFT = 52;
-    public static final long ROTATION_MASK = ~(-1L<<2);
+    public static final long ROTATION_MASK = (~(-1L<<2)) << ROTATION_SHIFT;
 
-    public static final int PIECE_EDGES_SHIFT = 32;
-
-    public static final int OUTER_EDGES_SHIFT = 20;
-    public static final long OUTER_EDGES_MASK = ~(-1L<<4);
-    
-    public static final int EDGE_SHIFT = 5; // Basic edge shift
+    // Abstract edges
+    public static final int EDGE_SHIFT = 5;
     public static final long EDGE_MASK = ~(-1L<<5);
     public static final long EDGE2_MASK = ~(-1L<<10);
     public static final long EDGE3_MASK = ~(-1L<<15);
     public static final long EDGE4_MASK = ~(-1L<<20);
 
+    // Outer edges
+    public static final int EDGES_DEFINED_SHIFT = 20;
+    public static final long EDGES_DEFINED_MASK = (~(-1L << 4)) << EDGES_DEFINED_SHIFT;
+
     public static final int NORTH_EDGE_SHIFT = EDGE_SHIFT*3;
+    public static final long NORTH_EDGE_MASK = EDGE_MASK << NORTH_EDGE_SHIFT;
     public static final int EAST_EDGE_SHIFT = EDGE_SHIFT*2;
+    public static final long EAST_EDGE_MASK = EDGE_MASK  << EAST_EDGE_SHIFT;
     public static final int SOUTH_EDGE_SHIFT = EDGE_SHIFT;
+    public static final long SOUTH_EDGE_MASK = EDGE_MASK << SOUTH_EDGE_SHIFT;
     public static final int WEST_EDGE_SHIFT = 0;
+    public static final long WEST_EDGE_MASK = EDGE_MASK;
+
+    // Piece edges
+    public static final int PIECE_EDGES_SHIFT = 32;
+    public static final long PIECE_EDGE4_MASK = EDGE4_MASK << PIECE_EDGES_SHIFT;
+
+    public static final int PIECE_NORTH_EDGE_SHIFT = NORTH_EDGE_SHIFT + PIECE_EDGES_SHIFT;
+    public static final long PIECE_NORTH_EDGE_MASK = NORTH_EDGE_MASK << PIECE_EDGES_SHIFT;
+    public static final int PIECE_EAST_EDGE_SHIFT = EAST_EDGE_SHIFT + PIECE_EDGES_SHIFT;
+    public static final long PIECE_EAST_EDGE_MASK = EAST_EDGE_MASK << PIECE_EDGES_SHIFT;
+    public static final int PIECE_SOUTH_EDGE_SHIFT = SOUTH_EDGE_SHIFT + PIECE_EDGES_SHIFT;
+    public static final long PIECE_SOUTH_EDGE_MASK = SOUTH_EDGE_MASK << PIECE_EDGES_SHIFT;
+    public static final int PIECE_WEST_EDGE_SHIFT = WEST_EDGE_SHIFT + PIECE_EDGES_SHIFT;
+    public static final long PIECE_WEST_EDGE_MASK = WEST_EDGE_MASK << PIECE_EDGES_SHIFT;
 
     public static final long BLANK_STATE;
+
     static {
         long state = setPiece(0L,-1);
         state = setRotation(state, 0);
@@ -71,6 +89,12 @@ public class EBits {
         state = setPieceEastEdge(state, EPieces.NULL);
         state = setPieceSouthEdge(state, EPieces.NULL);
         state = setPieceWestEdge(state, EPieces.NULL);
+
+        state = setDefinedOuterEdges(state, 0b0000);
+        state = setNorthEdge(state, EPieces.NULL);
+        state = setEastEdge(state, EPieces.NULL);
+        state = setSouthEdge(state, EPieces.NULL);
+        state = setWestEdge(state, EPieces.NULL);
         BLANK_STATE = state;
     }
 
@@ -112,77 +136,98 @@ public class EBits {
     
     
     /* Basic setters & getters below */
+
+    public static long setPieceFull(long state, long piece, long rotation, long edges) {
+        state = setPiece(state, piece);
+        state = setRotation(state, rotation);
+        state = setPieceAllEdges(state, edges);
+        return state;
+    }
+
+    // Precedence chart:
+    // https://docs.oracle.com/javase/tutorial/java/nutsandbolts/operators.html
     
+    /**
+     * Sets piece ID only.
+     */
     public static long setPiece(long state, long piece) {
-        return ((piece & PIECE_MASK) << PIECE_SHIFT) | state;
+        return ((piece << PIECE_SHIFT) & PIECE_MASK) | (state | ~PIECE_MASK);
     }
     public static int getPiece(long state) {
-        long piece = (state >> PIECE_SHIFT) & PIECE_MASK;
-        return piece == PIECE_MASK ? -1 : (int)piece;
+        long piece = (state & PIECE_MASK) >> PIECE_SHIFT;
+        return (state & PIECE_MASK) == PIECE_MASK ? -1 : (int)piece;
     }
     
     public static long setRotation(long state, long rotation) {
-        return ((rotation & ROTATION_MASK) << ROTATION_SHIFT) | state;
+        return ((rotation << ROTATION_SHIFT) & ROTATION_MASK) | (state & ~ROTATION_MASK);
     }
     public static int getRotation(long state) {
-        return (int) ((state >> ROTATION_SHIFT) & ROTATION_MASK);
+        return (int) ((state & ROTATION_MASK) >> ROTATION_SHIFT);
     }
 
     public static long setPieceNorthEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << (PIECE_EDGES_SHIFT + NORTH_EDGE_SHIFT)) | state;
+        return ((edge << PIECE_NORTH_EDGE_SHIFT) & PIECE_NORTH_EDGE_MASK) | (state & ~PIECE_NORTH_EDGE_MASK);
     }
     public static int getPieceNorthEdge(long state) {
-        return (int) ((state >> (PIECE_EDGES_SHIFT + NORTH_EDGE_SHIFT)) & EDGE_MASK);
+        return (int) ((state & PIECE_NORTH_EDGE_MASK) >> PIECE_NORTH_EDGE_SHIFT);
     }
     public static long setPieceEastEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << (PIECE_EDGES_SHIFT + EAST_EDGE_SHIFT)) | state;
+        return ((edge << PIECE_EAST_EDGE_SHIFT) & PIECE_EAST_EDGE_MASK) | (state & ~PIECE_EAST_EDGE_MASK);
     }
     public static int getPieceEastEdge(long state) {
-        return (int) ((state >> (PIECE_EDGES_SHIFT + EAST_EDGE_SHIFT)) & EDGE_MASK);
+        return (int) ((state & PIECE_EAST_EDGE_MASK) >> PIECE_EAST_EDGE_SHIFT);
     }
     public static long setPieceSouthEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << (PIECE_EDGES_SHIFT + SOUTH_EDGE_SHIFT)) | state;
+        return ((edge << PIECE_SOUTH_EDGE_SHIFT) & PIECE_SOUTH_EDGE_MASK) | (state & ~PIECE_SOUTH_EDGE_MASK);
     }
     public static int getPieceSouthEdge(long state) {
-        return (int) ((state >> (PIECE_EDGES_SHIFT + SOUTH_EDGE_SHIFT)) & EDGE_MASK);
+        return (int) ((state & PIECE_SOUTH_EDGE_MASK) >> PIECE_SOUTH_EDGE_SHIFT);
     }
     public static long setPieceWestEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << (PIECE_EDGES_SHIFT + WEST_EDGE_SHIFT)) | state;
+        return ((edge << PIECE_WEST_EDGE_SHIFT) & PIECE_WEST_EDGE_MASK) | (state & ~PIECE_WEST_EDGE_MASK);
     }
     public static int getPieceWestEdge(long state) {
-        return (int) ((state >> (PIECE_EDGES_SHIFT + WEST_EDGE_SHIFT)) & EDGE_MASK);
+        return (int) ((state & PIECE_WEST_EDGE_MASK) >> PIECE_WEST_EDGE_SHIFT);
     }
-    
-    public static long setOuterEdges(long state, long edges) {
-        return ((edges & OUTER_EDGES_MASK) << OUTER_EDGES_SHIFT) | state;
+
+    /**
+     * @param edges all 4 edges (some can be -1).
+     */
+    public static long setPieceAllEdges(long state, long edges) {
+        return ((edges << PIECE_EDGES_SHIFT) & PIECE_EDGE4_MASK) | (state & ~PIECE_EDGE4_MASK);
+    }
+    public static 
+
+    public static long setDefinedOuterEdges(long state, long edges) {
+        return ((edges << EDGES_DEFINED_SHIFT) & EDGES_DEFINED_MASK) | (state & EDGES_DEFINED_MASK);
     }
     public static int getExistingOuterEdges(long state) {
-        return (int) ((state >> OUTER_EDGES_SHIFT) & OUTER_EDGES_MASK);
+        return (int) ((state & EDGES_DEFINED_MASK) >> EDGES_DEFINED_SHIFT);
     }
     
     public static long setNorthEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << NORTH_EDGE_SHIFT) | state;
+        return ((edge << NORTH_EDGE_SHIFT) & NORTH_EDGE_MASK) | (state & ~NORTH_EDGE_MASK);
     }
     public static int getNorthEdge(long state) {
-        return (int) ((state >> NORTH_EDGE_SHIFT) & EDGE_MASK);
+        return (int) ((state & NORTH_EDGE_MASK) >> NORTH_EDGE_SHIFT);
     }
     public static long setEastEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << EAST_EDGE_SHIFT) | state;
+        return ((edge << EAST_EDGE_SHIFT) & EAST_EDGE_MASK) | (state & ~EAST_EDGE_MASK);
     }
     public static int getEastEdge(long state) {
-        return (int) ((state >> EAST_EDGE_SHIFT) & EDGE_MASK);
+        return (int) ((state & EAST_EDGE_MASK) >> EAST_EDGE_SHIFT);
     }
     public static long setSouthEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << SOUTH_EDGE_SHIFT) | state;
+        return ((edge << SOUTH_EDGE_SHIFT) & SOUTH_EDGE_MASK) | (state & ~SOUTH_EDGE_MASK);
     }
     public static int getSouthEdge(long state) {
-        return (int) ((state >> SOUTH_EDGE_SHIFT) & EDGE_MASK);
+        return (int) ((state & SOUTH_EDGE_MASK) >> SOUTH_EDGE_SHIFT);
     }
     public static long setWestEdge(long state, long edge) {
-        return ((edge & EDGE_MASK) << WEST_EDGE_SHIFT) | state;
+        return ((edge << WEST_EDGE_SHIFT) & WEST_EDGE_MASK) | (state & ~WEST_EDGE_MASK);
     }
     public static int getWestEdge(long state) {
-        return (int) ((state >> WEST_EDGE_SHIFT) & EDGE_MASK);
+        return (int) ((state & WEST_EDGE_MASK) >> WEST_EDGE_SHIFT);
     }
 
     /**
@@ -193,20 +238,21 @@ public class EBits {
      */
     public static long shiftEdgesRight(long edges) {
         long onlyEdges = edges & EDGE4_MASK;
+        long nonEdges = edges & ~EDGE4_MASK;
+
         long shifted = onlyEdges >> EDGE_SHIFT;
         long rightmost = (onlyEdges & EDGE_MASK) << (3*EDGE_SHIFT);
         long finalEdges = shifted | rightmost;
-        return ((edges >> (4*EDGE_SHIFT)) << (4*EDGE_SHIFT)) | finalEdges;
+        return nonEdges | finalEdges;
     }
 
     /**
      * @return bitmap of set edges: North, East, South, Vest
      */
     public static int getDefinedEdges(long edges) {
-        // TODO: Optimize this to use masks only
-        return (getNorthEdge(edges) != 0 ? 0b1000 : 0) |
-               (getEastEdge(edges)  != 0 ? 0b0100 : 0) |
-               (getSouthEdge(edges) != 0 ? 0b0010 : 0) |
-               (getWestEdge(edges)  != 0 ? 0b0001 : 0);
+        return ((edges ^ NORTH_EDGE_MASK) != 0 ? 0b1000 : 0) |
+               ((edges ^ EAST_EDGE_MASK)  != 0 ? 0b0100 : 0) |
+               ((edges ^ SOUTH_EDGE_MASK) != 0 ? 0b0010 : 0) |
+               ((edges ^ WEST_EDGE_MASK)  != 0 ? 0b0001 : 0);
     }
 }

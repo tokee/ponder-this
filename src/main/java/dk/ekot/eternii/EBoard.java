@@ -115,7 +115,7 @@ public class EBoard {
         }
         // Remove piece from board
         updateTracker9(x, y, +1);
-        board[x][y] = -1;
+        board[x][y] = EBits.BLANK_STATE;
         updateTracker9(x, y, -1);
 
         // Register piece as free
@@ -129,7 +129,7 @@ public class EBoard {
      * Use only for visualisation!
      */
     public void placeUntrackedPiece(int x, int y, int piece, int rotation) {
-        board[x][y] = (rotation<<16)|piece;
+        board[x][y] = EBits.setPieceFull (board[x][y], piece, rotation, pieces.getEdges(piece, rotation));
         notifyObservers(x, y, "");
     }
 
@@ -138,13 +138,15 @@ public class EBoard {
      * @return if the positioning resulted in a negative tracker and was rolled back.
      */
     public boolean placePiece(int x, int y, int piece, int rotation, String label) {
-        if (board[x][y] != -1) {
+
+        if (EBits.getPiece(board[x][y]) != -1) {
             throw new IllegalStateException(
                     "placePiece(" + x + ", " + y + ", ...) called but the field already had a piece");
         }
         // Remove surrounding registers
         updateTracker9(x, y, +1);
-        board[x][y] = (rotation<<16)|piece;
+        board[x][y] = EBits.setPieceFull(board[x][y], piece, rotation, pieces.getEdges(piece, rotation));
+        updateOuterEdges(x, y);
         if (!updateTracker9(x, y, -1)) {
             // At least one tracker is negative so we rollback
             updateTracker9(x, y, +1);
@@ -153,7 +155,7 @@ public class EBoard {
             return false;
         }
         if (!updatePieceTracking(piece, -1)) {
-            updatePieceTracking(piece, 1);
+            updatePieceTracking(piece, +1);
             // At least one tracker is negative so we rollback
             updateTracker9(x, y, +1);
             board[x][y] = -1;
@@ -165,6 +167,15 @@ public class EBoard {
         }
         notifyObservers(x, y, label);
         return true;
+    }
+
+    private void updateOuterEdges(int x, int y) {
+        int topEdge = lenientGetBottomEdge(x, y-1);
+        int rightEdge = lenientGetLeftEdge(x+1, y);
+        int bottomEdge = lenientGetTopEdge(x, y+1);
+        int leftEdge = lenientGetRightEdge(x-1, y);
+
+        board[x][y] = EBits.setAllEdges(board[x][y], topEdge, rightEdge, bottomEdge, leftEdge);
     }
 
     /**

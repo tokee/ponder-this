@@ -98,10 +98,10 @@ public class EPieces {
     public long getEdges(int piece, int rotation) {
         // TODO: Consider precalculating all of this and simply return it
         long edges = 0;
-        edges = EBits.setNorthEdge(edges, getTop(piece, rotation));
-        edges = EBits.setEastEdge(edges, getRight(piece, rotation));
-        edges = EBits.setSouthEdge(edges, getBottom(piece, rotation));
-        return EBits.setWestEdge(edges, getLeft(piece, rotation));
+        edges = EBits.setPieceNorthEdge(edges, getTop(piece, rotation));
+        edges = EBits.setPieceEastEdge(edges, getRight(piece, rotation));
+        edges = EBits.setPieceSouthEdge(edges, getBottom(piece, rotation));
+        return EBits.setPieceWestEdge(edges, getLeft(piece, rotation));
     }
 
     @FunctionalInterface
