@@ -290,32 +290,32 @@ public class EBoard {
      */
     private int lenientGetTopEdge(int x, int y) {
         return y >= height ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : pieces.getTop(board[x][y]&0xFFFF, board[x][y]>>16);
+                hasPiece(x, y) ? -1 : EBits.getPieceNorthEdge(board[x][y]);
     }
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
      */
     private int lenientGetRightEdge(int x, int y) {
         return x < 0 ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : pieces.getRight(board[x][y]&0xFFFF, board[x][y]>>16);
+                hasPiece(x, y) ? -1 : EBits.getPieceEastEdge(board[x][y]);
     }
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
      */
     private int lenientGetBottomEdge(int x, int y) {
         return y < 0 ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : pieces.getBottom(board[x][y]&0xFFFF, board[x][y]>>16);
+                hasPiece(x, y) ? -1 : EBits.getPieceSouthEdge(board[x][y]);
     }
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
      */
     private int lenientGetLeftEdge(int x, int y) {
         return x >= width ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : pieces.getLeft(board[x][y]&0xFFFF, board[x][y]>>16);
+                hasPiece(x, y) ? -1 : EBits.getPieceWestEdge(board[x][y]);
     }
 
     private boolean hasPiece(int x, int y) {
-        return x < 0 || x >= width || y < 0 || y >= height || board[x][y] == -1;
+        return x < 0 || x >= width || y < 0 || y >= height || EBits.getPiece(board[x][y]) == -1;
     }
 
     private void visit9(int origoX, int origoY, BiConsumer<Integer, Integer> visitor) {
@@ -334,14 +334,12 @@ public class EBoard {
 
     // -1 = no piece
     public int getPiece(int x, int y) {
-        final int compound = board[x][y];
-        return compound == -1 ? -1 : compound & 0xFFFF;
+        return EBits.getPiece(board[x][y]);
     }
 
     // -1 = no piece
     public int getRotation(int x, int y) {
-        final int compound = board[x][y];
-        return compound == -1 ? -1 : compound>>16;
+        return EBits.getRotation(board[x][y]);
     }
 
     // Format from https://e2.bucas.name/
@@ -372,10 +370,9 @@ public class EBoard {
                 .append("&board_h=").append(height).append("&board_edges=");
         for (int y = 0; y < width; y++) {
             for (int x = 0; x < width; x++) {
-                final int compound = board[x][y];
-                sb.append(compound == -1 ?
+                sb.append(EBits.getPiece(board[x][y]) == -1 ?
                                   "aaaa" : // Empty
-                                  pieces.toDisplayString(compound & 0xFFFF, compound>>16));
+                                  pieces.toDisplayString(EBits.getPiece(board[x][y]), EBits.getPiece(board[x][y])));
             }
         }
         return sb.toString();
@@ -385,11 +382,12 @@ public class EBoard {
      * @return true if the piece fits on the board (edges matches).
      */
     private boolean fits(int x, int y, int piece, int rotation) {
+        long state = board[x][y];
         int outerEdge;
-        return ((outerEdge = lenientGetBottomEdge(x, y-1)) == -1 || outerEdge == pieces.getTop(piece, rotation)) &&
-               ((outerEdge = lenientGetLeftEdge(x+1, y)) == -1 || outerEdge == pieces.getRight(piece, rotation)) &&
-               ((outerEdge = lenientGetTopEdge(x, y+1)) == -1 || outerEdge == pieces.getBottom(piece, rotation)) &&
-               ((outerEdge = lenientGetRightEdge(x-1, y)) == -1 || outerEdge == pieces.getLeft(piece, rotation));
+        return ((outerEdge = EBits.getNorthEdge(state)) == -1 || outerEdge == EBits.getPieceNorthEdge(state)) &&
+               ((outerEdge = EBits.getEastEdge(state)) == -1 || outerEdge == EBits.getPieceEastEdge(state)) &&
+               ((outerEdge = EBits.getSouthEdge(state)) == -1 || outerEdge == EBits.getPieceSouthEdge(state)) &&
+               ((outerEdge = EBits.getWestEdge(state)) == -1 || outerEdge == EBits.getPieceWestEdge(state));
     }
 
     public EdgeTracker getEdgeTracker() {
@@ -433,11 +431,11 @@ public class EBoard {
         }
 
         public int getPiece() {
-            return board[x][y] == -1 ? -1 : board[x][y] & 0xFFFF;
+            return EBits.getPiece(board[x][y]);
         }
 
         public int getRotation() {
-            return board[x][y] == -1 ? -1 : board[x][y] >> 16;
+            return EBits.getRotation(board[x][y]);
         }
 
         public boolean hasPiece() {
@@ -494,12 +492,7 @@ public class EBoard {
             if (freeBag.isEmpty()) {
                 return Collections.emptyList();
             }
-            int top = lenientGetBottomEdge(x, y-1);
-            int right = lenientGetLeftEdge(x+1, y);
-            int bottom = lenientGetTopEdge(x, y+1);
-            int left = lenientGetRightEdge(x-1, y);
-
-            return freeBag.getBestMatching(top, right, bottom, left).stream()
+            return freeBag.getBestMatching(board[x][y]).stream()
                     .map(pid -> new Piece(pid, getValidRotation(pid)))
                     .peek(p -> {
                         if (p.rotation == -1) {

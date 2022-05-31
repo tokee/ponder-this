@@ -42,21 +42,21 @@ public class EBits {
     private static final Logger log = LoggerFactory.getLogger(EBits.class);
 
     public static final int PIECE_SHIFT = 54;
-    public static final long PIECE_MASK = ~(1L<<9);
+    public static final long PIECE_MASK = ~(-1L<<9);
 
     public static final int ROTATION_SHIFT = 52;
-    public static final long ROTATION_MASK = ~(1L<<2);
+    public static final long ROTATION_MASK = ~(-1L<<2);
 
     public static final int PIECE_EDGES_SHIFT = 32;
 
     public static final int OUTER_EDGES_SHIFT = 20;
-    public static final long OUTER_EDGES_MASK = ~(1L<<4);
+    public static final long OUTER_EDGES_MASK = ~(-1L<<4);
     
     public static final int EDGE_SHIFT = 5; // Basic edge shift
-    public static final long EDGE_MASK = ~(1L<<5);
-    public static final long EDGE2_MASK = ~(1L<<10);
-    public static final long EDGE3_MASK = ~(1L<<15);
-    public static final long EDGE4_MASK = ~(1L<<20);
+    public static final long EDGE_MASK = ~(-1L<<5);
+    public static final long EDGE2_MASK = ~(-1L<<10);
+    public static final long EDGE3_MASK = ~(-1L<<15);
+    public static final long EDGE4_MASK = ~(-1L<<20);
 
     public static final int NORTH_EDGE_SHIFT = EDGE_SHIFT*3;
     public static final int EAST_EDGE_SHIFT = EDGE_SHIFT*2;
@@ -66,6 +66,7 @@ public class EBits {
     public static final long BLANK_STATE;
     static {
         long state = setPiece(0L,-1);
+        state = setRotation(state, 0);
         state = setPieceNorthEdge(state, EPieces.NULL);
         state = setPieceEastEdge(state, EPieces.NULL);
         state = setPieceSouthEdge(state, EPieces.NULL);
