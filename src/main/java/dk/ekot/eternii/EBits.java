@@ -17,6 +17,9 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static dk.ekot.eternii.EPieces.NULL_E;
+import static dk.ekot.eternii.EPieces.NULL_P;
+
 /**
  * Handles read/write for board field states as well as hashing of edge colors.
  *
@@ -85,18 +88,18 @@ public class EBits {
 
 
     static {
-        long state = setPiece(0L,-1);
+        long state = setPiece(0L, NULL_P);
         state = setRotation(state, 0);
-        state = setPieceNorthEdge(state, EPieces.NULL);
-        state = setPieceEastEdge(state, EPieces.NULL);
-        state = setPieceSouthEdge(state, EPieces.NULL);
-        state = setPieceWestEdge(state, EPieces.NULL);
+        state = setPieceNorthEdge(state, NULL_E);
+        state = setPieceEastEdge(state, NULL_E);
+        state = setPieceSouthEdge(state, NULL_E);
+        state = setPieceWestEdge(state, NULL_E);
 
-        state = setDefinedOuterEdges(state, 0b0000);
-        state = setNorthEdge(state, EPieces.NULL);
-        state = setEastEdge(state, EPieces.NULL);
-        state = setSouthEdge(state, EPieces.NULL);
-        state = setWestEdge(state, EPieces.NULL);
+        state = setDefinedEdges(state, 0b0000);
+        state = setNorthEdge(state, NULL_E);
+        state = setEastEdge(state, NULL_E);
+        state = setSouthEdge(state, NULL_E);
+        state = setWestEdge(state, NULL_E);
         BLANK_STATE = state;
     }
 
@@ -104,7 +107,7 @@ public class EBits {
      * @return hash based on which outer edges are set.
      */
     public static int getOuterHash(long state) {
-        return getHash(getExistingOuterEdges(state), state);
+        return getHash(getDefinedEdges(state), state);
     }
     public static int getHash(int setEdges, long edges) {
         switch (setEdges) {
@@ -135,8 +138,7 @@ public class EBits {
             default: throw new IllegalArgumentException("The edges should never be above 0b1111 (15) but was " + edges);
         }
     }
-    
-    
+
     /* Basic setters & getters below */
 
     public static long setPieceFull(long state, long piece, long rotation, long edges) {
@@ -153,14 +155,13 @@ public class EBits {
      * Sets piece ID only.
      */
     public static long setPiece(long state, long piece) {
-        return ((piece << PIECE_SHIFT) & PIECE_MASK) | (state | ~PIECE_MASK);
+        return ((piece << PIECE_SHIFT) & PIECE_MASK) | (state & ~PIECE_MASK);
     }
     public static int getPiece(long state) {
-        long piece = (state & PIECE_MASK) >> PIECE_SHIFT;
-        return (state & PIECE_MASK) == PIECE_MASK ? -1 : (int)piece;
+        return (int) ((state & PIECE_MASK) >> PIECE_SHIFT);
     }
     public static boolean hasPiece(long state) {
-        return (state & PIECE_MASK) != PIECE_MASK;
+        return getPiece(state) != NULL_P;
     }
 
     public static long setRotation(long state, long rotation) {
@@ -201,33 +202,42 @@ public class EBits {
     public static long setPieceAllEdges(long state, long edges) {
         return ((edges << PIECE_EDGES_SHIFT) & PIECE_EDGE4_MASK) | (state & ~PIECE_EDGE4_MASK);
     }
+    public static long getPieceAllEdges(long state) {
+        return (state & PIECE_EDGE4_MASK) >> PIECE_EDGES_SHIFT;
+    }
     /**
-     * Alsp updates definedEdges bits.
+     * Also updates definedEdges bits.
      * @param edges 4 outer edges (might be -1)
      */
     public static long setAllEdges(long state, long edges) {
         state = (edges & EDGE4_MASK) | (state & ~EDGE4_MASK);
-        return setDefinedOuterEdges(state, getDefinedEdges(edges));
+        return setDefinedEdges(state, deriveDefinedEdges(edges));
     }
-    
+    public static long getAllEdges(long state) {
+        return state & EDGE4_MASK;
+    }
+
     @Deprecated
     public static long setAllEdges(long state, int north, int east, int south, int west) {
         state = setNorthEdge(state, north);
         state = setEastEdge(state, east);
         state = setSouthEdge(state, south);
         state = setWestEdge(state, west);
-        long defined = (north == -1 ? 0 : 0b1000) +
-                       (east ==  -1 ? 0 : 0b0100) +
-                       (south == -1 ? 0 : 0b0010) +
-                       (west ==  -1 ? 0 : 0b0001);
+        long defined = (north == NULL_E ? 0 : 0b1000) +
+                       (east ==  NULL_E ? 0 : 0b0100) +
+                       (south == NULL_E ? 0 : 0b0010) +
+                       (west ==  NULL_E ? 0 : 0b0001);
 
-        return setDefinedOuterEdges(state, defined);
+        return setDefinedEdges(state, defined);
     }
 
-    public static long setDefinedOuterEdges(long state, long edges) {
-        return ((edges << EDGES_DEFINED_SHIFT) & EDGES_DEFINED_MASK) | (state & EDGES_DEFINED_MASK);
+    /**
+     * Outer edges that are set.
+     */
+    public static long setDefinedEdges(long state, long definedEdges) {
+        return ((definedEdges << EDGES_DEFINED_SHIFT) & EDGES_DEFINED_MASK) | (state & ~EDGES_DEFINED_MASK);
     }
-    public static int getExistingOuterEdges(long state) {
+    public static int getDefinedEdges(long state) {
         return (int) ((state & EDGES_DEFINED_MASK) >> EDGES_DEFINED_SHIFT);
     }
     
@@ -275,10 +285,23 @@ public class EBits {
     /**
      * @return bitmap of set edges: North, East, South, Vest
      */
-    public static int getDefinedEdges(long edges) {
-        return ((edges & NORTH_EDGE_MASK) != NORTH_EDGE_MASK ? 0b1000 : 0) |
-               ((edges & EAST_EDGE_MASK)  != EAST_EDGE_MASK  ? 0b0100 : 0) |
-               ((edges & SOUTH_EDGE_MASK) != SOUTH_EDGE_MASK ? 0b0010 : 0) |
-               ((edges & WEST_EDGE_MASK)  != WEST_EDGE_MASK  ? 0b0001 : 0);
+    public static int deriveDefinedEdges(long edges) {
+        return (getNorthEdge(edges) != NULL_E  ? 0b1000 : 0) |
+               (getEastEdge(edges)  != NULL_E  ? 0b0100 : 0) |
+               (getSouthEdge(edges) != NULL_E  ? 0b0010 : 0) |
+               (getWestEdge(edges)  != NULL_E  ? 0b0001 : 0);
+    }
+
+    public static String toString(long state) {
+        String bin = Long.toBinaryString(state);
+        while (bin.length() < 64) {
+            bin = "0" + bin;
+        }
+        String form = "";
+        for (int len: new int[]{1, 9, 2, 5, 5, 5, 5, 8, 4, 5, 5, 5, 5}) {
+            form += bin.substring(0, len) + " ";
+            bin = bin.substring(len);
+        }
+        return form + bin;
     }
 }

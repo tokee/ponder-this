@@ -103,7 +103,7 @@ public class PieceTracker {
      */
     public Set<Integer> getBestMatching(long state) {
         final int hash = EBits.getOuterHash(state);
-        int edges = EBits.getExistingOuterEdges(state);
+        int edges = EBits.getDefinedEdges(state);
 
         switch (edges) {
             case 0b0000: return all;

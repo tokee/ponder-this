@@ -41,7 +41,8 @@ public class EPieces {
     public static final int INNER = 0;
 
     public static final int EDGE_EDGE = 0; // The outermost edges (black/grey)
-    public static long NULL = -1; // No piece
+    public static final long NULL_E = 31; // No edge
+    public static final long NULL_P = 256; // No piece
 
     private final int total;
     private final int[] n;
