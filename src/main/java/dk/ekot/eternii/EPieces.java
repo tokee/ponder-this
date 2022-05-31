@@ -81,6 +81,7 @@ public class EPieces {
 
     /**
      * Delivers clue pieces from https://e2.bucas.name/#puzzle=Clues&board_w=16&board_h=16&board_edges=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaargouaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaartrjaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaavddoaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaajdsoaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafsknaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&board_pieces=000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000208000000000000000000000000000000255000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000139000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000181000000000000000000000000000000249000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&motifs_order=jef
+     * TODO: Check that they are removed from the bag when delivered
      */
     public void processEterniiClues(ClueCallback clueCallback) {
         clueCallback.clue(7, 8, getPieceFromString("ijjm"), getRotationFromString("ijjm")); // Center
@@ -102,6 +103,10 @@ public class EPieces {
         edges = EBits.setPieceEastEdge(edges, getRight(piece, rotation));
         edges = EBits.setPieceSouthEdge(edges, getBottom(piece, rotation));
         return EBits.setPieceWestEdge(edges, getLeft(piece, rotation));
+    }
+    public long getEdgesAsBase(int piece, int rotation) {
+        // TODO: Consider precalculating all of this and simply return it
+        return getEdges(piece, rotation) >> EBits.PIECE_EDGES_SHIFT;
     }
 
     @FunctionalInterface

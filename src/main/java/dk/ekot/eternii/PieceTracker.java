@@ -77,7 +77,7 @@ public class PieceTracker {
     }
 
     private void process(int piece, Consumer<Set<Integer>> adjuster) {
-        process(pieces.getEdges(piece, 0), adjuster);
+        process(pieces.getEdgesAsBase(piece, 0), adjuster);
     }
 
     /**
