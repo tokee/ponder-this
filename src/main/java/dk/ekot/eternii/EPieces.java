@@ -32,7 +32,6 @@ import java.util.stream.IntStream;
 /**
  * Holds the pieces/tiles.
  */
-// compound = (rotation << 16 | piece)
 public class EPieces {
     private static final Logger log = LoggerFactory.getLogger(EPieces.class);
 

@@ -120,7 +120,7 @@ public class BoardVisualiser implements EBoard.Observer {
     private void updateTile(int x, int y) {
         BufferedImage tile = pieces.getBlank();
         int piece = board.getPiece(x, y);
-        if (piece != -1) {
+        if (piece != EPieces.NULL_P) {
             int rotation = board.getRotation(x, y);
             tile = pieces.getPieceImage(piece, rotation);
         }

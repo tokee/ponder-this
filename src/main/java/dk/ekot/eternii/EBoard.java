@@ -223,7 +223,7 @@ public class EBoard {
      * @return false if the updating resulted in at least 1 tracker reaching a negative state.
      */
     private boolean updateTracker(int x, int y, int delta) {
-        if (board[x][y] != -1) { // No action if occupied
+        if (!EBits.hasPiece(board[x][y])) { // No action if occupied
             return true;
         }
         int topEdge = lenientGetBottomEdge(x, y-1);
@@ -456,11 +456,11 @@ public class EBoard {
         }
 
         public boolean hasPiece() {
-            return board[x][y] != -1;
+            return EBoard.this.hasPiece(x, y);
         }
         
         public boolean isFree() {
-            return board[x][y] == -1;
+            return !EBoard.this.hasPiece(x, y);
         }
         
         public int getTopEdge() {
