@@ -114,7 +114,7 @@ public class EBits {
             // We hope that the compiler is clever enough to see that these are all the numbers from 0-15 (inclusive)
             // and optimizes to a jump-switch
 
-            case 0b0000: throw new IllegalArgumentException("The edges should never be zero when calculating hash");
+            case 0b0000: return 0;
 
             case 0b1000: return getNorthEdge(edges);
             case 0b0100: return getEastEdge(edges);

@@ -29,6 +29,8 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static dk.ekot.eternii.EPieces.NULL_E;
+
 /**
  * Eternity II board (flexible size)
  *
@@ -401,10 +403,10 @@ public class EBoard {
         long state = board[x][y];
         long innerEdges = pieces.getEdges(piece, rotation);
         int outerEdge;
-        return ((outerEdge = EBits.getNorthEdge(state)) == -1 || outerEdge == EBits.getPieceNorthEdge(innerEdges)) &&
-               ((outerEdge = EBits.getEastEdge(state)) == -1 || outerEdge == EBits.getPieceEastEdge(innerEdges)) &&
-               ((outerEdge = EBits.getSouthEdge(state)) == -1 || outerEdge == EBits.getPieceSouthEdge(innerEdges)) &&
-               ((outerEdge = EBits.getWestEdge(state)) == -1 || outerEdge == EBits.getPieceWestEdge(innerEdges));
+        return ((outerEdge = EBits.getNorthEdge(state)) == NULL_E || outerEdge == EBits.getPieceNorthEdge(innerEdges)) &&
+               ((outerEdge = EBits.getEastEdge(state)) ==  NULL_E || outerEdge == EBits.getPieceEastEdge(innerEdges)) &&
+               ((outerEdge = EBits.getSouthEdge(state)) == NULL_E || outerEdge == EBits.getPieceSouthEdge(innerEdges)) &&
+               ((outerEdge = EBits.getWestEdge(state)) ==  NULL_E || outerEdge == EBits.getPieceWestEdge(innerEdges));
     }
 
     public EdgeTracker getEdgeTracker() {
