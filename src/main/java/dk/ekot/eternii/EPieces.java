@@ -93,7 +93,7 @@ public class EPieces {
     }
 
     /**
-     * @return edges in the {@code 4*<5 bits>} format from {@link EBits}.
+     * @return edges in the {@code 4*<5 bits>} format (piece location) from {@link EBits}.
      */
     public long getEdges(int piece, int rotation) {
         // TODO: Consider precalculating all of this and simply return it

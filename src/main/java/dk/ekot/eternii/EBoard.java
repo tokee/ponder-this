@@ -139,7 +139,7 @@ public class EBoard {
      */
     public boolean placePiece(int x, int y, int piece, int rotation, String label) {
 
-        if (EBits.getPiece(board[x][y]) != -1) {
+        if (EBits.hasPiece(board[x][y])) {
             throw new IllegalStateException(
                     "placePiece(" + x + ", " + y + ", ...) called but the field already had a piece");
         }
@@ -150,7 +150,8 @@ public class EBoard {
         if (!updateTracker9(x, y, -1)) {
             // At least one tracker is negative so we rollback
             updateTracker9(x, y, +1);
-            board[x][y] = -1;
+            board[x][y] = EBits.BLANK_STATE;
+            updateOuterEdges(x, y);
             updateTracker9(x, y, -1);
             return false;
         }
@@ -158,7 +159,8 @@ public class EBoard {
             updatePieceTracking(piece, +1);
             // At least one tracker is negative so we rollback
             updateTracker9(x, y, +1);
-            board[x][y] = -1;
+            board[x][y] = EBits.BLANK_STATE;
+            updateOuterEdges(x, y);
             updateTracker9(x, y, -1);
             return false;
         }
@@ -326,7 +328,7 @@ public class EBoard {
     }
 
     private boolean hasPiece(int x, int y) {
-        return x < 0 || x >= width || y < 0 || y >= height || EBits.getPiece(board[x][y]) == -1;
+        return x < 0 || x >= width || y < 0 || y >= height || EBits.hasPiece(board[x][y]);
     }
 
     private void visit9(int origoX, int origoY, BiConsumer<Integer, Integer> visitor) {
@@ -381,9 +383,10 @@ public class EBoard {
                 .append("&board_h=").append(height).append("&board_edges=");
         for (int y = 0; y < width; y++) {
             for (int x = 0; x < width; x++) {
-                sb.append(EBits.getPiece(board[x][y]) == -1 ?
-                                  "aaaa" : // Empty
-                                  pieces.toDisplayString(EBits.getPiece(board[x][y]), EBits.getPiece(board[x][y])));
+                // Empty
+                sb.append(EBits.hasPiece(board[x][y]) ?
+                                  pieces.toDisplayString(EBits.getPiece(board[x][y]), EBits.getRotation(board[x][y])) :
+                                  "aaaa");
             }
         }
         return sb.toString();
@@ -393,12 +396,15 @@ public class EBoard {
      * @return true if the piece fits on the board (edges matches).
      */
     private boolean fits(int x, int y, int piece, int rotation) {
+        // TODO: Optimize this by maskind and making direct comparison of the bits for inner & outer
+        // if (((innerEdges >> 32) & getOnlyDefinedMask(state)) == outerEdges)
         long state = board[x][y];
+        long innerEdges = pieces.getEdges(piece, rotation);
         int outerEdge;
-        return ((outerEdge = EBits.getNorthEdge(state)) == -1 || outerEdge == EBits.getPieceNorthEdge(state)) &&
-               ((outerEdge = EBits.getEastEdge(state)) == -1 || outerEdge == EBits.getPieceEastEdge(state)) &&
-               ((outerEdge = EBits.getSouthEdge(state)) == -1 || outerEdge == EBits.getPieceSouthEdge(state)) &&
-               ((outerEdge = EBits.getWestEdge(state)) == -1 || outerEdge == EBits.getPieceWestEdge(state));
+        return ((outerEdge = EBits.getNorthEdge(state)) == -1 || outerEdge == EBits.getPieceNorthEdge(innerEdges)) &&
+               ((outerEdge = EBits.getEastEdge(state)) == -1 || outerEdge == EBits.getPieceEastEdge(innerEdges)) &&
+               ((outerEdge = EBits.getSouthEdge(state)) == -1 || outerEdge == EBits.getPieceSouthEdge(innerEdges)) &&
+               ((outerEdge = EBits.getWestEdge(state)) == -1 || outerEdge == EBits.getPieceWestEdge(innerEdges));
     }
 
     public EdgeTracker getEdgeTracker() {

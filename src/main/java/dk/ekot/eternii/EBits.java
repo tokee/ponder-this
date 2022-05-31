@@ -82,6 +82,8 @@ public class EBits {
 
     public static final long BLANK_STATE;
 
+
+
     static {
         long state = setPiece(0L,-1);
         state = setRotation(state, 0);
@@ -157,7 +159,10 @@ public class EBits {
         long piece = (state & PIECE_MASK) >> PIECE_SHIFT;
         return (state & PIECE_MASK) == PIECE_MASK ? -1 : (int)piece;
     }
-    
+    public static boolean hasPiece(long state) {
+        return (state & PIECE_MASK) != PIECE_MASK;
+    }
+
     public static long setRotation(long state, long rotation) {
         return ((rotation << ROTATION_SHIFT) & ROTATION_MASK) | (state & ~ROTATION_MASK);
     }
@@ -191,12 +196,33 @@ public class EBits {
     }
 
     /**
-     * @param edges all 4 edges (some can be -1).
+     * @param edges all 4 piece edges (all are defined)
      */
     public static long setPieceAllEdges(long state, long edges) {
         return ((edges << PIECE_EDGES_SHIFT) & PIECE_EDGE4_MASK) | (state & ~PIECE_EDGE4_MASK);
     }
-    public static 
+    /**
+     * Alsp updates definedEdges bits.
+     * @param edges 4 outer edges (might be -1)
+     */
+    public static long setAllEdges(long state, long edges) {
+        state = (edges & EDGE4_MASK) | (state & ~EDGE4_MASK);
+        return setDefinedOuterEdges(state, getDefinedEdges(edges));
+    }
+    
+    @Deprecated
+    public static long setAllEdges(long state, int north, int east, int south, int west) {
+        state = setNorthEdge(state, north);
+        state = setEastEdge(state, east);
+        state = setSouthEdge(state, south);
+        state = setWestEdge(state, west);
+        long defined = (north == -1 ? 0 : 0b1000) +
+                       (east ==  -1 ? 0 : 0b0100) +
+                       (south == -1 ? 0 : 0b0010) +
+                       (west ==  -1 ? 0 : 0b0001);
+
+        return setDefinedOuterEdges(state, defined);
+    }
 
     public static long setDefinedOuterEdges(long state, long edges) {
         return ((edges << EDGES_DEFINED_SHIFT) & EDGES_DEFINED_MASK) | (state & EDGES_DEFINED_MASK);
@@ -250,9 +276,9 @@ public class EBits {
      * @return bitmap of set edges: North, East, South, Vest
      */
     public static int getDefinedEdges(long edges) {
-        return ((edges ^ NORTH_EDGE_MASK) != 0 ? 0b1000 : 0) |
-               ((edges ^ EAST_EDGE_MASK)  != 0 ? 0b0100 : 0) |
-               ((edges ^ SOUTH_EDGE_MASK) != 0 ? 0b0010 : 0) |
-               ((edges ^ WEST_EDGE_MASK)  != 0 ? 0b0001 : 0);
+        return ((edges & NORTH_EDGE_MASK) != NORTH_EDGE_MASK ? 0b1000 : 0) |
+               ((edges & EAST_EDGE_MASK)  != EAST_EDGE_MASK  ? 0b0100 : 0) |
+               ((edges & SOUTH_EDGE_MASK) != SOUTH_EDGE_MASK ? 0b0010 : 0) |
+               ((edges & WEST_EDGE_MASK)  != WEST_EDGE_MASK  ? 0b0001 : 0);
     }
 }
