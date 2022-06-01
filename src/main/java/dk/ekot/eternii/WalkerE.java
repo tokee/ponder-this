@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -33,18 +35,34 @@ public class WalkerE implements Walker {
     private static final Logger log = LoggerFactory.getLogger(WalkerE.class);
 
     private final EBoard board;
+    private final EPieces pieces;
     private final Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> comparator;
+    private final Comparator<EBoard.Pair<EBoard.Field, Set<Integer>>> comparatorNonRotating;
 
     public WalkerE(EBoard board) {
         this.board = board;
+        this.pieces = board.getPieces();
         comparator = getFieldComparator();
+        comparatorNonRotating = getFieldComparatorNonRotating();
     }
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        return getFreePiecesStrategyA()
-                .findFirst()
-                .orElse(null);
+//        return getFreePiecesStrategyA()
+//                .findFirst()
+//                .orElse(null);
+        EBoard.Pair<EBoard.Field, Set<Integer>> best =
+                getFreePiecesStrategyANonRotated()
+                        .findFirst()
+                        .orElse(null);
+        if (best == null) {
+            return null;
+        }
+        EBoard.Field field = best.left;
+        List<EBoard.Piece> pieces = best.right.stream()
+                .map(p -> new EBoard.Piece(p, field.getValidRotation(p)))
+                .collect(Collectors.toList());
+        return new EBoard.Pair<>(field, pieces);
     }
 
     /**
@@ -56,10 +74,25 @@ public class WalkerE implements Walker {
                 .map(field -> new EBoard.Pair<>(field, field.getBestPieces()))
                 .sorted(comparator);
     }
+    public Stream<EBoard.Pair<EBoard.Field, Set<Integer>>> getFreePiecesStrategyANonRotated() {
+        return board.streamAllFields()
+                .filter(EBoard.Field::isFree)
+                .map(field -> new EBoard.Pair<>(field, field.getBestPiecesNonRotating()))
+                .sorted(comparatorNonRotating);
+    }
 
     private Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFieldComparator() {
         return Comparator.<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>>comparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()
                 ) // Board edges first
+                .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
+                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
+                .thenComparingInt(pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
+                                        pair.left.getX() == board.getWidth() - 1 ||
+                                        pair.left.getY() == board.getHeight() - 1 ? 0 : 1);
+    }
+    private Comparator<EBoard.Pair<EBoard.Field, Set<Integer>>> getFieldComparatorNonRotating() {
+        return Comparator.<EBoard.Pair<EBoard.Field, Set<Integer>>>
+                        comparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()) // Board edges first
                 .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
                 .thenComparingInt(pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||

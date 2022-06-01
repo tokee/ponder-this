@@ -210,9 +210,6 @@ public class EBoard {
         if (!freeBag.remove(piece)) {
            throw new IllegalStateException("Tried removing piece " + piece + " from the free bag but it was not there");
         }
-        if (freeBag.countSets(piece) != 0) {
-            throw new IllegalStateException("Remove not working for piece " + piece);
-        }
         notifyObservers(x, y, label);
         return true;
     }
@@ -600,6 +597,12 @@ public class EBoard {
                         }
                     })
                     .collect(Collectors.toList());
+        }
+        public Set<Integer> getBestPiecesNonRotating() {
+            if (freeBag.isEmpty()) {
+                return Collections.emptySet();
+            }
+            return freeBag.getBestMatching(board[x][y]);
         }
 
         @Override

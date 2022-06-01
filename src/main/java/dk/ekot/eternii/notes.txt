@@ -81,3 +81,8 @@ add(int piece, int rotation, x, y) {
 When a piece is placed, and the free pieces has exacly 2 free edges of any
 given type and the board does not have this edge as a need, the 2 free pieces
 must be connected.  
+
+2022-06-01
+
+The base for #1 has been build. Gave a factor 2, but with at least one obvious optimization:
+Delayed calculation of rotation.
