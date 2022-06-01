@@ -291,11 +291,14 @@ public class EBoard {
         if (EBits.hasPiece(board[x][y])) { // No action if occupied
             return true;
         }
-        int topEdge = lenientGetBottomEdge(x, y-1);
-        int rightEdge = lenientGetLeftEdge(x+1, y);
-        int bottomEdge = lenientGetTopEdge(x, y+1);
-        int leftEdge = lenientGetRightEdge(x-1, y);
-        return edgeTracker.add(topEdge, rightEdge, bottomEdge, leftEdge, delta);
+/*        int n = lenientGetBottomEdge(x, y-1);
+        int e = lenientGetLeftEdge(x+1, y);
+        int s = lenientGetTopEdge(x, y+1);
+        int w = lenientGetRightEdge(x-1, y);
+        return edgeTracker.add(n, e, s, w, delta);
+
+        */
+        return edgeTracker.add(EBits.getAllEdges(board[x][y]), delta);
     }
 
 
@@ -605,8 +608,7 @@ public class EBoard {
             return !EBoard.this.hasPiece(x, y);
         }
 
-        // TODO: Switch to bit here
-        public int getTopEdge() {
+/*        public int getTopEdge() {
             return isFree() ? (int)NULL_E : pieces.getTop(getPiece(), getRotation());
         }
         public int getRightEdge() {
@@ -618,9 +620,9 @@ public class EBoard {
         public int getLeftEdge() {
             return isFree() ? (int)NULL_E : pieces.getLeft(getPiece(), getRotation());
         }
-
+  */
         public int getOuterEdgeCount() {
-            return Long.bitCount(EBits.getDefinedEdges(board[x][y]));
+            return EBits.countDefinedEdges(board[x][y]);
 /*            return (lenientGetBottomEdge(x, y-1) == NULL_E ? 0 : 1) +
                    (lenientGetLeftEdge(x+1, y) == NULL_E ? 0 : 1) +
                    (lenientGetTopEdge(x, y+1) == NULL_E ? 0 : 1) +

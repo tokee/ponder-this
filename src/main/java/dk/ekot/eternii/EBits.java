@@ -240,7 +240,10 @@ public class EBits {
     public static int getDefinedEdges(long state) {
         return (int) ((state & EDGES_DEFINED_MASK) >> EDGES_DEFINED_SHIFT);
     }
-    
+    public static int countDefinedEdges(long state) {
+        return Long.bitCount(state & EDGES_DEFINED_MASK);
+    }
+
     public static long setNorthEdge(long state, long edge) {
         return ((edge << NORTH_EDGE_SHIFT) & NORTH_EDGE_MASK) | (state & ~NORTH_EDGE_MASK);
     }
