@@ -604,10 +604,11 @@ public class EBoard {
         }
 
         public int getOuterEdgeCount() {
-            return (lenientGetBottomEdge(x, y-1) == NULL_E ? 0 : 1) +
+            return Long.bitCount(EBits.getDefinedEdges(board[x][y]));
+/*            return (lenientGetBottomEdge(x, y-1) == NULL_E ? 0 : 1) +
                    (lenientGetLeftEdge(x+1, y) == NULL_E ? 0 : 1) +
                    (lenientGetTopEdge(x, y+1) == NULL_E ? 0 : 1) +
-                   (lenientGetRightEdge(x-1, y) == NULL_E ? 0 : 1);
+                   (lenientGetRightEdge(x-1, y) == NULL_E ? 0 : 1);*/
         }
 
         /**

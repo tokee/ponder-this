@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -40,12 +41,14 @@ public class WalkerE implements Walker {
     private final EPieces pieces;
     private final Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> comparator;
     private final Comparator<EBoard.Pair<EBoard.Field, Set<Integer>>> comparatorNonRotating;
+    private final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparatorGeneric;
 
     public WalkerE(EBoard board) {
         this.board = board;
         this.pieces = board.getPieces();
         comparator = getFieldComparator();
         comparatorNonRotating = getFieldComparatorNonRotating();
+        comparatorGeneric = getFieldComparatorGeneric();
     }
 
     @Override
@@ -71,7 +74,7 @@ public class WalkerE implements Walker {
         return board.streamAllFields()
                 .filter(EBoard.Field::isFree)
                 .map(field -> new EBoard.Pair<>(field, field.getBestPiecesNonRotating()))
-                .sorted(comparatorNonRotating);
+                .sorted(comparatorGeneric);
     }
 
 
@@ -87,6 +90,16 @@ public class WalkerE implements Walker {
     private Comparator<EBoard.Pair<EBoard.Field, Set<Integer>>> getFieldComparatorNonRotating() {
         return Comparator.<EBoard.Pair<EBoard.Field, Set<Integer>>>
                         comparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()) // Board edges first
+                .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
+                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
+                .thenComparingInt(pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
+                                        pair.left.getX() == board.getWidth() - 1 ||
+                                        pair.left.getY() == board.getHeight() - 1 ? 0 : 1);
+    }
+
+    private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparatorGeneric() {
+        return Comparator.<EBoard.Pair<EBoard.Field, ? extends Collection<?>>>
+                        comparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()) // Top left
                 .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
                 .thenComparingInt(pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||

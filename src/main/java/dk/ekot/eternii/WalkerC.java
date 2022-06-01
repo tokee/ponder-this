@@ -41,9 +41,9 @@ public class WalkerC implements Walker {
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-                List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
-                all.sort(comparator);
-                return all.isEmpty() ? null : toPieces(all.get(0));
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
+        all.sort(comparator);
+        return all.isEmpty() ? null : toPieces(all.get(0));
     }
 
     /**
