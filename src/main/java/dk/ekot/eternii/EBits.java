@@ -109,8 +109,8 @@ public class EBits {
     public static int getOuterHash(long state) {
         return getHash(getDefinedEdges(state), state);
     }
-    public static int getHash(int setEdges, long edges) {
-        switch (setEdges) {
+    public static int getHash(int defined, long edges) {
+        switch (defined) {
             // We hope that the compiler is clever enough to see that these are all the numbers from 0-15 (inclusive)
             // and optimizes to a jump-switch
 
@@ -132,7 +132,7 @@ public class EBits {
             case 0b1110: return (int) ((edges >> EDGE_SHIFT) & EDGE3_MASK);
             case 0b0111: return (int) (edges & EDGE3_MASK);
             case 0b1011: return (getSouthEdge(edges) << (2*EDGE_SHIFT)) | (getWestEdge(edges) << EDGE_SHIFT) | getNorthEdge(edges);
-            case 0b1101: return (getEastEdge(edges) << (2*EDGE_SHIFT)) | (getNorthEdge(edges) << EDGE_SHIFT) | getEastEdge(edges);
+            case 0b1101: return (getWestEdge(edges) << (2*EDGE_SHIFT)) | (getNorthEdge(edges) << EDGE_SHIFT) | getEastEdge(edges);
 
             case 0b1111: return (int) (edges & EDGE4_MASK);
             default: throw new IllegalArgumentException("The edges should never be above 0b1111 (15) but was " + edges);

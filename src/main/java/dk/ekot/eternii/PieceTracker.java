@@ -119,9 +119,7 @@ public class PieceTracker {
     public Set<Integer> getBestMatching(long state) {
         final int hash = EBits.getOuterHash(state);
         int defined = EBits.getDefinedEdges(state);
-//        System.out.println("state=" + EBits.toString(state));
-//        System.out.println("defined=" + Long.toBinaryString(defined));
-//        System.out.println("hash=" + hash);
+
         switch (defined) {
             case 0b0000: return all;
 

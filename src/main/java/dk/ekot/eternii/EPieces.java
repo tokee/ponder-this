@@ -109,6 +109,10 @@ public class EPieces {
         return getEdges(piece, rotation) >> EBits.PIECE_EDGES_SHIFT;
     }
 
+    public String edgeToString(int edge) {
+        return edge == NULL_E ? "N/A" : Character.toString((char)('a' + edge));
+    }
+
     @FunctionalInterface
     public interface ClueCallback {
         void clue(int x, int y, int piece, int rotation);

@@ -235,14 +235,14 @@ public class EBoard {
         int leftEdge = lenientGetRightEdge(x-1, y);
         //    System.out.printf("OE(%d, %d): n=%d, e=%d, s=%d, w=%d\n", x, y, topEdge, rightEdge, bottomEdge, leftEdge);
         board[x][y] = EBits.setAllEdges(board[x][y], topEdge, rightEdge, bottomEdge, leftEdge);
-        if (x == 1 && y == 0) {
+/*        if (x == 1 && y == 0) {
             if (EBits.getPieceEastEdge(board[x-1][y]) != EBits.getWestEdge(board[x][y])) {
                 System.out.printf("piece(%d, %d) has outer w=%s but (%d, %d) has inner s=%s",
                                   x, y, EBits.getWestEdge(board[x][y]), x, y-1, EBits.getPieceEastEdge(board[x-1][y]));
                 throw new IllegalStateException();
             }
         }
-
+        */
     }
 
     /**
@@ -454,12 +454,17 @@ public class EBoard {
                 return rotation;
             }
         }
+        long state = board[x][y];
         String message = "The piece " + piece + "(" + pieces.toDisplayString(piece, 0) + ") at (" + x + ", " + y +
                          ") could not be rotated to fit." +
                          "\nabove=" + lenientPieceDisplay(x, y-1) +
                          "\nright=" + lenientPieceDisplay(x+1, y) +
                          "\nbelow=" + lenientPieceDisplay(x, y+1) +
                          "\nleft =" + lenientPieceDisplay(x-1, y) +
+                         "\nexpected outer n=" + pieces.edgeToString(EBits.getNorthEdge(state)) +
+                         " e=" + pieces.edgeToString(EBits.getEastEdge(state)) +
+                         " s=" + pieces.edgeToString(EBits.getSouthEdge(state)) +
+                         " w=" + pieces.edgeToString(EBits.getWestEdge(state)) +
                          "\nboard = " + getDisplayURL();
 
         throw new IllegalStateException(message);
