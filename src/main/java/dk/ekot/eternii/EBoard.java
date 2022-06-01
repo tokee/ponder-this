@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -134,6 +135,7 @@ public class EBoard {
         // Remove piece from board
         updateTracker9(x, y, +1);
         board[x][y] = EBits.BLANK_STATE;
+        updateOuterEdges9(x, y);
         updateTracker9(x, y, -1);
 
         // Register piece as free
@@ -340,6 +342,42 @@ public class EBoard {
         return allFields.stream();
     }
     private List<Field> allFields;
+
+
+    public void sanityCheckAll() {
+        checkFree();
+        checkEdges();
+    }
+
+    private void checkEdges() {
+        streamAllFields().filter(Field::hasPiece).forEach(field -> {
+            int x = field.getX();
+            int y = field.getY();
+            long state = getState(x, y);
+            int topEdge = lenientGetBottomEdge(x, y-1);
+            int rightEdge = lenientGetLeftEdge(x+1, y);
+            int bottomEdge = lenientGetTopEdge(x, y+1);
+            int leftEdge = lenientGetRightEdge(x-1, y);
+            int markedTopEdge = EBits.getNorthEdge(state);
+            int markedRightEdge = EBits.getEastEdge(state);
+            int markedBottomEdge = EBits.getSouthEdge(state);
+            int markedLeftEdge = EBits.getWestEdge(state);
+            if ((topEdge != markedTopEdge) || (rightEdge != markedRightEdge) ||
+                (bottomEdge != markedBottomEdge) || (leftEdge != markedLeftEdge)) {
+                throw new IllegalStateException(String.format(
+                        Locale.ROOT, "Edges mismatch at (%d, %d): Observed vs. marked: n=%d,%d, e=%d,%d, s=%d,%d, w=%d,%d. board=" + getDisplayURL(),
+                        x, y, topEdge, markedTopEdge, rightEdge, markedRightEdge,
+                        bottomEdge, markedBottomEdge, leftEdge, markedLeftEdge));
+            }
+        });
+    }
+
+    private void checkFree() {
+        long free = streamAllFields().filter(Field::isFree).count();
+        if (free != freeBag.size()) {
+            throw new IllegalStateException("Piece count mismatch: free " + free + " != freeBag " + freeBag.size());
+        }
+    }
 
     /**
      * All fields from (origoX-1, origoY-1) to (origoX+1, origoY+1) that are on the board.
@@ -550,7 +588,8 @@ public class EBoard {
         public boolean isFree() {
             return !EBoard.this.hasPiece(x, y);
         }
-        
+
+        // TODO: Switch to bit here
         public int getTopEdge() {
             return isFree() ? (int)NULL_E : pieces.getTop(getPiece(), getRotation());
         }

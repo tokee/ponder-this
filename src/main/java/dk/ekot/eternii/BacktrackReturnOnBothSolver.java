@@ -49,6 +49,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     @Override
     public void run() {
         startTime = System.currentTimeMillis()-1; // -1 to avoid division by zero
+        //board.sanityCheckAll();
         dive(0);
         log.debug(board.getEdgeTracker().toString());
     }
@@ -58,6 +59,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
      * @return true if the bottom was reached, else false.
      */
     private boolean dive(int depth) {
+        //board.sanityCheckAll();
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
