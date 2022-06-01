@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -42,8 +43,7 @@ public class WalkerC implements Walker {
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
-        all.sort(comparator);
-        return all.isEmpty() ? null : toPieces(all.get(0));
+        return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
     }
 
     /**

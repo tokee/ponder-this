@@ -57,8 +57,7 @@ public class WalkerE implements Walker {
                 .findFirst()
                 .orElse(null);*/
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
-        all.sort(comparatorNonRotating);
-        return all.isEmpty() ? null : toPieces(all.get(0));
+        return all.isEmpty() ? null : toPieces(Collections.min(all, comparatorNonRotating));
     }
 
     /**
