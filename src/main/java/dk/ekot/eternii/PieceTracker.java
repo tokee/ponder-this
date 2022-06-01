@@ -103,9 +103,11 @@ public class PieceTracker {
      */
     public Set<Integer> getBestMatching(long state) {
         final int hash = EBits.getOuterHash(state);
-        int edges = EBits.getDefinedEdges(state);
-
-        switch (edges) {
+        int defined = EBits.getDefinedEdges(state);
+        System.out.println("state=" + EBits.toString(state));
+        System.out.println("defined=" + Long.toBinaryString(defined));
+        System.out.println("hash=" + hash);
+        switch (defined) {
             case 0b0000: return all;
 
             case 0b1000:
@@ -127,7 +129,7 @@ public class PieceTracker {
             case 0b1101: return three.get(hash);
 
             case 0b1111: return four.get(hash);
-            default: throw new IllegalArgumentException("The edges should never be above 0b1111 (15) but was " + edges);
+            default: throw new IllegalArgumentException("The edges should never be above 0b1111 (15) but was " + defined);
         }
     }
 
