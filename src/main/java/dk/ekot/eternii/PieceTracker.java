@@ -54,6 +54,7 @@ public class PieceTracker {
     }
 
     public void add(int piece) {
+//        System.out.println("PieceTracker.remove(" + piece + ")");
         process(piece, set -> set.add(piece));
         if (!all.add(piece)) {
             throw new IllegalStateException(
@@ -61,6 +62,7 @@ public class PieceTracker {
         }
     }
     public boolean remove(int piece) {
+//        System.out.println("PieceTracker.remove(" + piece + ")");
         process(piece, set -> set.remove(piece));
         if (!all.remove(piece)) {
             throw new IllegalStateException("Remove piece " + piece + " called, but the piece was not present");
@@ -85,6 +87,7 @@ public class PieceTracker {
      * @param adjuster receives sets and .
      */
     private void process(long edges, Consumer<Set<Integer>> adjuster) {
+//        System.out.println("PieceTracker.process(edges=" + Long.toBinaryString(edges) + ")");
         // All edges are always defined for pieces, so we permutate and call all possible sets
         for (int rotation = 0 ; rotation < 4 ; rotation++) {
             adjuster.accept(four.get(EBits.getHash(0b1111, edges)));
@@ -95,7 +98,19 @@ public class PieceTracker {
             edges = EBits.shiftEdgesRight(edges);
         }
     }
-    
+
+    /**
+     * @return the number of sets that contains the given piece;
+     */
+    public long countSets(int piece) {
+        return one.pieces.stream().filter(set -> set.contains(piece)).count() +
+               two.pieces.stream().filter(set -> set.contains(piece)).count() +
+               three.pieces.stream().filter(set -> set.contains(piece)).count() +
+               opposing.pieces.stream().filter(set -> set.contains(piece)).count() +
+               four.values().stream().filter(set -> set.contains(piece)).count();
+
+    }
+
     /**
      * Given constraints from the surrounding fields, return the best matching pieces, i.e. if all 4 edges has a color,
      * only return results from {@link #four}.
@@ -104,9 +119,9 @@ public class PieceTracker {
     public Set<Integer> getBestMatching(long state) {
         final int hash = EBits.getOuterHash(state);
         int defined = EBits.getDefinedEdges(state);
-        System.out.println("state=" + EBits.toString(state));
-        System.out.println("defined=" + Long.toBinaryString(defined));
-        System.out.println("hash=" + hash);
+//        System.out.println("state=" + EBits.toString(state));
+//        System.out.println("defined=" + Long.toBinaryString(defined));
+//        System.out.println("hash=" + hash);
         switch (defined) {
             case 0b0000: return all;
 

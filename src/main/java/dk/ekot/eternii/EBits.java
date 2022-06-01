@@ -144,7 +144,7 @@ public class EBits {
     public static long setPieceFull(long state, long piece, long rotation, long edges) {
         state = setPiece(state, piece);
         state = setRotation(state, rotation);
-        state = setPieceAllEdges(state, edges);
+        state = setPieceAllEdges(state, edges >> PIECE_EDGES_SHIFT); // TODO: Remove back & forth shifting
         return state;
     }
 
@@ -197,7 +197,7 @@ public class EBits {
     }
 
     /**
-     * @param edges all 4 piece edges (all are defined)
+     * @param edges all 4 piece edges (all are defined), where the input edges are positioned to the right.
      */
     public static long setPieceAllEdges(long state, long edges) {
         return ((edges << PIECE_EDGES_SHIFT) & PIECE_EDGE4_MASK) | (state & ~PIECE_EDGE4_MASK);
@@ -207,7 +207,7 @@ public class EBits {
     }
     /**
      * Also updates definedEdges bits.
-     * @param edges 4 outer edges (might be -1)
+     * @param edges 4 outer edges (might be NULL_E)
      */
     public static long setAllEdges(long state, long edges) {
         state = (edges & EDGE4_MASK) | (state & ~EDGE4_MASK);

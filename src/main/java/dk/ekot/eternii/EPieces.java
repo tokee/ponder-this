@@ -40,7 +40,7 @@ public class EPieces {
     public static final int INNER = 0;
 
     public static final int EDGE_EDGE = 0; // The outermost edges (black/grey)
-    public static final long NULL_E = 31; // No edge
+    public static final long NULL_E = 31;  // No edge
     public static final long NULL_P = 256; // No piece
 
     private final int total;
@@ -94,7 +94,7 @@ public class EPieces {
     }
 
     /**
-     * @return edges in the {@code 4*<5 bits>} format (piece location) from {@link EBits}.
+     * @return edges in the {@code 4*<5 bits>} format (piece location in bits) from {@link EBits}.
      */
     public long getEdges(int piece, int rotation) {
         // TODO: Consider precalculating all of this and simply return it

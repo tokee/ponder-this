@@ -17,10 +17,12 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static dk.ekot.eternii.EPieces.NULL_E;
 
@@ -132,6 +134,7 @@ public class EdgeTracker {
         if (edge1 == NULL_E && edge2 != NULL_E && edge3 == NULL_E && edge4 != NULL_E) {
             allOK = allOK & addOpposing(edge2, edge4, delta);
         }
+
         return allOK;
     }
 
@@ -207,9 +210,13 @@ public class EdgeTracker {
             return counts[key];
         }
 
+        public String toStringFull() {
+            return Arrays.stream(counts).boxed().collect(Collectors.toList()).toString();
+        }
     }
 
     public static class Counter extends HashMap<Integer, Integer> {
+
         /**
          *
          * @param key
@@ -242,8 +249,14 @@ public class EdgeTracker {
 
     @Override
     public String toString() {
-        return "Edgetracker(one=" + one + ", two=" + two + ", three=" + three + ", four=" + four +
+        return "EdgeTracker(one=" + one + ", two=" + two + ", three=" + three + ", four=" + four +
                ", opposing=" + opposing + ")";
     }
 
+    public String toStringFull() {
+        return "EdgeTrackerFull(one=" + one.toStringFull() + ", two=" + two.toStringFull() +
+               ", three=" + three.toStringFull() +
+               ", four=" + four.entrySet().stream().map(e -> e.getKey() + ":" + e.getValue()).collect(Collectors.toList()) +
+               ", opposing=" + opposing.toStringFull() + ")";
+    }
 }

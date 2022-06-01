@@ -30,11 +30,11 @@ public class PieceTrackerTest extends TestCase {
 
         assertEquals("The top left corner should give the expected pieces",
                      CORNERS, tracker.getBestMatching(EBits.setAllEdges(
-                             EBits.BLANK_STATE, 0, -1, -1, 0)).toString());
+                        EBits.BLANK_STATE, 0, (int) EPieces.NULL_E, (int) EPieces.NULL_E, 0)).toString());
 
         assertEquals("The edge color should give the expected pieces",
                      EDGES, tracker.getBestMatching(EBits.setAllEdges(
-                        EBits.BLANK_STATE, 0, -1, -1, -1)).toString());
+                        EBits.BLANK_STATE, 0, (int) EPieces.NULL_E, (int) EPieces.NULL_E, (int) EPieces.NULL_E)).toString());
 
     }
 }

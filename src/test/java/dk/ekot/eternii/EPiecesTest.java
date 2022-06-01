@@ -45,7 +45,7 @@ public class EPiecesTest extends TestCase {
     public void testMapping() {
         EPieces pieces = EPieces.getEternii();
         for (String pieceStr: E2_PIECES) {
-            assertNotSame(-1, pieces.getPieceFromString(pieceStr));
+            assertNotSame(EPieces.NULL_P, pieces.getPieceFromString(pieceStr));
         }
     }
 

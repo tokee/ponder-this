@@ -69,7 +69,7 @@ public class EBoardTest extends TestCase {
         }
     }
 
-    public void testDisplayBoardRandom() throws InterruptedException {
+    public void DtestDisplayBoardRandom() throws InterruptedException {
         EBoard board = new EBoard(EPieces.getEternii(), 16, 16);
         new BoardVisualiser(board);
         Random r = new Random(87);

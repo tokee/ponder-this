@@ -26,6 +26,7 @@ import java.text.AttributedString;
 /**
  * Opens a windows showing an {@link EBoard} and tracks changes.
  */
+// TODO: Print number of valid pieces on non-piece fields
 public class BoardVisualiser implements EBoard.Observer {
     private static final Logger log = LoggerFactory.getLogger(BoardVisualiser.class);
 

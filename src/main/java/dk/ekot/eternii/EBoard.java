@@ -92,6 +92,7 @@ public class EBoard {
         for (int x = 0 ; x < width ; x++) {
             Arrays.fill(board[x], EBits.BLANK_STATE);
         }
+        updateOuterEdgesAll();
         freeBag = new PieceTracker(pieces);
 /*        pieces.allPieces()
                 .boxed()
@@ -100,6 +101,21 @@ public class EBoard {
         log.debug("EdgeTracker blank: " + getEdgeTracker());
         updateEdgeTrackerAll(-1);
         log.debug("EdgeTracker after EBoard construction: " + getEdgeTracker());
+    }
+
+    /**
+     * Creates a blank 16x16 board where the free pieces are from the Eternii set.
+     * @param clues if true, 5 clue pieces are placed.
+     * @return a board ready for filling.
+     */
+    public static EBoard createEterniiBoard(boolean clues) {
+        EPieces pieces = EPieces.getEternii();
+        EBoard board = new EBoard(pieces, 16, 16);
+        board.registerFreePieces(pieces.getBag());
+        if (clues) {
+            pieces.processEterniiClues(board::placePiece);
+        }
+        return board;
     }
 
     private boolean isCorner(int x, int y) {
@@ -112,7 +128,7 @@ public class EBoard {
      */
     public void removePiece(int x, int y) {
         int piece = getPiece(x, y);
-        if (piece == -1) {
+        if (piece == EPieces.NULL_P) {
             throw new IllegalStateException("removePiece(" + x + ", " + y + ") called but the field has no piece");
         }
         // Remove piece from board
@@ -135,11 +151,18 @@ public class EBoard {
         notifyObservers(x, y, "");
     }
 
+    public boolean placePiece(int x, int y, int piece) {
+        return placePiece(x, y, piece, getValidRotationFailing(x, y, piece), "");
+    }
+    public boolean placePiece(int x, int y, int piece, int rotation) {
+        return placePiece(x, y, piece, rotation, "");
+    }
     /**
      * Positions the given piece on the board, updating the tracker and removing the piece from the free bag.
      * @return if the positioning resulted in a negative tracker and was rolled back.
      */
     public boolean placePiece(int x, int y, int piece, int rotation, String label) {
+//        System.out.printf("placePiece(x=%d, y=%d, piece=%d, rotation=%d, label='%s')\n",x, y, piece, rotation, label);
 
         if (EBits.hasPiece(board[x][y])) {
             throw new IllegalStateException(
@@ -148,38 +171,78 @@ public class EBoard {
         // Remove surrounding registers
         updateTracker9(x, y, +1);
         board[x][y] = EBits.setPieceFull(board[x][y], piece, rotation, pieces.getEdges(piece, rotation));
-        updateOuterEdges(x, y);
+        //System.out.printf("\nBefore(%d, %d): %s\n", x, y, EBits.toString(board[x][y]));
+        updateOuterEdges9(x, y);
+        //System.out.printf("After (%d, %d): %s\n", x, y, EBits.toString(board[x][y]));
+        //System.out.printf("Origo (%d, %d): %s\n", 0, 0, EBits.toString(board[0][0]));
+/*        if (y > 0) {
+            if (EBits.getPieceSouthEdge(board[x][y-1]) != EBits.getNorthEdge(board[x][y])) {
+                System.out.printf("piece(%d, %d) has outer n=%s but (%d, %d) has inner s=%s\n",
+                                  x, y, EBits.getNorthEdge(board[x][y-1]), x, y-1, EBits.getPieceSouthEdge(board[x][y-1]));
+                throw new IllegalStateException();
+            }
+        }
+        if (x > 0) {
+            System.out.printf("Piece(x-1) e=%d, Outer(x) w=%d\n", EBits.getPieceEastEdge(board[x-1][y]), EBits.getWestEdge(board[x][y]));
+            if (EBits.getPieceEastEdge(board[x-1][y]) != EBits.getWestEdge(board[x][y])) {
+                System.out.printf("piece(%d, %d) has outer w=%s but (%d, %d) has inner s=%s",
+                                  x, y, EBits.getWestEdge(board[x][y]), x, y-1, EBits.getPieceEastEdge(board[x-1][y]));
+                throw new IllegalStateException();
+            }
+        }*/
         if (!updateTracker9(x, y, -1)) {
             // At least one tracker is negative so we rollback
             updateTracker9(x, y, +1);
             board[x][y] = EBits.BLANK_STATE;
-            updateOuterEdges(x, y);
+            updateOuterEdges9(x, y);
             updateTracker9(x, y, -1);
             return false;
         }
         if (!updatePieceTracking(piece, -1)) {
-            updatePieceTracking(piece, +1);
             // At least one tracker is negative so we rollback
+            updatePieceTracking(piece, +1);
             updateTracker9(x, y, +1);
             board[x][y] = EBits.BLANK_STATE;
-            updateOuterEdges(x, y);
+            updateOuterEdges9(x, y);
             updateTracker9(x, y, -1);
             return false;
         }
         if (!freeBag.remove(piece)) {
            throw new IllegalStateException("Tried removing piece " + piece + " from the free bag but it was not there");
         }
+        if (freeBag.countSets(piece) != 0) {
+            throw new IllegalStateException("Remove not working for piece " + piece);
+        }
         notifyObservers(x, y, label);
         return true;
     }
 
+    private void updateOuterEdgesAll() {
+        visitAll(this::updateOuterEdges);
+    }
+
+    private void updateOuterEdges9(int x, int y) {
+        visit9(x, y, this::updateOuterEdges);
+    }
+
+    private void updateOuterEdges(Field field) {
+        updateOuterEdges(field.getX(), field.getY());
+    }
     private void updateOuterEdges(int x, int y) {
         int topEdge = lenientGetBottomEdge(x, y-1);
         int rightEdge = lenientGetLeftEdge(x+1, y);
         int bottomEdge = lenientGetTopEdge(x, y+1);
         int leftEdge = lenientGetRightEdge(x-1, y);
-
+        //    System.out.printf("OE(%d, %d): n=%d, e=%d, s=%d, w=%d\n", x, y, topEdge, rightEdge, bottomEdge, leftEdge);
         board[x][y] = EBits.setAllEdges(board[x][y], topEdge, rightEdge, bottomEdge, leftEdge);
+        if (x == 1 && y == 0) {
+            if (EBits.getPieceEastEdge(board[x-1][y]) != EBits.getWestEdge(board[x][y])) {
+                System.out.printf("piece(%d, %d) has outer w=%s but (%d, %d) has inner s=%s",
+                                  x, y, EBits.getWestEdge(board[x][y]), x, y-1, EBits.getPieceEastEdge(board[x-1][y]));
+                throw new IllegalStateException();
+            }
+        }
+
     }
 
     /**
@@ -225,7 +288,7 @@ public class EBoard {
      * @return false if the updating resulted in at least 1 tracker reaching a negative state.
      */
     private boolean updateTracker(int x, int y, int delta) {
-        if (!EBits.hasPiece(board[x][y])) { // No action if occupied
+        if (EBits.hasPiece(board[x][y])) { // No action if occupied
             return true;
         }
         int topEdge = lenientGetBottomEdge(x, y-1);
@@ -286,68 +349,59 @@ public class EBoard {
      */
     private Stream<Field> streamValidFields9(int origoX, int origoY) {
         List<Field> fields = new ArrayList<>(9);
-        for (int y = origoY-1 ; y < origoY+1 ; y++) {
-            if (y < 0 || y >= height) {
-                continue;
-            }
-            for (int x = origoX-1 ; x < origoY+1 ; x++) {
-                if (x < 0 || x >= width) {
-                    continue;                                                       
-                }
-                fields.add(new Field(x, y));
-            }
-        }
+        visit9(origoX, origoY, (x, y) -> fields.add(new Field(x, y)));
         return fields.stream();
     }
+    private void visit9(int origoX, int origoY, BiConsumer<Integer, Integer> visitor) {
+        for (int y = Math.max(0, origoY-1) ; y <= Math.min(height-1, origoY+1) ; y++) {
+            for (int x = Math.max(0, origoX-1) ; x <= Math.min(width-1, origoX+1) ; x++) {
+                visitor.accept(x, y);
+            }
+        }
+    }
+    private void visitAll(BiConsumer<Integer, Integer> visitor) {
+        for (int y = 0 ; y < height ;y++) {
+            for (int x = 0 ; x < width ; x++) {
+                visitor.accept(x, y);
+            }
+        }
+    }
+
 
     /**
-     * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
+     * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and NULL_E if no piece.
      */
     private int lenientGetTopEdge(int x, int y) {
         return y >= height ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : EBits.getPieceNorthEdge(board[x][y]);
+                !hasPiece(x, y) ? (int)NULL_E : EBits.getPieceNorthEdge(board[x][y]);
     }
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
      */
     private int lenientGetRightEdge(int x, int y) {
         return x < 0 ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : EBits.getPieceEastEdge(board[x][y]);
+                !hasPiece(x, y) ? (int)NULL_E : EBits.getPieceEastEdge(board[x][y]);
     }
     /**
-     * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
+     * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and NULL_E if no piece.
      */
     private int lenientGetBottomEdge(int x, int y) {
         return y < 0 ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : EBits.getPieceSouthEdge(board[x][y]);
+                !hasPiece(x, y) ? (int)NULL_E : EBits.getPieceSouthEdge(board[x][y]);
     }
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and -1 if no piece.
      */
     private int lenientGetLeftEdge(int x, int y) {
         return x >= width ? EPieces.EDGE_EDGE :
-                hasPiece(x, y) ? -1 : EBits.getPieceWestEdge(board[x][y]);
+                !hasPiece(x, y) ? (int)NULL_E : EBits.getPieceWestEdge(board[x][y]);
     }
 
     private boolean hasPiece(int x, int y) {
-        return x < 0 || x >= width || y < 0 || y >= height || EBits.hasPiece(board[x][y]);
+        return x >= 0 && x < width && y >= 0 && y < height && EBits.hasPiece(board[x][y]);
     }
 
-    private void visit9(int origoX, int origoY, BiConsumer<Integer, Integer> visitor) {
-        for (int y = origoY-1 ; y <= origoY+1 ; y++) {
-            if (y < 0 || y >= height) {
-                continue;
-            }
-            for (int x = origoX-1 ; x <= origoX+1 ; x++) {
-                if (x < 0 || x >= width) {
-                    continue;
-                }
-                visitor.accept(x, y);
-            }
-        }
-    }
-
-    // -1 = no piece
+    // NULL_E = no piece
     public int getPiece(int x, int y) {
         return EBits.getPiece(board[x][y]);
     }
@@ -392,6 +446,32 @@ public class EBoard {
             }
         }
         return sb.toString();
+    }
+
+    public int getValidRotationFailing(int x, int y, int piece) {
+        for (int rotation = 0 ; rotation < 4 ; rotation++) {
+            if (fits(x, y, piece, rotation)) {
+                return rotation;
+            }
+        }
+        String message = "The piece " + piece + "(" + pieces.toDisplayString(piece, 0) + ") at (" + x + ", " + y +
+                         ") could not be rotated to fit." +
+                         "\nabove=" + lenientPieceDisplay(x, y-1) +
+                         "\nright=" + lenientPieceDisplay(x+1, y) +
+                         "\nbelow=" + lenientPieceDisplay(x, y+1) +
+                         "\nleft =" + lenientPieceDisplay(x-1, y) +
+                         "\nboard = " + getDisplayURL();
+
+        throw new IllegalStateException(message);
+    }
+    private String lenientPieceDisplay(int x, int y) {
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            int piece = EBits.getPiece(board[x][y]);
+            if (piece != EPieces.NULL_P) {
+                return pieces.toDisplayString(piece, EBits.getRotation(board[x][y]));
+            }
+        }
+        return "N/A";
     }
 
     /**
@@ -466,23 +546,23 @@ public class EBoard {
         }
         
         public int getTopEdge() {
-            return isFree() ? -1 : pieces.getTop(getPiece(), getRotation());
+            return isFree() ? (int)NULL_E : pieces.getTop(getPiece(), getRotation());
         }
         public int getRightEdge() {
-            return isFree() ? -1 : pieces.getRight(getPiece(), getRotation());
+            return isFree() ? (int)NULL_E : pieces.getRight(getPiece(), getRotation());
         }
         public int getBottomEdge() {
-            return isFree() ? -1 : pieces.getBottom(getPiece(), getRotation());
+            return isFree() ? (int)NULL_E : pieces.getBottom(getPiece(), getRotation());
         }
         public int getLeftEdge() {
-            return isFree() ? -1 : pieces.getLeft(getPiece(), getRotation());
+            return isFree() ? (int)NULL_E : pieces.getLeft(getPiece(), getRotation());
         }
 
         public int getOuterEdgeCount() {
-            return (lenientGetBottomEdge(x, y-1) == -1 ? 0 : 1) +
-                   (lenientGetLeftEdge(x+1, y) == -1 ? 0 : 1) +
-                   (lenientGetTopEdge(x, y+1) == -1 ? 0 : 1) +
-                   (lenientGetRightEdge(x-1, y) == -1 ? 0 : 1);
+            return (lenientGetBottomEdge(x, y-1) == NULL_E ? 0 : 1) +
+                   (lenientGetLeftEdge(x+1, y) == NULL_E ? 0 : 1) +
+                   (lenientGetTopEdge(x, y+1) == NULL_E ? 0 : 1) +
+                   (lenientGetRightEdge(x-1, y) == NULL_E ? 0 : 1);
         }
 
         /**
@@ -499,14 +579,9 @@ public class EBoard {
          * @return the matching rotation or -1 if no match.
          */
         public int getValidRotation(int piece) {
-            for (int rotation = 0 ; rotation < 4 ; rotation++) {
-                if (fits(x, y, piece, rotation)) {
-                    return rotation;
-                }
-            }
-            return -1;
+            return EBoard.this.getValidRotationFailing(x, y, piece);
         }
-
+        // TODO: Switch to delayed rotation check and just return getBestMatching
         public List<Piece> getBestPieces() {
             if (freeBag.isEmpty()) {
                 return Collections.emptyList();

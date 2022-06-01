@@ -60,7 +60,7 @@ public class OneWayAllFieldsAllPiecesSolver implements Runnable {
                     }
                     log.info("Failed placement, trying next (if any)");
                 }
-                if (field.getPiece() == -1) {
+                if (field.getPiece() == EPieces.NULL_P) {
                     log.info("Tried all pieces " + free.right + " at " + free.left + " without finding a valid one");
                 } else {
                     break;
