@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static dk.ekot.eternii.EPieces.NULL_E;
+import static dk.ekot.eternii.EPieces.NULL_P;
 
 /**
  * Eternity II board (flexible size)
@@ -347,6 +348,7 @@ public class EBoard {
     public void sanityCheckAll() {
         checkFree();
         checkEdges();
+        checkInner();
     }
 
     private void checkEdges() {
@@ -368,6 +370,20 @@ public class EBoard {
                         Locale.ROOT, "Edges mismatch at (%d, %d): Observed vs. marked: n=%d,%d, e=%d,%d, s=%d,%d, w=%d,%d. board=" + getDisplayURL(),
                         x, y, topEdge, markedTopEdge, rightEdge, markedRightEdge,
                         bottomEdge, markedBottomEdge, leftEdge, markedLeftEdge));
+            }
+        });
+    }
+    private void checkInner() {
+        streamAllFields().filter(Field::isFree).forEach(field -> {
+            long state = getState(field.getX(), field.getY());
+            int n = EBits.getPieceNorthEdge(state);
+            int e = EBits.getPieceEastEdge(state);
+            int s = EBits.getPieceSouthEdge(state);
+            int w = EBits.getPieceWestEdge(state);
+            if (n != NULL_E || e != NULL_E || s != NULL_E || w != NULL_E) {
+                throw new IllegalStateException(String.format(
+                        Locale.ROOT, "Field (%d, %d) marked as free but had edges n=%d, e=%d, s=%d, w=%d. board=%s",
+                        field.getX(), field.getY(), n, e, s, w, getDisplayURL()));
             }
         });
     }

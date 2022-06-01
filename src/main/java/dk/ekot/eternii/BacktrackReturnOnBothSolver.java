@@ -59,7 +59,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
      * @return true if the bottom was reached, else false.
      */
     private boolean dive(int depth) {
-        //board.sanityCheckAll();
+//        board.sanityCheckAll();
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
