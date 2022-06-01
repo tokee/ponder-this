@@ -86,3 +86,8 @@ must be connected.
 
 The base for #1 has been build. Gave a factor 2, but with at least one obvious optimization:
 Delayed calculation of rotation.
+
+<later>
+
+Delayed rotation calculation implemented for WalkerE and (more importantly) a debug-oriented
+sanity check of registered pieces was removed. Speed is now ~100K attempts/sec on a laptop.

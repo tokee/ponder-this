@@ -17,6 +17,8 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +30,7 @@ import java.util.stream.Stream;
  *
  * Observation: Expands in chunks, reaches 70 free in 10 minutes, 61 after an hour or so,
  * stable for the next hour (40M attempts), then 60 free (60M attempts?).
- * Speed: ~5000 @ office machine
+ * Speed: ~5000 @ office machine, update 20220601: ~100K @ laptop
  * Attempts: 888175K, free=136, minFree=57, attempts/sec=5237, best=https://e2.bucas.name/#puzzle=displayTest&board_w=16&board_h=16&board_edges=abdaafhbackfadtcaftdafgfacnfacocafhcadufabmdafjbaelfadteadhdaacddsdahvjskvwvtkuvtnlkgwqnnspwouishhruukjhmnrkjronlslrtgwshhlgcabhdpcajnmpwlmnulpllkilqjskprsjiqorrpnqjttprqrtooiqlugowswulgosbabgcpcammupmsompgmsiiwgsjgisiujomminiomtvvirkhvigmkgjigwgsjouvgbafucqeauiwqowuimqhwwsoqgrusujtrmlljouplvpsuhhrpmrmhilirsuhlvusufafueibawtgiusrthwusokuwuhwktvphlwvvpmiwsutmrhoumorhiqwohmkqsowmfadobpcagtnprsmtujosumhjwksmpllkvmqlinjmtkknoggkrtrgwhptkrphwpkrdaepcidanqwimqgqovjqhnlvsvpnlgvvqiigjvvikokvgllorwvlppvwpjppkqtjeafqdgcawvjggtqvjistlpripropvmkrijjmvomjklwolwolvgwwvgsgpnigtmqnfaemcsbajuhsqnousnnnrqunosnqkppsjijpmhgiwjhhovmjwkrvsiukisoiqugseaeubveahunvoujunhhuuqlhnqoqphjqjnthgrinhkprmttkrvmtulkvorglgtmreabteseanhlsjlthhwqllwvwovuwjnnvtqvniklqpgnktrkgmorrkqmogmpqmrwmbacrepbalsnpthusqkwhvrnkaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaujvmaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqvpraaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
  */
 public class WalkerE implements Walker {
@@ -48,21 +50,12 @@ public class WalkerE implements Walker {
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-//        return getFreePiecesStrategyA()
-//                .findFirst()
-//                .orElse(null);
-        EBoard.Pair<EBoard.Field, Set<Integer>> best =
-                getFreePiecesStrategyANonRotated()
-                        .findFirst()
-                        .orElse(null);
-        if (best == null) {
-            return null;
-        }
-        EBoard.Field field = best.left;
-        List<EBoard.Piece> pieces = best.right.stream()
-                .map(p -> new EBoard.Piece(p, field.getValidRotation(p)))
-                .collect(Collectors.toList());
-        return new EBoard.Pair<>(field, pieces);
+/*        return getFreePiecesStrategyA()
+                .findFirst()
+                .orElse(null);*/
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
+        all.sort(comparatorNonRotating);
+        return all.isEmpty() ? null : toPieces(all.get(0));
     }
 
     /**
@@ -74,12 +67,13 @@ public class WalkerE implements Walker {
                 .map(field -> new EBoard.Pair<>(field, field.getBestPieces()))
                 .sorted(comparator);
     }
-    public Stream<EBoard.Pair<EBoard.Field, Set<Integer>>> getFreePiecesStrategyANonRotated() {
+    public Stream<EBoard.Pair<EBoard.Field, Set<Integer>>> getFreeRawPieces() {
         return board.streamAllFields()
                 .filter(EBoard.Field::isFree)
                 .map(field -> new EBoard.Pair<>(field, field.getBestPiecesNonRotating()))
                 .sorted(comparatorNonRotating);
     }
+
 
     private Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFieldComparator() {
         return Comparator.<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>>comparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()

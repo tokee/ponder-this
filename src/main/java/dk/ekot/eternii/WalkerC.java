@@ -17,8 +17,10 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -30,7 +32,7 @@ public class WalkerC implements Walker {
     private static final Logger log = LoggerFactory.getLogger(WalkerC.class);
 
     private final EBoard board;
-    private final Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> comparator;
+    private final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
 
     public WalkerC(EBoard board) {
         this.board = board;
@@ -39,9 +41,9 @@ public class WalkerC implements Walker {
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        return getFreePiecesStrategyA()
-                .findFirst()
-                .orElse(null);
+                List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
+                all.sort(comparator);
+                return all.isEmpty() ? null : toPieces(all.get(0));
     }
 
     /**
@@ -54,8 +56,8 @@ public class WalkerC implements Walker {
                 .sorted(comparator);
     }
 
-    private Comparator<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFieldComparator() {
-        return Comparator.<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>>comparingInt(pair -> pair.right.size()) // Least valid pieces
+    private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
+        return Comparator.<EBoard.Pair<EBoard.Field, ? extends Collection<?>>>comparingInt(pair -> pair.right.size()) // Least valid pieces
                 .thenComparingInt(
                         pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
                                 pair.left.getX() == board.getWidth() - 1 ||

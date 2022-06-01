@@ -356,7 +356,7 @@ public class EBoard {
             }
         }
     }
-    private void visitAll(BiConsumer<Integer, Integer> visitor) {
+    public void visitAll(BiConsumer<Integer, Integer> visitor) {
         for (int y = 0 ; y < height ;y++) {
             for (int x = 0 ; x < width ; x++) {
                 visitor.accept(x, y);
@@ -509,6 +509,10 @@ public class EBoard {
 
     public int getFreeCount() {
         return freeBag.size();
+    }
+
+    public long getState(int x, int y) {
+        return board[x][y];
     }
 
     /**
