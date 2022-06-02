@@ -22,10 +22,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
- * Board edge, top-left
+ * Board edge, valids, edges, top-left
  *
  */
 public class WalkerF implements Walker {
@@ -40,26 +39,28 @@ public class WalkerF implements Walker {
     }
 
     @Override
+    public EBoard getBoard() {
+        return board;
+    }
+
+    @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
 /*        return getFreePiecesStrategyA()
                 .findFirst()
                 .orElse(null);*/
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
         return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
     }
 
     private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparatorGeneric() {
         return Comparator.<EBoard.Pair<EBoard.Field, ? extends Collection<?>>>
-                        comparingInt(pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
-                                                pair.left.getX() == board.getWidth() - 1 ||
-                                                pair.left.getY() == board.getHeight() - 1 ? 0 : 1) // Outer
-                .thenComparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()) // Top left
-                .thenComparingInt(pair -> pair.right.size())                         // Least valid pieces
+                        comparingInt(this::boardEdges) // Outer
+                .thenComparingInt(this::validPieces)                         // Least valid pieces
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
+                .thenComparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX()) // Top left
                 .thenComparingInt(pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
                                         pair.left.getX() == board.getWidth() - 1 ||
                                         pair.left.getY() == board.getHeight() - 1 ? 0 : 1);
     }
-
 
 }

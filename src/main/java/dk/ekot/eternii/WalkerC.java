@@ -42,7 +42,7 @@ public class WalkerC implements Walker {
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
         return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
     }
 

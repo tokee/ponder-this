@@ -44,7 +44,7 @@ public class WalkerD implements Walker {
 /*        return getFreePiecesStrategyA()
                 .findFirst()
                 .orElse(null);*/
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
         all.sort(comparator);
         return all.isEmpty() ? null : toPieces(all.get(0));
     }

@@ -17,13 +17,11 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -56,7 +54,7 @@ public class WalkerE implements Walker {
 /*        return getFreePiecesStrategyA()
                 .findFirst()
                 .orElse(null);*/
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw(board);
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
         return all.isEmpty() ? null : toPieces(Collections.min(all, comparatorNonRotating));
     }
 

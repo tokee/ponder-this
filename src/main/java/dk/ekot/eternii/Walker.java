@@ -15,6 +15,7 @@
 package dk.ekot.eternii;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -24,6 +25,8 @@ import java.util.stream.Collectors;
  * Provides next Field wih corresponding Pieces to try.
  */
 public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> {
+
+    EBoard getBoard();
 
     default EBoard.Pair<EBoard.Field, List<EBoard.Piece>> toPieces(EBoard.Pair<EBoard.Field, Set<Integer>> pair) {
         EBoard.Field field = pair.left;
@@ -36,17 +39,33 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
     /**
      * @return All free fields, with corresponding valid pieces (not rotated), not sorted.
      */
-    default List<EBoard.Pair<EBoard.Field, Set<Integer>>> getFreeRaw(EBoard board) {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> fields = new ArrayList<>(board.getWidth() * board.getHeight());
-        board.visitAll((x, y) -> {
-            final long state = board.getState(x, y);
+    default List<EBoard.Pair<EBoard.Field, Set<Integer>>> getFreeRaw() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> fields = new ArrayList<>(getBoard().getWidth() * getBoard().getHeight());
+        getBoard().visitAll((x, y) -> {
+            final long state = getBoard().getState(x, y);
             if (EBits.hasPiece(state)) {
                 return;
             }
-            EBoard.Field field = board.getField(x, y);
+            EBoard.Field field = getBoard().getField(x, y);
             fields.add(new EBoard.Pair<>(field, field.getBestPiecesNonRotating()));
         });
         return fields;
+    }
+
+    /**
+     * @return 0 if board edge piece, else 1.
+     */
+    default int boardEdges(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
+        return pair.left.getX() == 0 || pair.left.getY() == 0 ||
+               pair.left.getX() == getBoard().getWidth() - 1 ||
+               pair.left.getY() == getBoard().getHeight() - 1 ? 0 : 1;
+    }
+
+    /**
+     * @return amount of valid pieces.
+     */
+    default int validPieces(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
+        return pair.right.size();
     }
 
 }
