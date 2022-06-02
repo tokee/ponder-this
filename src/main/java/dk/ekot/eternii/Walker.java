@@ -85,7 +85,8 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
      * @return nearest to top-left corner, measured row by row.
      */
     default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> topLeft() {
-        return pair -> pair.left.getY() * getBoard().getWidth() + pair.left.getX();
+        final int boardWidth = getBoard().getWidth();
+        return pair -> pair.left.getY() * boardWidth + pair.left.getX();
     }
 
 }

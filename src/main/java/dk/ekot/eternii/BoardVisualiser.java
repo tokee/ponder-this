@@ -30,7 +30,7 @@ import java.text.AttributedString;
 public class BoardVisualiser implements EBoard.Observer {
     private static final Logger log = LoggerFactory.getLogger(BoardVisualiser.class);
 
-    public static final int UPDATE_INTERVAL = 100; // Every 100 ms
+    public static final int UPDATE_INTERVAL = 300; // Milliseconds
     
     private final EBoard board;
     private final EPieces pieces;

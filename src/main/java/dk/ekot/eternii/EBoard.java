@@ -662,9 +662,6 @@ public class EBoard {
                     .collect(Collectors.toList());
         }
         public Set<Integer> getBestPiecesNonRotating() {
-            if (freeBag.isEmpty()) {
-                return Collections.emptySet();
-            }
             return freeBag.getBestMatching(board[x][y]);
         }
 

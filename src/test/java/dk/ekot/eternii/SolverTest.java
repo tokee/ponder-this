@@ -41,10 +41,14 @@ public class SolverTest extends TestCase {
         testSolver(WalkerF::new, BacktrackSolver::new);
     }
 
-    public void testBacktrackReturnSolver() throws InterruptedException {
+    public void testBacktrackReturnSolver_A() throws InterruptedException {
+        testSolver(WalkerA::new, BacktrackReturnOnOneSolver::new);
+    }
+    public void testBacktrackReturnSolver_F() throws InterruptedException {
         testSolver(WalkerF::new, BacktrackReturnOnOneSolver::new);
     }
 
+    // ~58K/s laptop
     public void testBacktrackReturnBothSolver_F() throws InterruptedException {
         testSolver(WalkerF::new, BacktrackReturnOnBothSolver::new);
     }
@@ -57,14 +61,13 @@ public class SolverTest extends TestCase {
         testSolver(WalkerA::new, BacktrackReturnOnBothSolver::new);
     }
 
-    public void testBacktrackReturnBothSolver_ATest() throws InterruptedException {
+    public void testBacktrackReturnBothSolver_AFast() throws InterruptedException {
         testSolver(WalkerAFast::new, BacktrackReturnOnBothSolver::new);
     }
 
     public void testBacktrackReturnBothSolver_G() throws InterruptedException {
         testSolver(WalkerG::new, BacktrackReturnOnBothSolver::new);
     }
-
 
     private void testSolver(Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory)
             throws InterruptedException {

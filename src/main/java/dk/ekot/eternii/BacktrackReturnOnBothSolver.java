@@ -50,7 +50,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     public void run() {
         startTime = System.currentTimeMillis()-1; // -1 to avoid division by zero
         //board.sanityCheckAll();
-        dive(0);
+        dive(0, 1.0);
         log.debug(board.getEdgeTracker().toString());
     }
 
@@ -58,7 +58,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
      * Iterates all possible fields and pieces, recursively calling for each piece.
      * @return true if the bottom was reached, else false.
      */
-    private boolean dive(int depth) {
+    private boolean dive(int depth, double posibilities) {
 //        board.sanityCheckAll();
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
@@ -70,9 +70,9 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 
         }
         if (System.currentTimeMillis() > nextPrintMS) {
-            System.out.printf("Attempts: %dK, free=%d, minFree=%d, attempts/sec=%d, best=%s\n",
+            System.out.printf("Attempts: %dK, free=%d, minFree=%d, attempts/sec=%d, possibilities=%3.0e best=%s\n",
                               attempts/1000, board.getFreeCount(), minFree,
-                              attempts*1000/(System.currentTimeMillis()-startTime), best);
+                              attempts*1000/(System.currentTimeMillis()-startTime), posibilities, best);
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
@@ -86,7 +86,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
             attempts++;
             if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size())) {
-                if (dive(depth+1)) {
+                if (dive(depth+1, posibilities*free.right.size())) {
                     return true;
                 }
                 board.removePiece(field.getX(), field.getY());
