@@ -184,6 +184,7 @@ public class EBoard {
         if (!updatePossible9(x, y)) { // Rollback
             board[x][y] = EBits.BLANK_STATE;
             updateOuterEdges9(x, y);
+            updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             return false;
 //            log.warn("placePiece(" + x + ", " + y + ", piece=" + piece + ", rotation=" + rotation +
@@ -211,6 +212,7 @@ public class EBoard {
             updateTracker9(x, y, +1);
             board[x][y] = EBits.BLANK_STATE;
             updateOuterEdges9(x, y);
+            updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             return false;
         }
@@ -220,6 +222,7 @@ public class EBoard {
             updateTracker9(x, y, +1);
             board[x][y] = EBits.BLANK_STATE;
             updateOuterEdges9(x, y);
+            updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             return false;
         }
@@ -725,11 +728,11 @@ public class EBoard {
         }
 
         @SuppressWarnings("unchecked")
-        public Set<Integer> getBestPiecesNonRotating() {
+        public Set<Integer> getBestPiecesNonRotatingFaulty() {
             return (Set<Integer>)possible[x][y];
         }
         // TODO: Verify the above method works properly
-        public Set<Integer> getBestPiecesNonRotatingOld() {
+        public Set<Integer> getBestPiecesNonRotating() {
             return freeBag.getBestMatching(board[x][y]);
         }
 

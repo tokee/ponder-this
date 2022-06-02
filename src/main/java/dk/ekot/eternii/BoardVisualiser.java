@@ -135,9 +135,7 @@ public class BoardVisualiser implements EBoard.Observer {
             tile = pieces.getPieceImage(piece, rotation);
         }
         boardImage.getGraphics().drawImage(tile, x * edgeWidth, y * edgeHeight, null);
-        if (!labels[x][y].isEmpty()) {
-            paintText(x, y, labels[x][y]);
-        }
+        paintText(x, y, labels[x][y]);
         if (showPossiblePieces && piece == EPieces.NULL_P && board.getField(x, y).getOuterEdgeCount() != 0) {
             paintText(x, y, Integer.toString(board.getField(x, y).getBestPiecesNonRotating().size()));
         }
@@ -147,6 +145,9 @@ public class BoardVisualiser implements EBoard.Observer {
     }
 
     private void paintText(int x, int y, String text) {
+        if (text.isEmpty()) {
+            return;
+        }
         AttributedString attributedString = new AttributedString(text);
         attributedString.addAttribute(TextAttribute.FOREGROUND, Color.BLACK);
         attributedString.addAttribute(TextAttribute.BACKGROUND, Color.WHITE);
