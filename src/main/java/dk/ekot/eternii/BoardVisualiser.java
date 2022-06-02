@@ -43,6 +43,7 @@ public class BoardVisualiser implements EBoard.Observer {
     private final String[][] labels;
 
     private int best = 0;
+    private boolean showPossiblePieces = true;
 
     public BoardVisualiser(EBoard board) {
         this(board, false);
@@ -80,6 +81,14 @@ public class BoardVisualiser implements EBoard.Observer {
         t.setDaemon(true);
         t.start();
         board.registerObserver(this);
+    }
+
+    public boolean isShowPossiblePieces() {
+        return showPossiblePieces;
+    }
+
+    public void setShowPossiblePieces(boolean showPossiblePieces) {
+        this.showPossiblePieces = showPossiblePieces;
     }
 
     private void invalidateConditionally() {
@@ -127,15 +136,22 @@ public class BoardVisualiser implements EBoard.Observer {
         }
         boardImage.getGraphics().drawImage(tile, x * edgeWidth, y * edgeHeight, null);
         if (!labels[x][y].isEmpty()) {
-            AttributedString attributedString = new AttributedString(labels[x][y]);
-            attributedString.addAttribute(TextAttribute.FOREGROUND, Color.BLACK);
-            attributedString.addAttribute(TextAttribute.BACKGROUND, Color.WHITE);
-            attributedString.addAttribute(TextAttribute.SIZE, 12);
-            boardImage.getGraphics().drawString(attributedString.getIterator(), x * edgeWidth + 3, y * edgeHeight + 30);
+            paintText(x, y, labels[x][y]);
+        }
+        if (showPossiblePieces && piece == EPieces.NULL_P && board.getField(x, y).getOuterEdgeCount() != 0) {
+            paintText(x, y, Integer.toString(board.getField(x, y).getBestPiecesNonRotating().size()));
         }
         if (boardDisplayComponent != null) {
             boardDisplayComponent.repaint(100L, x*edgeHeight, y*edgeHeight, edgeWidth, edgeHeight);
         }
+    }
+
+    private void paintText(int x, int y, String text) {
+        AttributedString attributedString = new AttributedString(text);
+        attributedString.addAttribute(TextAttribute.FOREGROUND, Color.BLACK);
+        attributedString.addAttribute(TextAttribute.BACKGROUND, Color.WHITE);
+        attributedString.addAttribute(TextAttribute.SIZE, 12);
+        boardImage.getGraphics().drawString(attributedString.getIterator(), x * edgeWidth + 3, y * edgeHeight + 30);
     }
 
 }

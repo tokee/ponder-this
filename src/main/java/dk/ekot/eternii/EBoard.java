@@ -646,6 +646,7 @@ public class EBoard {
             return EBoard.this.getValidRotationFailing(x, y, piece);
         }
         // TODO: Switch to delayed rotation check and just return getBestMatching
+        @Deprecated
         public List<Piece> getBestPieces() {
             if (freeBag.isEmpty()) {
                 return Collections.emptyList();
