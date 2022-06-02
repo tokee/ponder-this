@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static dk.ekot.eternii.EPieces.NULL_E;
-import static dk.ekot.eternii.EPieces.NULL_P;
 
 /**
  * Eternity II board (flexible size)
@@ -82,6 +81,7 @@ public class EBoard {
     private final int height;
 
     private final long[][] board; // states, as defined in EBits
+    private final Set[][] possible; // TODO: Figure out how to hack around the "no generic array creation"-limitation
     private final EdgeTracker edgeTracker = new EdgeTracker();
 
     private final Set<Observer> observers = new HashSet<>();
@@ -94,15 +94,17 @@ public class EBoard {
         for (int x = 0 ; x < width ; x++) {
             Arrays.fill(board[x], EBits.BLANK_STATE);
         }
+        this.possible = new Set[width][height];
         updateOuterEdgesAll();
         freeBag = new PieceTracker(pieces);
 /*        pieces.allPieces()
                 .boxed()
                 .peek(piece -> updatePieceTracking(piece, 1))
                 .forEach(this.freeBag::add);*/
-        log.debug("EdgeTracker blank: " + getEdgeTracker());
+//        log.debug("EdgeTracker blank: " + getEdgeTracker());
         updateEdgeTrackerAll(-1);
-        log.debug("EdgeTracker after EBoard construction: " + getEdgeTracker());
+        updatePossibleAll(); // Must be after freeBag construction
+//        log.debug("EdgeTracker after EBoard construction: " + getEdgeTracker());
     }
 
     /**
@@ -142,6 +144,9 @@ public class EBoard {
         // Register piece as free
         updatePieceTracking(piece, +1);
         freeBag.add(piece);
+        if (!updatePossible9(x, y)) {
+            log.warn("removePiece(" + x + ", " + y + "): Registered at least one field with no possible pieces");
+        }
         notifyObservers(x, y, "");
     }
 
@@ -176,6 +181,14 @@ public class EBoard {
         board[x][y] = EBits.setPieceFull(board[x][y], piece, rotation, pieces.getEdges(piece, rotation));
         //System.out.printf("\nBefore(%d, %d): %s\n", x, y, EBits.toString(board[x][y]));
         updateOuterEdges9(x, y);
+        if (!updatePossible9(x, y)) { // Rollback
+            board[x][y] = EBits.BLANK_STATE;
+            updateOuterEdges9(x, y);
+            updateTracker9(x, y, -1);
+            return false;
+//            log.warn("placePiece(" + x + ", " + y + ", piece=" + piece + ", rotation=" + rotation +
+//                     "): Registered at least one field with no possible pieces");
+        }
         //System.out.printf("After (%d, %d): %s\n", x, y, EBits.toString(board[x][y]));
         //System.out.printf("Origo (%d, %d): %s\n", 0, 0, EBits.toString(board[0][0]));
 /*        if (y > 0) {
@@ -214,15 +227,49 @@ public class EBoard {
            throw new IllegalStateException("Tried removing piece " + piece + " from the free bag but it was not there");
         }
         notifyObservers(x, y, label);
+        //checkEdgeTracker();
+        //checkPossible(); // TODO: Remove this sanity check
         return true;
+    }
+
+    /**
+     * Updates possible pieces for all fields.
+     * @return false if at least 1 field does not have any possible pieces.
+     */
+    private boolean updatePossibleAll() {
+        AtomicBoolean ok = new AtomicBoolean(true);
+        visitAll((x, y) -> ok.set(ok.get() & updatePossible(x, y)));
+        return ok.get();
+    }
+
+    /**
+     * Updates possible pieces for the 9 nearest fields.
+     * @return false if at least 1 field does not have any possible pieces.
+     */
+    private boolean updatePossible9(int origoX, int origoY) {
+        AtomicBoolean ok = new AtomicBoolean(true);
+        visit9(origoX, origoY, (x, y) -> ok.set(ok.get() & updatePossible(x, y)));
+        return ok.get();
+    }
+
+    /**
+     * Updates possible pieces for the field.
+     * @return false if there are no possible pieces.
+     */
+    private boolean updatePossible(int x, int y) {
+        if (EBits.hasPiece(board[x][y])) {
+            return true;
+        }
+        possible[x][y] = freeBag.getBestMatching(board[x][y]);
+        return !possible[x][y].isEmpty();
     }
 
     private void updateOuterEdgesAll() {
         visitAll(this::updateOuterEdges);
     }
 
-    private void updateOuterEdges9(int x, int y) {
-        visit9(x, y, this::updateOuterEdges);
+    private void updateOuterEdges9(int origoX, int origoY) {
+        visit9(origoX, origoY, this::updateOuterEdges);
     }
 
     private void updateOuterEdges(Field field) {
@@ -274,7 +321,7 @@ public class EBoard {
     private boolean updateTracker9(int origoX, int origoY, int delta) {
         AtomicBoolean allOK = new AtomicBoolean(true);
         visit9(origoX, origoY, (x, y) -> {
-            allOK.set(allOK.get() && updateTracker(x, y, delta));
+            allOK.set(allOK.get() & updateTracker(x, y, delta));
 //            if (!allOK.get()) {
 //                System.out.println("Invalidated at " + x + ", " + y);
 //            }
@@ -352,6 +399,21 @@ public class EBoard {
         checkFree();
         checkEdges();
         checkInner();
+        checkEdgeTracker();
+        checkPossible();
+    }
+
+    private void checkEdgeTracker() {
+        edgeTracker.checkForNegative();
+    }
+
+    // Checks that all free field has at least 1 possible piece
+    private void checkPossible() {
+        streamAllFields().filter(Field::isFree).forEach(field -> {
+            if (field.getBestPiecesNonRotating().isEmpty()) {
+                throw new IllegalStateException(field + " has no possible pieces");
+            }
+        });
     }
 
     private void checkEdges() {
@@ -661,7 +723,13 @@ public class EBoard {
                     })
                     .collect(Collectors.toList());
         }
+
+        @SuppressWarnings("unchecked")
         public Set<Integer> getBestPiecesNonRotating() {
+            return (Set<Integer>)possible[x][y];
+        }
+        // TODO: Verify the above method works properly
+        public Set<Integer> getBestPiecesNonRotatingOld() {
             return freeBag.getBestMatching(board[x][y]);
         }
 

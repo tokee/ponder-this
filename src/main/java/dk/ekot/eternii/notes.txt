@@ -98,4 +98,6 @@ When running testBacktrackReturnSolver_A it quickly reaches a state with multipl
 having 0 possibl3 pieces: Instead an early termination should be done when updating the
 state of surrounding fields when placing a piece.
 
+The test checkPossible has been implemented and fires after some time when placed at the
+end of placePiece. Cause currently unknown. Maybe it is due to the opposing counter?
 

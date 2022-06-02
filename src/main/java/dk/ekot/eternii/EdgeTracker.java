@@ -68,19 +68,21 @@ public class EdgeTracker {
     public boolean add(int edge1, int edge2, int edge3, int edge4, int delta) {
         // Four
         if (edge1 != NULL_E && edge2 != NULL_E && edge3 != NULL_E && edge4 != NULL_E) { // Called often so this is optimized
-            return addFour(edge1, edge2, edge3, edge4, delta) |
-                   addThree(edge2, edge3, edge4, delta) |
-                   addThree(edge3, edge4, edge1, delta) |
-                   addThree(edge4, edge1, edge2, delta) |
-                   addTwo(edge1, edge2, delta) |
-                   addTwo(edge2, edge3, delta) |
-                   addTwo(edge3, edge4, delta) |
-                   addTwo(edge4, edge1, delta) |
-                   addOne(edge1, delta) |
-                   addOne(edge2, delta) |
-                   addOne(edge3, delta) |
-                   addOne(edge4, delta) |
-                   addOpposing(edge1, edge3, delta) |
+            return addFour(edge1, edge2, edge3, edge4, delta) &
+                   addThree(edge2, edge3, edge4, delta) &
+                   addThree(edge3, edge4, edge1, delta) &
+                   addThree(edge4, edge1, edge2, delta) &
+                   addTwo(edge1, edge2, delta) &
+                   addTwo(edge2, edge3, delta) &
+                   addTwo(edge3, edge4, delta) &
+                   addTwo(edge4, edge1, delta) &
+                   addOne(edge1, delta) &
+                   addOne(edge2, delta) &
+                   addOne(edge3, delta) &
+                   addOne(edge4, delta) &
+                   addOpposing(edge1, edge3, delta) &
+                   addOpposing(edge3, edge1, delta) &
+                   addOpposing(edge4, edge2, delta) &
                    addOpposing(edge2, edge4, delta);
         }
 
@@ -130,9 +132,11 @@ public class EdgeTracker {
         // Opposing
         if (edge1 != NULL_E && edge2 == NULL_E && edge3 != NULL_E && edge4 == NULL_E) {
             allOK = allOK & addOpposing(edge1, edge3, delta);
+            allOK = allOK & addOpposing(edge3, edge1, delta);
         }
         if (edge1 == NULL_E && edge2 != NULL_E && edge3 == NULL_E && edge4 != NULL_E) {
             allOK = allOK & addOpposing(edge2, edge4, delta);
+            allOK = allOK & addOpposing(edge4, edge2, delta);
         }
 
         return allOK;
@@ -176,7 +180,7 @@ public class EdgeTracker {
 
     public boolean addFour(int edgeType1, int edgeType2, int edgeType3, int edgeType4, int delta) {
         AtomicBoolean allOK = new AtomicBoolean(true);
-        visitFour(edgeType1, edgeType2, edgeType3, edgeType4, key -> allOK.set(allOK.get() && four.add(key, delta)));
+        visitFour(edgeType1, edgeType2, edgeType3, edgeType4, key -> allOK.set(allOK.get() & four.add(key, delta)));
         return allOK.get();
     }
     public int getFour(int edgeType1, int edgeType2, int edgeType3, int edgeType4) {
@@ -189,6 +193,14 @@ public class EdgeTracker {
         callback.accept(EF * EF * EF * edgeType2 + EF * EF * edgeType3 + EF * edgeType4 + edgeType1);
         callback.accept(EF * EF * EF * edgeType3 + EF * EF * edgeType4 + EF * edgeType1 + edgeType2);
         callback.accept(EF * EF * EF * edgeType4 + EF * EF * edgeType1 + EF * edgeType2 + edgeType3);
+    }
+
+    public void checkForNegative() {
+        one.checkForNegative();
+        two.checkForNegative();
+        three.checkForNegative();
+        opposing.checkForNegative();
+        four.checkForNegative();
     }
 
 
@@ -212,6 +224,14 @@ public class EdgeTracker {
 
         public String toStringFull() {
             return Arrays.stream(counts).boxed().collect(Collectors.toList()).toString();
+        }
+
+        public void checkForNegative() {
+            for (int i = 0 ; i < counts.length ;i++) {
+                if (counts[i] < 0) {
+                    throw new IllegalStateException("The value at counts[" + i + "] was " + counts[i]);
+                }
+            }
         }
     }
 
@@ -244,6 +264,14 @@ public class EdgeTracker {
             return "Counter(#pos=" + values().stream().filter(v -> v > 0).count() +
                    ", #zero=" + values().stream().filter(v -> v == 0).count() +
                    ", #neg=" + values().stream().filter(v -> v < 0).count() + ")";
+        }
+
+        public void checkForNegative() {
+            forEach((key, value) -> {
+                if (value < 0) {
+                    throw new IllegalStateException("Negative key-value: " + key + ": " + value);
+                }
+            });
         }
     }
 

@@ -58,7 +58,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
      * Iterates all possible fields and pieces, recursively calling for each piece.
      * @return true if the bottom was reached, else false.
      */
-    private boolean dive(int depth, double posibilities) {
+    private boolean dive(int depth, double possibilities) {
 //        board.sanityCheckAll();
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
@@ -72,7 +72,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
         if (System.currentTimeMillis() > nextPrintMS) {
             System.out.printf("Attempts: %dK, free=%d, minFree=%d, attempts/sec=%d, possibilities=%3.0e best=%s\n",
                               attempts/1000, board.getFreeCount(), minFree,
-                              attempts*1000/(System.currentTimeMillis()-startTime), posibilities, best);
+                              attempts*1000/(System.currentTimeMillis()-startTime), possibilities, best);
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
@@ -86,7 +86,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
             attempts++;
             if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size())) {
-                if (dive(depth+1, posibilities*free.right.size())) {
+                if (dive(depth+1, possibilities*free.right.size())) {
                     return true;
                 }
                 board.removePiece(field.getX(), field.getY());
