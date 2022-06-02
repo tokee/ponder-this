@@ -22,26 +22,20 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.ToIntFunction;
 
 /**
- * Board edge, valids, edges, top-left
+ * Super class for Walkers.
+ *
+ * Requests all free fields with piece-IDs and used {@link #comparator} to return {@code min} in {@link #get()}.
  *
  */
-public class WalkerF implements Walker {
-    private static final Logger log = LoggerFactory.getLogger(WalkerF.class);
-
+public abstract class WalkerImpl implements Walker {
     private final EBoard board;
     private final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
 
-    public WalkerF(EBoard board) {
+    public WalkerImpl(EBoard board) {
         this.board = board;
-        comparator = getFieldComparatorGeneric();
-    }
-
-    @Override
-    public EBoard getBoard() {
-        return board;
+        comparator = getFieldComparator();
     }
 
     @Override
@@ -50,13 +44,10 @@ public class WalkerF implements Walker {
         return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
     }
 
-    private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparatorGeneric() {
-        return Comparator.
-                comparingInt(this::boardEdges)
-                .thenComparingInt(this::validPieces)
-                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
-                .thenComparingInt(topLeft());
+    @Override
+    public EBoard getBoard() {
+        return board;
     }
 
-
+    protected abstract Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator();
 }

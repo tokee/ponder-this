@@ -3,6 +3,7 @@ package dk.ekot.eternii;
 import junit.framework.TestCase;
 
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,38 +22,54 @@ import java.util.function.BiFunction;
 public class SolverTest extends TestCase {
 
     public void testNullSolver() throws InterruptedException {
-        testSolver((board, walker) -> () -> System.out.println("Doing nothing"));
+        testSolver(WalkerA::new, (board, walker) -> () -> System.out.println("Doing nothing"));
     }
 
     public void testOneWaySolver() throws InterruptedException {
-        testSolver(OneWaySolver::new);
+        testSolver(WalkerF::new, OneWaySolver::new);
     }
 
     public void testOneWayAllPiecesSolver() throws InterruptedException {
-        testSolver(OneWayAllPiecesSolver::new);
+        testSolver(WalkerF::new, OneWayAllPiecesSolver::new);
     }
 
     public void testOneWayAllFieldsAllPiecesSolver() throws InterruptedException {
-        testSolver(OneWayAllFieldsAllPiecesSolver::new);
+        testSolver(WalkerF::new, OneWayAllFieldsAllPiecesSolver::new);
     }
 
     public void testBacktrackSolver() throws InterruptedException {
-        testSolver(BacktrackSolver::new);
+        testSolver(WalkerF::new, BacktrackSolver::new);
     }
 
     public void testBacktrackReturnSolver() throws InterruptedException {
-        testSolver(BacktrackReturnOnOneSolver::new);
+        testSolver(WalkerF::new, BacktrackReturnOnOneSolver::new);
     }
 
-    public void testBacktrackReturnBothSolver() throws InterruptedException {
-        testSolver(BacktrackReturnOnBothSolver::new);
+    public void testBacktrackReturnBothSolver_F() throws InterruptedException {
+        testSolver(WalkerF::new, BacktrackReturnOnBothSolver::new);
+    }
+
+    public void testBacktrackReturnBothSolver_B() throws InterruptedException {
+        testSolver(WalkerB::new, BacktrackReturnOnBothSolver::new);
+    }
+
+    public void testBacktrackReturnBothSolver_A() throws InterruptedException {
+        testSolver(WalkerA::new, BacktrackReturnOnBothSolver::new);
+    }
+
+    public void testBacktrackReturnBothSolver_ATest() throws InterruptedException {
+        testSolver(WalkerAFast::new, BacktrackReturnOnBothSolver::new);
+    }
+
+    public void testBacktrackReturnBothSolver_G() throws InterruptedException {
+        testSolver(WalkerG::new, BacktrackReturnOnBothSolver::new);
     }
 
 
-    private void testSolver(BiFunction<EBoard, Walker, Runnable> solverFactory) throws InterruptedException {
+    private void testSolver(Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory)
+            throws InterruptedException {
         EBoard board = getBoard();
-        Walker walker = new WalkerF(board);
-
+        Walker walker = walkerFactory.apply(board);
         Runnable solver = solverFactory.apply(board, walker);
         long runTime = -System.currentTimeMillis();
         solver.run();

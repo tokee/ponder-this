@@ -22,37 +22,23 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.ToIntFunction;
 
 /**
  * Board edge, valids, edges, top-left
  *
  */
-public class WalkerF implements Walker {
-    private static final Logger log = LoggerFactory.getLogger(WalkerF.class);
+public class WalkerG extends WalkerImpl {
+    private static final Logger log = LoggerFactory.getLogger(WalkerG.class);
 
-    private final EBoard board;
-    private final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
-
-    public WalkerF(EBoard board) {
-        this.board = board;
-        comparator = getFieldComparatorGeneric();
+    public WalkerG(EBoard board) {
+        super(board);
     }
 
     @Override
-    public EBoard getBoard() {
-        return board;
-    }
-
-    @Override
-    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
-        return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
-    }
-
-    private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparatorGeneric() {
+    protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
-                comparingInt(this::boardEdges)
+                comparingInt(this::clueCorners)
+                .thenComparingInt(this::boardEdges)
                 .thenComparingInt(this::validPieces)
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
                 .thenComparingInt(topLeft());

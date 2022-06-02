@@ -22,20 +22,19 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
- * First field edges, then board edges.
+ * Prioritises least valid pieces.
  *
- * Observation: Practically same as WalkerB
+ * Observation: Three corners fairly quickly, then very slow progress.
  */
-public class WalkerC implements Walker {
-    private static final Logger log = LoggerFactory.getLogger(WalkerC.class);
+public class WalkerAFast implements Walker {
+    private static final Logger log = LoggerFactory.getLogger(WalkerAFast.class);
 
     private final EBoard board;
     private final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
 
-    public WalkerC(EBoard board) {
+    public WalkerAFast(EBoard board) {
         this.board = board;
         comparator = getFieldComparator();
     }
@@ -51,25 +50,9 @@ public class WalkerC implements Walker {
         return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
     }
 
-    /**
-     * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
-     */
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getFreePiecesStrategyA() {
-        return board.streamAllFields()
-                .filter(EBoard.Field::isFree)
-                .map(field -> new EBoard.Pair<>(field, field.getBestPieces()))
-                .sorted(comparator);
-    }
-
     private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.<EBoard.Pair<EBoard.Field, ? extends Collection<?>>>comparingInt(pair -> pair.right.size()) // Least valid pieces
-                .thenComparingInt(
-                        pair -> pair.left.getX() == 0 || pair.left.getY() == 0 ||
-                                pair.left.getX() == board.getWidth() - 1 ||
-                                pair.left.getY() == board.getHeight() - 1 ? 0 : 1) // Board edges
-                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount())           // Least free edges
-                .thenComparingInt(pair -> pair.left.getY()*board.getWidth() + pair.left.getX());
+                .thenComparingInt(pair -> 4 - pair.left.getOuterEdgeCount())           // Least free edges
+                .thenComparingInt(pair -> pair.left.getY() * board.getWidth() + pair.left.getX());
     }
-
-
 }

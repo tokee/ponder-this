@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -62,10 +63,29 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
     }
 
     /**
+     * @return 0 if in one of the four 3x3 corners, else 1.
+     */
+    default int clueCorners(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
+        final int x = pair.left.getX();
+        final int y = pair.left.getY();
+        final int w = getBoard().getWidth();
+        final int h = getBoard().getHeight();
+
+        return ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 0 : 1;
+    }
+
+    /**
      * @return amount of valid pieces.
      */
     default int validPieces(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
         return pair.right.size();
+    }
+
+    /**
+     * @return nearest to top-left corner, measured row by row.
+     */
+    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> topLeft() {
+        return pair -> pair.left.getY() * getBoard().getWidth() + pair.left.getX();
     }
 
 }

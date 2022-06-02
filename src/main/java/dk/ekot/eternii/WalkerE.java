@@ -50,6 +50,11 @@ public class WalkerE implements Walker {
     }
 
     @Override
+    public EBoard getBoard() {
+        return board;
+    }
+
+    @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
 /*        return getFreePiecesStrategyA()
                 .findFirst()
