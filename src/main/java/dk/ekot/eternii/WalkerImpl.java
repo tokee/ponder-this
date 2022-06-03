@@ -30,11 +30,13 @@ import java.util.Set;
  *
  */
 public abstract class WalkerImpl implements Walker {
-    private final EBoard board;
-    private final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
+    final EBoard board;
+    final EPieces pieces;
+    final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
 
     public WalkerImpl(EBoard board) {
         this.board = board;
+        this.pieces = board.getPieces();
         comparator = getFieldComparator();
     }
 

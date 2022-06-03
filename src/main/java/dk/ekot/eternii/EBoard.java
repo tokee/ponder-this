@@ -714,6 +714,10 @@ public class EBoard {
             return isFree() ? (int)NULL_E : pieces.getLeft(getPiece(), getRotation());
         }
   */
+        public int getType() {
+            return pieces.getType(getPiece());
+        }
+
         public int getOuterEdgeCount() {
             return EBits.countDefinedEdges(board[x][y]);
 /*            return (lenientGetBottomEdge(x, y-1) == NULL_E ? 0 : 1) +

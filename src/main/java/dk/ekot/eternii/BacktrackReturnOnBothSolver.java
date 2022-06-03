@@ -39,10 +39,16 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     private long printDeltaMS = 1000;
     private long nextPrintMS = System.currentTimeMillis();
     private String best = "";
+    private final int max;
+    private long foundSolutions = 0;
 
     public BacktrackReturnOnBothSolver(EBoard board, Walker walker) {
+        this(board, walker, Integer.MAX_VALUE);
+    }
+    public BacktrackReturnOnBothSolver(EBoard board, Walker walker, int max) {
         this.board = board;
         this.walker = walker;
+        this.max = max;
         minFree = board.getFreeCount();
     }
 
@@ -54,6 +60,10 @@ public class BacktrackReturnOnBothSolver implements Runnable {
         log.debug(board.getEdgeTracker().toString());
     }
 
+    public long getFoundSolutions() {
+        return foundSolutions;
+    }
+
     /**
      * Iterates all possible fields and pieces, recursively calling for each piece.
      * @return true if the bottom was reached, else false.
@@ -61,6 +71,9 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     private boolean dive(int depth, double possibilities) {
 //        board.sanityCheckAll();
         if (board.getFreeCount() == 0) { // Bottom reached
+            return true;
+        }
+        if (depth == max) {
             return true;
         }
         if (minFree > board.getFreeCount()) {
@@ -86,7 +99,9 @@ public class BacktrackReturnOnBothSolver implements Runnable {
             attempts++;
             if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size())) {
                 if (dive(depth+1, possibilities*free.right.size())) {
-                    return true;
+                    if (++foundSolutions % 1000 == 0) {
+                        System.out.println("Complete solutions so far: " + foundSolutions);
+                    }
                 }
                 board.removePiece(field.getX(), field.getY());
             }/* else {

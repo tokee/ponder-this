@@ -101,3 +101,9 @@ state of surrounding fields when placing a piece.
 The test checkPossible has been implemented and fires after some time when placed at the
 end of placePiece. Cause currently unknown. Maybe it is due to the opposing counter?
 
+3) It should not be possible to encounter a state with 0 possible. Fix it.
+Unit test: Place selected pieces and check.
+Sanity: Check that PieceTracker and Edge tracker are aligned
+
+4) When multiple fields with the same number of pieces are availabe as possibles, choose
+pseudo-randomly (Random with known seed) between them.

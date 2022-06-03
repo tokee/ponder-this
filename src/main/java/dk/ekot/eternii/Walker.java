@@ -30,6 +30,9 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
     EBoard getBoard();
 
     default EBoard.Pair<EBoard.Field, List<EBoard.Piece>> toPieces(EBoard.Pair<EBoard.Field, Set<Integer>> pair) {
+        if (pair == null) {
+            return null;
+        }
         EBoard.Field field = pair.left;
         List<EBoard.Piece> pieces = pair.right.stream()
                 .map(p -> new EBoard.Piece(p, field.getValidRotation(p)))
