@@ -138,7 +138,8 @@ public class EBoard {
         // Remove piece from board
         updateTracker9(x, y, +1);
         board[x][y] = EBits.BLANK_STATE;
-        updateOuterEdges9(x, y);
+        //updateOuterEdges9(x, y);
+        updateSurroundingEdgesAndSelf(x, y);
         updateTracker9(x, y, -1);
 
         // Register piece as free
@@ -180,10 +181,12 @@ public class EBoard {
         updateTracker9(x, y, +1);
         board[x][y] = EBits.setPieceFull(board[x][y], piece, rotation, pieces.getEdges(piece, rotation));
         //System.out.printf("\nBefore(%d, %d): %s\n", x, y, EBits.toString(board[x][y]));
-        updateOuterEdges9(x, y);
+        //updateOuterEdges9(x, y);
+        updateSurroundingEdgesAndSelf(x, y);
         if (!updatePossible9(x, y)) { // Rollback
             board[x][y] = EBits.BLANK_STATE;
-            updateOuterEdges9(x, y);
+            //updateOuterEdges9(x, y);
+            updateSurroundingEdgesAndSelf(x, y);
             updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             return false;
@@ -211,7 +214,8 @@ public class EBoard {
             // At least one tracker is negative so we rollback
             updateTracker9(x, y, +1);
             board[x][y] = EBits.BLANK_STATE;
-            updateOuterEdges9(x, y);
+            //updateOuterEdges9(x, y);
+            updateSurroundingEdgesAndSelf(x, y);
             updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             return false;
@@ -221,7 +225,8 @@ public class EBoard {
             updatePieceTracking(piece, +1);
             updateTracker9(x, y, +1);
             board[x][y] = EBits.BLANK_STATE;
-            updateOuterEdges9(x, y);
+            //updateOuterEdges9(x, y);
+            updateSurroundingEdgesAndSelf(x, y);
             updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             return false;
@@ -230,6 +235,7 @@ public class EBoard {
            throw new IllegalStateException("Tried removing piece " + piece + " from the free bag but it was not there");
         }
         notifyObservers(x, y, label);
+        //sanityCheckAll();
         //checkEdgeTracker();
         //checkPossible(); // TODO: Remove this sanity check
         return true;
@@ -294,6 +300,28 @@ public class EBoard {
         }
         */
     }
+    private void updateSurroundingEdgesAndSelf(int x, int y) {
+        final long state = board[x][y];
+        long t = 0;
+        if (x > 0) { // To the West
+            t = EBits.setEastEdge(board[x - 1][y], EBits.getPieceWestEdge(state));
+            board[x - 1][y] = EBits.updateDefinedEdges(t);
+        }
+        if (x < width-1) { // To the East
+            t = EBits.setWestEdge(board[x+1][y], EBits.getPieceEastEdge(state));
+            board[x+1][y] = EBits.updateDefinedEdges(t);
+        }
+        if (y > 0) { // To the North
+            t = EBits.setSouthEdge(board[x][y-1], EBits.getPieceNorthEdge(state));
+            board[x][y-1] = EBits.updateDefinedEdges(t);
+        }
+        if (y < height-1) { // To the South
+            t = EBits.setNorthEdge(board[x][y+1], EBits.getPieceSouthEdge(state));
+            board[x][y+1] = EBits.updateDefinedEdges(t);
+        }
+        updateOuterEdges(x, y);
+    }
+
 
     /**
      * Register edges from the given pieces and add them to the board bag.
@@ -728,11 +756,11 @@ public class EBoard {
         }
 
         @SuppressWarnings("unchecked")
-        public Set<Integer> getBestPiecesNonRotatingFaulty() {
+        public Set<Integer> getBestPiecesNonRotating() {
             return (Set<Integer>)possible[x][y];
         }
         // TODO: Verify the above method works properly
-        public Set<Integer> getBestPiecesNonRotating() {
+        public Set<Integer> getBestPiecesNonRotatingOld() {
             return freeBag.getBestMatching(board[x][y]);
         }
 

@@ -89,4 +89,25 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
         return pair -> pair.left.getY() * boardWidth + pair.left.getX();
     }
 
+    default int clueCornersOrdered(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
+        final int x = pair.left.getX();
+        final int y = pair.left.getY();
+        final int w = getBoard().getWidth();
+        final int h = getBoard().getHeight();
+
+        if (x < 3) {
+            if (y < 3) {
+                return 1;
+            } else if (y >= h-3){
+                return 3;
+            }
+        } else if (x >= w-3) {
+            if (y < 3) {
+                return 2;
+            } else if (y >= h-3){
+                return 4;
+            }
+        }
+        return 5; // Not a corner
+    }
 }

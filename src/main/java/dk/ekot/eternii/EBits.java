@@ -85,8 +85,6 @@ public class EBits {
 
     public static final long BLANK_STATE;
 
-
-
     static {
         long state = setPiece(0L, NULL_P);
         state = setRotation(state, 0);
@@ -243,6 +241,18 @@ public class EBits {
     public static int countDefinedEdges(long state) {
         return Long.bitCount(state & EDGES_DEFINED_MASK);
     }
+    public static long updateDefinedEdges(long state) {
+        return setDefinedEdges(state, deriveDefinedEdges(state));
+    }
+    /**
+     * @return bitmap of set edges: North, East, South, Vest
+     */
+    public static int deriveDefinedEdges(long edges) {
+        return (getNorthEdge(edges) != NULL_E  ? 0b1000 : 0) |
+               (getEastEdge(edges)  != NULL_E  ? 0b0100 : 0) |
+               (getSouthEdge(edges) != NULL_E  ? 0b0010 : 0) |
+               (getWestEdge(edges)  != NULL_E  ? 0b0001 : 0);
+    }
 
     public static long setNorthEdge(long state, long edge) {
         return ((edge << NORTH_EDGE_SHIFT) & NORTH_EDGE_MASK) | (state & ~NORTH_EDGE_MASK);
@@ -283,16 +293,6 @@ public class EBits {
         long rightmost = (onlyEdges & EDGE_MASK) << (3*EDGE_SHIFT);
         long finalEdges = shifted | rightmost;
         return nonEdges | finalEdges;
-    }
-
-    /**
-     * @return bitmap of set edges: North, East, South, Vest
-     */
-    public static int deriveDefinedEdges(long edges) {
-        return (getNorthEdge(edges) != NULL_E  ? 0b1000 : 0) |
-               (getEastEdge(edges)  != NULL_E  ? 0b0100 : 0) |
-               (getSouthEdge(edges) != NULL_E  ? 0b0010 : 0) |
-               (getWestEdge(edges)  != NULL_E  ? 0b0001 : 0);
     }
 
     public static String toString(long state) {

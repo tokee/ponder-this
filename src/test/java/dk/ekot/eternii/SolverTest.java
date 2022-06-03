@@ -21,71 +21,96 @@ import java.util.function.Function;
  */
 public class SolverTest extends TestCase {
 
-    public void testNullSolver() throws InterruptedException {
+    public void testNullSolver() {
         testSolver(WalkerA::new, (board, walker) -> () -> System.out.println("Doing nothing"));
     }
 
-    public void testOneWaySolver() throws InterruptedException {
+    public void testOneWaySolver() {
         testSolver(WalkerF::new, OneWaySolver::new);
     }
 
-    public void testOneWayAllPiecesSolver() throws InterruptedException {
+    public void testOneWayAllPiecesSolver() {
         testSolver(WalkerF::new, OneWayAllPiecesSolver::new);
     }
 
-    public void testOneWayAllFieldsAllPiecesSolver() throws InterruptedException {
+    public void testOneWayAllFieldsAllPiecesSolver() {
         testSolver(WalkerF::new, OneWayAllFieldsAllPiecesSolver::new);
     }
 
-    public void testBacktrackSolver() throws InterruptedException {
+    public void testBacktrackSolver() {
         testSolver(WalkerF::new, BacktrackSolver::new);
     }
 
-    public void testBacktrackReturnSolver_A() throws InterruptedException {
+    public void testBacktrackReturnSolver_A() {
         testSolver(WalkerA::new, BacktrackReturnOnOneSolver::new);
     }
-    public void testBacktrackReturnSolver_F() throws InterruptedException {
+    public void testBacktrackReturnSolver_F() {
         testSolver(WalkerF::new, BacktrackReturnOnOneSolver::new);
+    }
+    // No clues!
+    public void testBacktrackReturnSolver_H() {
+        testSolver(WalkerH_BT::new, BacktrackReturnOnOneSolver::new, false);
     }
 
     // ~58K/s laptop
-    public void testBacktrackReturnBothSolver_F() throws InterruptedException {
+    public void testBacktrackReturnBothSolver_F() {
         testSolver(WalkerF::new, BacktrackReturnOnBothSolver::new);
     }
 
-    public void testBacktrackReturnBothSolver_B() throws InterruptedException {
+    public void testBacktrackReturnBothSolver_B() {
         testSolver(WalkerB::new, BacktrackReturnOnBothSolver::new);
     }
 
-    public void testBacktrackReturnBothSolver_A() throws InterruptedException {
+    public void testBacktrackReturnBothSolver_A() {
         testSolver(WalkerA::new, BacktrackReturnOnBothSolver::new);
     }
 
-    public void testBacktrackReturnBothSolver_AFast() throws InterruptedException {
+    public void testBacktrackReturnBothSolver_AFast() {
         testSolver(WalkerAFast::new, BacktrackReturnOnBothSolver::new);
     }
 
-    public void testBacktrackReturnBothSolver_G() throws InterruptedException {
+    public void testBacktrackReturnBothSolver_G() {
         testSolver(WalkerG::new, BacktrackReturnOnBothSolver::new);
     }
 
-    private void testSolver(Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory)
-            throws InterruptedException {
-        EBoard board = getBoard();
+    public void testBacktrackReturnBothSolver_G2() {
+        testSolver(WalkerG2::new, BacktrackReturnOnBothSolver::new);
+    }
+
+    // No clues!
+    public void testBacktrackReturnBothSolver_H() {
+        testSolver(WalkerH_BT::new, BacktrackReturnOnBothSolver::new, false);
+    }
+
+    private void testSolver(Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory) {
+        testSolver(walkerFactory, solverFactory, true);
+    }
+    private void testSolver(Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory,
+                            boolean clues) {
+        EBoard board = getBoard(clues);
         Walker walker = walkerFactory.apply(board);
         Runnable solver = solverFactory.apply(board, walker);
         long runTime = -System.currentTimeMillis();
         solver.run();
         runTime += System.currentTimeMillis();
         System.out.printf("Done. Placed %d pieces in %.2f seconds\n", board.getFilledCount(), runTime/1000.0);
-        Thread.sleep(1000000L);
+        try {
+            Thread.sleep(1000000000L);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private EBoard getBoard() {
+        return getBoard(true);
+    }
+    private EBoard getBoard(boolean clues) {
         EPieces pieces = EPieces.getEternii();
         EBoard board = new EBoard(pieces, 16, 16);
         board.registerFreePieces(pieces.getBag());
-        pieces.processEterniiClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
+        if (clues) {
+            pieces.processEterniiClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
+        }
         new BoardVisualiser(board);
         new BoardVisualiser(board, true);
         return board;

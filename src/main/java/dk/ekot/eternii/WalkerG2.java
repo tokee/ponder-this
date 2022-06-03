@@ -18,26 +18,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Clue corners, board edge, valids, edges, top-left
  *
  */
-public class WalkerG extends WalkerImpl {
-    private static final Logger log = LoggerFactory.getLogger(WalkerG.class);
+public class WalkerG2 extends WalkerImpl {
+    private static final Logger log = LoggerFactory.getLogger(WalkerG2.class);
 
-    public WalkerG(EBoard board) {
+    public WalkerG2(EBoard board) {
         super(board);
     }
 
     @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
-                comparingInt(this::clueCorners)
+                comparingInt(this::clueCornersOrdered)
                 .thenComparingInt(this::boardEdges)
                 .thenComparingInt(this::validPieces)
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges

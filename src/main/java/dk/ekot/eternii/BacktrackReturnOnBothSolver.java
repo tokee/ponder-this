@@ -70,16 +70,15 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 
         }
         if (System.currentTimeMillis() > nextPrintMS) {
-            System.out.printf("Attempts: %dK, free=%d, minFree=%d, attempts/sec=%d, possibilities=%3.0e best=%s\n",
-                              attempts/1000, board.getFreeCount(), minFree,
-                              attempts*1000/(System.currentTimeMillis()-startTime), possibilities, best);
+            System.out.printf("Attempts: %dK, free=%3d, min=%3d|%3d, att/sec=%dK, possible=%3.0e best=%s\n",
+                              attempts/1000, board.getFreeCount(), minFree, board.getFilledCount(),
+                              attempts/(System.currentTimeMillis()-startTime), possibilities, best);
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
         EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = walker.get();
         if (free == null) {
-            return false;
-        }
+            return false;        }
         EBoard.Field field = free.left;
         for (EBoard.Piece piece : free.right) {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
@@ -90,7 +89,17 @@ public class BacktrackReturnOnBothSolver implements Runnable {
                     return true;
                 }
                 board.removePiece(field.getX(), field.getY());
-            }
+            }/* else {
+                if (piece.piece > 3) {
+                    System.out.println("Solver: Could not place @" + field + ": " + piece + " " + board.getPieces().toDisplayString(piece.piece, piece.rotation));
+                    board.placeUntrackedPiece(field.getX()+1, field.getY(), piece.piece, piece.rotation);
+                    try {
+                        Thread.sleep(100000L);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }  */
 //                log.debug("Failed placement, trying next (if any)");
         }
         return false;

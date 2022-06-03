@@ -69,17 +69,22 @@ public class EdgeTracker {
         // Four
         if (edge1 != NULL_E && edge2 != NULL_E && edge3 != NULL_E && edge4 != NULL_E) { // Called often so this is optimized
             return addFour(edge1, edge2, edge3, edge4, delta) &
+
+                   addThree(edge1, edge2, edge3, delta) &
                    addThree(edge2, edge3, edge4, delta) &
                    addThree(edge3, edge4, edge1, delta) &
                    addThree(edge4, edge1, edge2, delta) &
+
                    addTwo(edge1, edge2, delta) &
                    addTwo(edge2, edge3, delta) &
                    addTwo(edge3, edge4, delta) &
                    addTwo(edge4, edge1, delta) &
+
                    addOne(edge1, delta) &
                    addOne(edge2, delta) &
                    addOne(edge3, delta) &
                    addOne(edge4, delta) &
+
                    addOpposing(edge1, edge3, delta) &
                    addOpposing(edge3, edge1, delta) &
                    addOpposing(edge4, edge2, delta) &
