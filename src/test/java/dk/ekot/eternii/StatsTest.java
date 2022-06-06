@@ -23,21 +23,19 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
- * Calculate stats for quad (2x2) pieces and similar
+ * Calculate stats for quad (2x2) pieces and similar. With check for proper edge/no-ege
  *
- * All of these contains invalids (edges on the inner board)
- * 
- * Corners: 1301
- * Edge:   62807
- * All:   815652
- * Clue 1:  4112
- * Clue 2:  4108
- * Clue 3:  3599
- * Clue 4:  4347
- * Clue c:  3808
+ Possible quad corners: 1216
+ Possible quad inners: 760799
+ Possible quad edge: 62807
+ Possible quad all: 3474
+ Possible quad clue 1: 4112
+ Possible quad clue 2: 4108
+ Possible quad clue 3: 3599
+ Possible quad clue 4: 4347
+ Possible quad clue center: 3808
  *
  * All permutations of the corner @ clue 1: Clue_1 * Corners * Edge * Edge = 4112 * 1301 * 62807 * 62807 = 21*10^15
  */
@@ -48,12 +46,17 @@ public class StatsTest extends TestCase {
         System.out.println("Possible quad corners: " + countSolutions(WalkerQuadCorner::new));
     }
 
-    public void testInner() {
+/*    public void testInner() {
         System.out.println("Possible quad inners: " + countSolutions(WalkerQuadInner::new));
+    }*/
+
+    public void testInner() {
+        System.out.println("Possible quad inners: " + countSolutions(board -> new WalkerQuadSelected(
+                        board, new int[][]{{5, 2}, {6, 2}, {5, 3}, {6, 3}}), 4));
     }
 
     public void testEdge() {
-        System.out.println("Possible quad edge: " + countSolutions(board -> new WalkerQuadClue(
+        System.out.println("Possible quad edge: " + countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{0, 5}, {1, 5}, {0, 6}, {1, 6}}), 4));
     }
 
@@ -63,16 +66,16 @@ public class StatsTest extends TestCase {
     }
 
     public void testClues() {
-        System.out.println("Possible quad clue 1: " + countSolutions(board -> new WalkerQuadClue(
+        System.out.println("Possible quad clue 1: " + countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{3, 2}, {2, 3}, {3, 3}}), 3));
-        System.out.println("Possible quad clue 2: " + countSolutions(board -> new WalkerQuadClue(
+        System.out.println("Possible quad clue 2: " + countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{12, 2}, {12, 3}, {13, 3}}), 3));
-        System.out.println("Possible quad clue 3: " + countSolutions(board -> new WalkerQuadClue(
+        System.out.println("Possible quad clue 3: " + countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{3, 12}, {2, 13}, {3, 13}}), 3));
-        System.out.println("Possible quad clue 4: " + countSolutions(board -> new WalkerQuadClue(
+        System.out.println("Possible quad clue 4: " + countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{12, 12}, {12, 13}, {13, 13}}), 3));
-        System.out.println("Possible quad clue center: " + countSolutions(board -> new WalkerQuadClue( // (7, 8)
-                board, new int[][]{{6, 8}, {6, 9}, {7, 9}}), 3));
+        System.out.println("Possible quad clue center: " + countSolutions(board -> new WalkerQuadSelected( // (7, 8)
+                                                                                                           board, new int[][]{{6, 8}, {6, 9}, {7, 9}}), 3));
     }
 
     private long countSolutions(Function<EBoard, Walker> walkerFactory) {
@@ -87,7 +90,7 @@ public class StatsTest extends TestCase {
 
         //new BoardVisualiser(board);
 
-        BacktrackReturnOnBothSolver solver = new BacktrackReturnOnBothSolver(board, walker, max);
+        StatsSolver solver = new StatsSolver(board, walker, max);
         solver.run();
         return solver.getFoundSolutions();
     }
@@ -119,10 +122,10 @@ public class StatsTest extends TestCase {
         }
     }
 
-    private static class WalkerQuadClue extends WalkerImpl {
+    private static class WalkerQuadSelected extends WalkerImpl {
         private final int[][] valids;
 
-        public WalkerQuadClue(EBoard board, int[][] valids) {
+        public WalkerQuadSelected(EBoard board, int[][] valids) {
             super(board);
             this.valids = valids;
         }
@@ -145,8 +148,8 @@ public class StatsTest extends TestCase {
     }
 
     private static class WalkerQuadInner extends WalkerImpl {
-        private final Function<EBoard.Pair<EBoard.Field, Set<Integer>>, EBoard.Pair<EBoard.Field, Set<Integer>>>
-                onlyInner = getOnlyInner();
+       /* private final Function<EBoard.Pair<EBoard.Field, Set<Integer>>, EBoard.Pair<EBoard.Field, Set<Integer>>>
+                onlyInner = getOnlyInner();*/
         public WalkerQuadInner(EBoard board) {
             super(board);
         }
@@ -155,18 +158,16 @@ public class StatsTest extends TestCase {
         public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
             List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
             return all.stream()
-                    .map(onlyInner)
-                    .filter(pair -> !pair.right.isEmpty())
                     .min(comparator)
                     .map(this::toPieces)
                     .orElse(null);
         }
 
-        private Function<EBoard.Pair<EBoard.Field, Set<Integer>>, EBoard.Pair<EBoard.Field, Set<Integer>>> getOnlyInner() {
+/*        private Function<EBoard.Pair<EBoard.Field, Set<Integer>>, EBoard.Pair<EBoard.Field, Set<Integer>>> getOnlyInner() {
             return pair -> new EBoard.Pair<>(pair.left, pair.right.stream()
                     .filter(piece -> pieces.getType(piece) != EPieces.INNER)
                     .collect(Collectors.toSet()));
-        }
+        }*/
 
         @Override
         protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {

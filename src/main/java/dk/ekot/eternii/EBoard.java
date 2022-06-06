@@ -714,6 +714,10 @@ public class EBoard {
             return isFree() ? (int)NULL_E : pieces.getLeft(getPiece(), getRotation());
         }
   */
+
+        /**
+         * @return the type of the piece on the board.
+         */
         public int getType() {
             return pieces.getType(getPiece());
         }

@@ -107,3 +107,40 @@ Sanity: Check that PieceTracker and Edge tracker are aligned
 
 4) When multiple fields with the same number of pieces are availabe as possibles, choose
 pseudo-randomly (Random with known seed) between them.
+
+2022-06-06 *********************************************************************************
+
+Go quad:
+
+single = 1x1
+quad = 2x2
+hex = 4x4
+
+5a) Pre-calculate all corners, edges, clues and inner quads (2x2)
+Done with StatsTest. Preliminary (a bit too high) numbers:
+ * Corners: 1301
+ * Edge:   62807
+ * All:   815652
+ * Clue 1:  4112
+ * Clue 2:  4108
+ * Clue 3:  3599
+ * Clue 4:  4347
+ * Clue c:  3808
+
+5b) Shift to quad-based setup
+All base operations forward is on a 8x8 board with the pieces from 5a
+
+6a) Calculate all possible hex (4x4) corners (involves clue pieces)
+Guess: 1M valids/corner
+
+6b) Calculate all possible hex edges
+Guess: 64M valids
+
+7a) Calculate all possible hex corners at the same time
+Might have far too many permutations, might have very few
+Does not need placement on the board as it is a matter of eliminating
+hex pieces that contain any quad pieces from a previous corner.
+
+7b) (alternative to 7a) Build out from the hex corner and hit center clue
+One 8x8 corner involved the center clue, so building that might be
+combinatorally possible
