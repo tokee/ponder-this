@@ -36,6 +36,16 @@ import java.util.function.Function;
  Possible quad clue 3: 3599
  Possible quad clue 4: 4347
  Possible quad clue center: 3808
+
+ Possible hex top left corners:     31,738,684
+ Possible hex top right corners:    39,157,138
+ Possible hex top right corners:    39,157,138
+ Possible hex bottom left corners:  32,476,466
+ Possible hex bottom right corners: 29,493,137
+
+ Center not finished: Complete solutions so far: 1,354,267,040 (a night's work)
+ 
+
  *
  * All permutations of the corner @ clue 1: Clue_1 * Corners * Edge * Edge = 4112 * 1301 * 62807 * 62807 = 21*10^15
  */
@@ -58,6 +68,57 @@ public class StatsTest extends TestCase {
     public void testEdge() {
         System.out.println("Possible quad edge: " + countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{0, 5}, {1, 5}, {0, 6}, {1, 6}}), 4));
+    }
+
+    public void testCornerHexTL() {
+        System.out.println("Possible hex top left corners: " + countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {0, 0}, {1, 0}, {2, 0}, {3, 0},
+                {0, 1}, {1, 1}, {2, 1}, {3, 1},
+                {0, 2}, {1, 2}, {2, 2}, {3, 2},
+                {0, 3}, {1, 3}, {2, 3}, {3, 3}
+                }), 15)); // There's already a clue piece
+    }
+
+    // TODO: Make a dedicated walker that only visits the given fields in the given order and start from the corner or clue piece
+    public void testCornerHexTR() {
+        System.out.println("Possible hex top right corners: " + countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {12, 0}, {13, 0}, {14, 0}, {15, 0},
+                {12, 1}, {13, 1}, {14, 1}, {15, 1},
+                {12, 2}, {13, 2}, {14, 2}, {15, 2},
+                {12, 3}, {13, 3}, {14, 3}, {15, 3}
+                }), 15)); // There's already a clue piece
+    }
+
+    public void testCornerHexBL() {
+        System.out.println("Possible hex bottom left corners: " + countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {0, 12}, {1, 12}, {2, 12}, {3, 12},
+                {0, 13}, {1, 13}, {2, 13}, {3, 13},
+                {0, 14}, {1, 14}, {2, 14}, {3, 14},
+                {0, 15}, {1, 15}, {2, 15}, {3, 15}
+                }), 15)); // There's already a clue piece
+    }
+
+    public void testCornerHexBR() {
+        System.out.println("Possible hex bottom right corners: " + countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {12, 12}, {13, 12}, {14, 12}, {15, 12},
+                {12, 13}, {13, 13}, {14, 13}, {15, 13},
+                {12, 14}, {13, 14}, {14, 14}, {15, 14},
+                {12, 15}, {13, 15}, {14, 15}, {15, 15}
+                }), 15)); // There's already a clue piece
+    }
+
+    public void testCornerHexC() { // (7, 8)
+        System.out.println("Possible hex center clue: " + countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {4,  8}, {5,  8}, {6,  8}, {7,  8},
+                {4,  9}, {5,  9}, {6,  9}, {7,  9},
+                {4, 10}, {5, 10}, {6, 10}, {7, 10},
+                {4, 11}, {5, 11}, {6, 11}, {7, 11}
+                }), 15)); // There's already a clue piece
     }
 
     // This includes invalids, such as grey edges on more than 2 sides
@@ -88,7 +149,8 @@ public class StatsTest extends TestCase {
         pieces.processEterniiClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
         Walker walker = walkerFactory.apply(board);
 
-        //new BoardVisualiser(board);
+//        new BoardVisualiser(board);
+//        new BoardVisualiser(board, true);
 
         StatsSolver solver = new StatsSolver(board, walker, max);
         solver.run();
@@ -134,7 +196,8 @@ public class StatsTest extends TestCase {
         protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
             return Comparator.<EBoard.Pair<EBoard.Field, ? extends Collection<?>>>
                             comparingInt(pair -> isValid(pair.left.getX(), pair.left.getY()) ? 0 : 1)
-                    .thenComparingInt(this::validPieces);
+                    .thenComparingInt(this::validPieces)
+                    .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()); // Least free edges
         }
 
         private boolean isValid(int x, int y) {
