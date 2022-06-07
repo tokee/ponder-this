@@ -80,6 +80,17 @@ public class StatsTest extends TestCase {
                 }), 15)); // There's already a clue piece
     }
 
+    public void testCornerHexTL3x3() {
+        System.out.println("Possible 5x5 top left corners: " + countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0},
+                {0, 1}, {1, 1}, {2, 1}, {3, 1}, {4, 1},
+                {0, 2}, {1, 2}, {2, 2}, {3, 2}, {4, 2},
+                {0, 3}, {1, 3}, {2, 3}, {3, 3}, {4, 3},
+                {0, 4}, {1, 4}, {2, 4}, {3, 4}, {4, 4},
+                }), 24)); // There's already a clue piece
+    }
+
     // TODO: Make a dedicated walker that only visits the given fields in the given order and start from the corner or clue piece
     public void testCornerHexTR() {
         System.out.println("Possible hex top right corners: " + countSolutions(board -> new WalkerQuadSelected(
