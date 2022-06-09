@@ -52,23 +52,23 @@ public class EBits {
 
     // Abstract edges
     public static final int EDGE_SHIFT = 5;
-    public static final long EDGE_MASK = ~(-1L<<5);
-    public static final long EDGE2_MASK = ~(-1L<<10);
-    public static final long EDGE3_MASK = ~(-1L<<15);
-    public static final long EDGE4_MASK = ~(-1L<<20);
+    public static final long EDGE_MASK = ~(-1L<<EDGE_SHIFT);
+    public static final long EDGE2_MASK = ~(-1L<<(2*EDGE_SHIFT));
+    public static final long EDGE3_MASK = ~(-1L<<(3*EDGE_SHIFT));
+    public static final long EDGE4_MASK = ~(-1L<<(4*EDGE_SHIFT));
 
     // Outer edges
-    public static final int EDGES_DEFINED_SHIFT = 20;
+    public static final int EDGES_DEFINED_SHIFT = EDGE_SHIFT*4;
     public static final long EDGES_DEFINED_MASK = (~(-1L << 4)) << EDGES_DEFINED_SHIFT;
 
     public static final int NORTH_EDGE_SHIFT = EDGE_SHIFT*3;
     public static final long NORTH_EDGE_MASK = EDGE_MASK << NORTH_EDGE_SHIFT;
-    public static final int EAST_EDGE_SHIFT = EDGE_SHIFT*2;
-    public static final long EAST_EDGE_MASK = EDGE_MASK  << EAST_EDGE_SHIFT;
+    public static final int EAST_EDGE_SHIFT =  EDGE_SHIFT*2;
+    public static final long EAST_EDGE_MASK =  EDGE_MASK  << EAST_EDGE_SHIFT;
     public static final int SOUTH_EDGE_SHIFT = EDGE_SHIFT;
     public static final long SOUTH_EDGE_MASK = EDGE_MASK << SOUTH_EDGE_SHIFT;
-    public static final int WEST_EDGE_SHIFT = 0;
-    public static final long WEST_EDGE_MASK = EDGE_MASK;
+    public static final int WEST_EDGE_SHIFT =  0;
+    public static final long WEST_EDGE_MASK =  EDGE_MASK;
 
     // Piece edges
     public static final int PIECE_EDGES_SHIFT = 32;

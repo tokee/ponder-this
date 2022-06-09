@@ -42,6 +42,8 @@ public class EPieces {
     public static final int EDGE_EDGE = 0; // The outermost edges (black/grey)
     public static final long NULL_E = 31;  // No edge
     public static final long NULL_P = 256; // No piece
+    public static final long QNULL_E = 1023;  // No quad edge (2^10-1)
+    public static final long QNULL_P = 1048575; // No quad piece (2^20-1)
 
     private final int total;
     private final int[] n;

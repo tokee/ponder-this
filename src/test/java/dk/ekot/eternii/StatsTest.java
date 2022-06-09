@@ -44,10 +44,10 @@ import java.util.function.Function;
  Possible hex bottom right corners: 29,493,137
 
  Center not finished: Complete solutions so far: 1,354,267,040 (a night's work)
- 
+ 5x5 TL corner:       Complete solutions so far: 1,442,343,927 (~20 hours)
+                      Complete solutions so far: 5,524,240,878 (3 days)
 
- *
- * All permutations of the corner @ clue 1: Clue_1 * Corners * Edge * Edge = 4112 * 1301 * 62807 * 62807 = 21*10^15
+ All permutations of the corner @ clue 1: Clue_1 * Corners * Edge * Edge = 4112 * 1301 * 62807 * 62807 = 21*10^15
  */
 public class StatsTest extends TestCase {
     private static final Logger log = LoggerFactory.getLogger(StatsTest.class);

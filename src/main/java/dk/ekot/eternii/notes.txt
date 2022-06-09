@@ -132,6 +132,7 @@ All base operations forward is on a 8x8 board with the pieces from 5a
 
 6a) Calculate all possible hex (4x4) corners (involves clue pieces)
 Guess: 1M valids/corner
+Real: 32M
 
 6b) Calculate all possible hex edges
 Guess: 64M valids
@@ -140,6 +141,7 @@ Guess: 64M valids
 Might have far too many permutations, might have very few
 Does not need placement on the board as it is a matter of eliminating
 hex pieces that contain any quad pieces from a previous corner.
+Use bitmaps of involved singles and make bitwise compare?
 
 7b) (alternative to 7a) Build out from the hex corner and hit center clue
 One 8x8 corner involved the center clue, so building that might be
