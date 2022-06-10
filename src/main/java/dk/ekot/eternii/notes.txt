@@ -146,3 +146,15 @@ Use bitmaps of involved singles and make bitwise compare?
 7b) (alternative to 7a) Build out from the hex corner and hit center clue
 One 8x8 corner involved the center clue, so building that might be
 combinatorally possible
+
+2022-06-10 *********************************************************************************
+
+8) From #6 + #7a: Valid 4*hex corners
+With 32M unique hexes for each corner, the probably number of 4*hex corners are
+32M * ((1024/(4*16))/1024)^16 * ((1024/(4*32))/1024)^16 * ((1024/(4*48))/1024)^16 ~= 48K
+
+By extracting all states for each 32M hex corner (16*long_bytes = 128 bytes / hex),
+then extracting all piece-IDs (8 bytes/piece-ID) and sorting those, it should be fairly
+fast to isolate the ~48K valid combinations of 4 hex corners.
+
+9) Related to #7b: Calculate all edge quads

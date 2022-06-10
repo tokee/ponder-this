@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Tries to solve the puzzle by trying all fields, all pieces until there are no more pieces (or fields) or a piece
@@ -31,6 +32,7 @@ public class StatsSolver implements Runnable {
 
     private final EBoard board;
     private final Walker walker;
+    private final Consumer<EBoard> solutionConsumer;
 
     private int minFree;
     private long attempts = 0;
@@ -42,11 +44,15 @@ public class StatsSolver implements Runnable {
     private long foundSolutions = 0;
 
     public StatsSolver(EBoard board, Walker walker) {
-        this(board, walker, Integer.MAX_VALUE);
+        this(board, walker, Integer.MAX_VALUE, b -> {});
     }
     public StatsSolver(EBoard board, Walker walker, int max) {
+        this(board, walker, max, b -> {});
+    }
+    public StatsSolver(EBoard board, Walker walker, int max, Consumer<EBoard> solutionConsumer) {
         this.board = board;
         this.walker = walker;
+        this.solutionConsumer = solutionConsumer;
         this.max = max;
         minFree = board.getFreeCount();
     }
@@ -54,6 +60,7 @@ public class StatsSolver implements Runnable {
     @Override
     public void run() {
         startTime = System.currentTimeMillis()-1; // -1 to avoid division by zero
+
         //board.sanityCheckAll();
         dive(0, 1.0);
         //log.debug(board.getEdgeTracker().toString());
@@ -92,6 +99,7 @@ public class StatsSolver implements Runnable {
                 if (dive(depth+1, possibilities*free.right.size())) {
                     if (piecesPosOK()) {
                         ++foundSolutions;
+                        solutionConsumer.accept(board);
                     }
                 }
                 board.removePiece(field.getX(), field.getY());

@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Calculate stats for quad (2x2) pieces and similar. With check for proper edge/no-ege
@@ -39,11 +38,10 @@ import java.util.function.Function;
 
  Possible hex top left corners:     31,738,684
  Possible hex top right corners:    39,157,138
- Possible hex top right corners:    39,157,138
  Possible hex bottom left corners:  32,476,466
  Possible hex bottom right corners: 29,493,137
 
- Center not finished: Complete solutions so far: 1,354,267,040 (a night's work)
+ Hex center not finished: Complete solutions so far: 1,354,267,040 (a night's work)
  5x5 TL corner:       Complete solutions so far: 1,442,343,927 (~20 hours)
                       Complete solutions so far: 5,524,240,878 (3 days)
 6x6 TL Complete solutions so far: 13,587,510,981 (3-4 days? A week?)
@@ -55,7 +53,7 @@ public class StatsTest extends TestCase {
     private static final Logger log = LoggerFactory.getLogger(StatsTest.class);
 
     public void testQuadCorners() {
-        System.out.println("Possible quad corners: " + countSolutions(WalkerQuadCorner::new));
+        System.out.println("Possible quad corners: " + HexCorners.countSolutions(WalkerQuadCorner::new));
     }
 
 /*    public void testInner() {
@@ -63,17 +61,17 @@ public class StatsTest extends TestCase {
     }*/
 
     public void testInner() {
-        System.out.println("Possible quad inners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible quad inners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                         board, new int[][]{{5, 2}, {6, 2}, {5, 3}, {6, 3}}), 4));
     }
 
     public void testEdge() {
-        System.out.println("Possible quad edge: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible quad edge: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{0, 5}, {1, 5}, {0, 6}, {1, 6}}), 4));
     }
 
     public void testCornerHexTL() {
-        System.out.println("Possible hex top left corners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible hex top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 0}, {1, 0}, {2, 0}, {3, 0},
                 {0, 1}, {1, 1}, {2, 1}, {3, 1},
@@ -82,8 +80,18 @@ public class StatsTest extends TestCase {
                 }), 15)); // There's already a clue piece
     }
 
+    public void testEdgeHex() {
+        System.out.println("Possible hex top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {0, 4}, {1, 4}, {2, 4}, {3, 4},
+                {0, 5}, {1, 5}, {2, 5}, {3, 5},
+                {0, 6}, {1, 6}, {2, 6}, {3, 6},
+                {0, 7}, {1, 7}, {2, 7}, {3, 7}
+                }), 16)); // There's already a clue piece
+    }
+
     public void testCornerHexTL5x5() {
-        System.out.println("Possible 5x5 top left corners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible 5x5 top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0},
                 {0, 1}, {1, 1}, {2, 1}, {3, 1}, {4, 1},
@@ -94,7 +102,7 @@ public class StatsTest extends TestCase {
     }
 
     public void testCornerHexTL6x6() {
-        System.out.println("Possible 6x6 top left corners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible 6x6 top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0},
                 {0, 1}, {1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1},
@@ -106,7 +114,7 @@ public class StatsTest extends TestCase {
     }
 
     public void testCornerHexTL7x7() {
-        System.out.println("Possible 7x7 top left corners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible 7x7 top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}, {6, 0},
                 {0, 1}, {1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1}, {6, 1},
@@ -120,7 +128,7 @@ public class StatsTest extends TestCase {
 
     // TODO: Make a dedicated walker that only visits the given fields in the given order and start from the corner or clue piece
     public void testCornerHexTR() {
-        System.out.println("Possible hex top right corners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible hex top right corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {12, 0}, {13, 0}, {14, 0}, {15, 0},
                 {12, 1}, {13, 1}, {14, 1}, {15, 1},
@@ -130,7 +138,7 @@ public class StatsTest extends TestCase {
     }
 
     public void testCornerHexBL() {
-        System.out.println("Possible hex bottom left corners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible hex bottom left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 12}, {1, 12}, {2, 12}, {3, 12},
                 {0, 13}, {1, 13}, {2, 13}, {3, 13},
@@ -140,7 +148,7 @@ public class StatsTest extends TestCase {
     }
 
     public void testCornerHexBR() {
-        System.out.println("Possible hex bottom right corners: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible hex bottom right corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {12, 12}, {13, 12}, {14, 12}, {15, 12},
                 {12, 13}, {13, 13}, {14, 13}, {15, 13},
@@ -150,7 +158,7 @@ public class StatsTest extends TestCase {
     }
 
     public void testCornerHexC() { // (7, 8)
-        System.out.println("Possible hex center clue: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible hex center clue: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {4,  8}, {5,  8}, {6,  8}, {7,  8},
                 {4,  9}, {5,  9}, {6,  9}, {7,  9},
@@ -161,38 +169,20 @@ public class StatsTest extends TestCase {
 
     // This includes invalids, such as grey edges on more than 2 sides
     public void testAll() {
-        System.out.println("Possible quad all: " + countSolutions(WalkerQuadAll::new));
+        System.out.println("Possible quad all: " + HexCorners.countSolutions(WalkerQuadAll::new));
     }
 
     public void testClues() {
-        System.out.println("Possible quad clue 1: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible quad clue 1: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{3, 2}, {2, 3}, {3, 3}}), 3));
-        System.out.println("Possible quad clue 2: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible quad clue 2: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{12, 2}, {12, 3}, {13, 3}}), 3));
-        System.out.println("Possible quad clue 3: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible quad clue 3: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{3, 12}, {2, 13}, {3, 13}}), 3));
-        System.out.println("Possible quad clue 4: " + countSolutions(board -> new WalkerQuadSelected(
+        System.out.println("Possible quad clue 4: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{12, 12}, {12, 13}, {13, 13}}), 3));
-        System.out.println("Possible quad clue center: " + countSolutions(board -> new WalkerQuadSelected( // (7, 8)
-                                                                                                           board, new int[][]{{6, 8}, {6, 9}, {7, 9}}), 3));
-    }
-
-    private long countSolutions(Function<EBoard, Walker> walkerFactory) {
-        return countSolutions(walkerFactory, 4);
-    }
-    private long countSolutions(Function<EBoard, Walker> walkerFactory, int max) {
-        EPieces pieces = EPieces.getEternii();
-        EBoard board = new EBoard(pieces, 16, 16);
-        board.registerFreePieces(pieces.getBag());
-        pieces.processEterniiClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
-        Walker walker = walkerFactory.apply(board);
-
-//        new BoardVisualiser(board);
-//        new BoardVisualiser(board, true);
-
-        StatsSolver solver = new StatsSolver(board, walker, max);
-        solver.run();
-        return solver.getFoundSolutions();
+        System.out.println("Possible quad clue center: " + HexCorners.countSolutions(board -> new WalkerQuadSelected( // (7, 8)
+                                                                                                                      board, new int[][]{{6, 8}, {6, 9}, {7, 9}}), 3));
     }
 
     private static class WalkerQuadCorner extends WalkerImpl {
