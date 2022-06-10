@@ -46,6 +46,8 @@ import java.util.function.Function;
  Center not finished: Complete solutions so far: 1,354,267,040 (a night's work)
  5x5 TL corner:       Complete solutions so far: 1,442,343,927 (~20 hours)
                       Complete solutions so far: 5,524,240,878 (3 days)
+6x6 TL Complete solutions so far: 13,587,510,981 (3-4 days? A week?)
+7x7 TL Complete solutions so far: 12,171,379,454 (3-4 days? A week?)
 
  All permutations of the corner @ clue 1: Clue_1 * Corners * Edge * Edge = 4112 * 1301 * 62807 * 62807 = 21*10^15
  */
