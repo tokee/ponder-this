@@ -80,6 +80,15 @@ public class StatsTest extends TestCase {
                 }), 15)); // There's already a clue piece
     }
 
+    public void test3x3() {
+        System.out.println("Possible 3x3 corners: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(0, 0, 2, 2)), 9));
+        System.out.println("Possible 3x3 edges: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(1, 0, 3, 2)), 9));
+        System.out.println("Possible 3x3 inner: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(5, 5, 7, 7)), 9));
+    }
+
     public void testEdgeHex() {
         System.out.println("Possible hex top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{

@@ -25,6 +25,14 @@ public class Bitmap {
         backing = new long[(size >>> 6) + ((size & 63) == 0 ? 0 : 1)];
         shiftCache = enableShiftCache ? new HashMap<>() : null;
     }
+    public Bitmap(long[] backing, boolean enableShiftCache) {
+        this (backing.length*Long.SIZE, backing, enableShiftCache);
+    }
+    public Bitmap(int size, long[] backing, boolean enableShiftCache) {
+        this.size = size;
+        this.backing = backing;
+        shiftCache = enableShiftCache ? new HashMap<>() : null;
+    }
     public void set(int index) {
         backing[index >>> 6] |= 1L << (63-(index & 63));
         invalidate();
@@ -261,5 +269,16 @@ public class Bitmap {
             intersecting += Long.bitCount(backing[i] & other.backing[i]);
         }
         return intersecting;
+    }
+
+    public void clear() {
+        Arrays.fill(backing, 0L);
+        invalidate();
+    }
+
+    public long[] getBackingCopy() {
+        long[] copy = new long[backing.length];
+        System.arraycopy(backing, 0, copy, 0, backing.length);
+        return copy;
     }
 }

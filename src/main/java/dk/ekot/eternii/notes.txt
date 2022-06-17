@@ -158,3 +158,21 @@ then extracting all piece-IDs (8 bytes/piece-ID) and sorting those, it should be
 fast to isolate the ~48K valid combinations of 4 hex corners.
 
 9) Related to #7b: Calculate all edge quads
+
+2022-06-11 *********************************************************************************
+
+Damn. The calculation in #8 is wrong as it only gives the number of valid hexes for the
+LAST corner. This needs to be multiplied with the valids from all the previous corners.
+
+2022-06-12 *********************************************************************************
+
+10a) When working with quads, in the PieceTracker, keep track of which SINGLES has been used
+(in a bitmap?). When considering if a quad has already been used, only look at the singles.
+Conversely: Never remove quads from the tracker, only filter the quads in getters using
+the singles bitmap.
+
+10b) Can something similar be done with the edge tracker?
+
+2022-06-14 *********************************************************************************
+
+Use fastutils: https://twitter.com/tagir_valeev/status/1536317236276867073

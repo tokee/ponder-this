@@ -37,7 +37,7 @@ public class StatsSolver implements Runnable {
     private int minFree;
     private long attempts = 0;
     private long startTime;
-    private long printDeltaMS = 1000;
+    private long printDeltaMS = 10000;
     private long nextPrintMS = System.currentTimeMillis()+printDeltaMS;
     private String best = "";
     private final int max;

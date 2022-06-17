@@ -27,6 +27,7 @@ public class Rect {
 
     public final int width;
     public final int height;
+    public final int area;
 
     public Rect(int left, int top, int right, int bottom) {
         this.left = left;
@@ -36,6 +37,7 @@ public class Rect {
 
         this.width = right-left+1;
         this.height = bottom-top+1;
+        this.area = width*height;
     }
 
     /**
