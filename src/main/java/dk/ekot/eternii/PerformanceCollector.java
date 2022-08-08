@@ -46,7 +46,7 @@ public class PerformanceCollector {
 
             FileOutputStream fos = new FileOutputStream(prefix + "_perf_" + timestamp + ".dat");
             performance = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-            performance.write("time\tplaced\ttried\n");
+            performance.write("# time\tplaced\ttried\n");
 
             FileOutputStream fos2 = new FileOutputStream(prefix + "_prog_" + timestamp + ".dat");
             progress = new OutputStreamWriter(fos2, StandardCharsets.UTF_8);
