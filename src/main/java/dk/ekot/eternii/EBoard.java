@@ -852,4 +852,7 @@ public class EBoard {
         void boardChanged(int x, int y, String label);
     }
 
+    public PieceTracker getFreeBag() {
+        return freeBag;
+    }
 }

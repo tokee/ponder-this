@@ -34,16 +34,17 @@ public class BacktrackSolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BacktrackSolver.class);
 
     private final EBoard board;
-    private final WalkerA walker;
+    private final Walker walker;
     private int minFree;
-    private final Set<String> encountered = new HashSet<>();
+//    private final Set<String> encountered = new HashSet<>();
     private long attempts = 0;
-    private long printDelta = 1000000;
+    private long printDelta = 1000000000;
     private long nextPrint = printDelta;
 
     public BacktrackSolver(EBoard board, Walker walker) {
         this.board = board;
-        this.walker = new WalkerA(board);
+        // this.walker = new WalkerA(board);
+        this.walker = walker;
         minFree = board.getFreeCount();
     }
 
@@ -63,18 +64,18 @@ public class BacktrackSolver implements Runnable {
         }
         if (minFree > board.getFreeCount()) {
             minFree = board.getFreeCount();
-            System.out.println("Free: " + minFree);
+            System.out.println("Free: " + minFree + " " + board.getDisplayURL());
         }
         if (attempts >= nextPrint) {
-            System.out.println("Attempts: " + attempts);
+            System.out.println("Attempts: " + attempts + " " + board.getDisplayURL());
             nextPrint = attempts + printDelta;
         }
-        if (!encountered.add(all)) {
-            System.out.println("Duplicate: " + all);
-        }
+//        if (!encountered.add(all)) {
+//            System.out.println("Duplicate: " + all);
+//        }
 
         List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates =
-                walker.getFreePieces().collect(Collectors.toList());
+                walker.getAll().collect(Collectors.toList()); // TODO Why not use the stream directly?
         for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
             EBoard.Field field = free.left;
 
@@ -83,7 +84,8 @@ public class BacktrackSolver implements Runnable {
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
                 attempts++;
                 if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, "")) {
-                    if (dive(all + " (" + field.getX() + ", " + field.getY() + ")" + board.getPieces().toDisplayString(piece.piece, piece.rotation))) {
+                    //if (dive(all + " (" + field.getX() + ", " + field.getY() + ")" + board.getPieces().toDisplayString(piece.piece, piece.rotation))) {
+                    if (dive("ignore")) {
                         return true;
                     }
                     board.removePiece(field.getX(), field.getY());

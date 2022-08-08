@@ -18,6 +18,8 @@ import junit.framework.TestCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,11 +31,28 @@ public class FillerTest extends TestCase {
 
     private static final Pattern BUCAS_PIECES = Pattern.compile(".*board_edges=([a-z]*).*");
 
-    public void testFiller() throws InterruptedException {
-       String G2_197 = "https://e2.bucas.name/#puzzle=displayTest&board_w=16&board_h=16&board_edges=abdaafhbackfacpcabhcabgbabjbacsbaencadweadgdaendafoeaelfaeueaabedsdahvjskvwvpsuvhwusgiiwjjlisiujngriwvjggtqvnqgtovjqlrwvujtrbafjdpcajnmpwlmnulpluqrliklqlqjkuiwqriliaaaaaaaagsjwjuhswswutgwsfafgcrbamorrmjvopppjropplnkojminwksmlwokaaaaaaaajrijhourwmsowuhmfadubjfaronjvntopmonpqgmkwhqiliwsuhloujuaaaaaaaaiigquksisntkhhundadhfqeangwqtmrgokqmgrjkhmoriwpmhtrwjkqtaaaaaaaaghhlssphtopsuisodacieqbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaahjqpprsjpnqrspwncabpbtfaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqorislgoqttlwhptbachfufamhjukrphwpkrloupmmsohmrmijjmaaaaaaaaaaaarkmngtrktkmtpgnkcadgfvcajnnvpgnnkoggunkosnnnrqunjskqaaaaaaaaaaaamkigrvmkmtrvnpgtdaepcrfankvrnvokgsgvksssnhlsaaaaaaaaaaaaaaaaaaaaijurmlljrlslgvvleabvfwdavwtwokuwgikksoiillwoaaaaaaaaaaaaaaaaaaaauvtklwvvsoqwvuwobafudidatvviusuvknhsiomnwuioaaaaaaaaaaaaaaaaaaaattpjvphtqrqpwmmrfaemdofavmjoujvmhhwjmkqhillkaaaaaaaaaaaaaaaaaaaaphiqhruhqvprmqlveacqfhcajlthvhnlwmqhqntmlktnaaaaaaaaaaaaaaaaaaaailprugolpniglomncacocdaatcadnfacqfaftdafteadteaeseaepcaevbacteabpbaeoeabibaemdabcaad";
-       EBoard board = loadBoard(G2_197);
-       new BoardVisualiser(board);
-       Thread.sleep(10000000L);
+    public void testValidFiller() {
+        String G2_197 = "https://e2.bucas.name/#puzzle=displayTest&board_w=16&board_h=16&board_edges=abdaafhbackfacpcabhcabgbabjbacsbaencadweadgdaendafoeaelfaeueaabedsdahvjskvwvpsuvhwusgiiwjjlisiujngriwvjggtqvnqgtovjqlrwvujtrbafjdpcajnmpwlmnulpluqrliklqlqjkuiwqriliaaaaaaaagsjwjuhswswutgwsfafgcrbamorrmjvopppjropplnkojminwksmlwokaaaaaaaajrijhourwmsowuhmfadubjfaronjvntopmonpqgmkwhqiliwsuhloujuaaaaaaaaiigquksisntkhhundadhfqeangwqtmrgokqmgrjkhmoriwpmhtrwjkqtaaaaaaaaghhlssphtopsuisodacieqbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaahjqpprsjpnqrspwncabpbtfaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqorislgoqttlwhptbachfufamhjukrphwpkrloupmmsohmrmijjmaaaaaaaaaaaarkmngtrktkmtpgnkcadgfvcajnnvpgnnkoggunkosnnnrqunjskqaaaaaaaaaaaamkigrvmkmtrvnpgtdaepcrfankvrnvokgsgvksssnhlsaaaaaaaaaaaaaaaaaaaaijurmlljrlslgvvleabvfwdavwtwokuwgikksoiillwoaaaaaaaaaaaaaaaaaaaauvtklwvvsoqwvuwobafudidatvviusuvknhsiomnwuioaaaaaaaaaaaaaaaaaaaattpjvphtqrqpwmmrfaemdofavmjoujvmhhwjmkqhillkaaaaaaaaaaaaaaaaaaaaphiqhruhqvprmqlveacqfhcajlthvhnlwmqhqntmlktnaaaaaaaaaaaaaaaaaaaailprugolpniglomncacocdaatcadnfacqfaftdafteadteaeseaepcaevbacteabpbaeoeabibaemdabcaad";
+        String G2_207 = "https://e2.bucas.name/#puzzle=displayTest&board_w=16&board_h=16&board_edges=abdaafhbackfacocacpcabhcacrbadgcadgdaepdacqeaencadteabmdaeibaabedsdahvjskvwvomjvpjnmhhwjrphhgnkpgrinpnqrqgtnnnpgtmqnmrwmijjrbafjdhdajnthwlmnjmllnlomaaaaaaaaaaaaiomnqnqotksnprhkqunrwswujgisfafgdweatwvwmsowlrlsonjraaaaaaaaaaaamwksqngwspwnhiqpnqwiwsoqiujsfaduepbavwppoiqwlirijnviaaaaaaaaaaaakigmgqiiwlrqqiklwtgiovntjnnvdaenbjfapppjqgmprusgvgouaaaaaaaaaaaagoluiqoortrqkuvtgsqunqosnouqeabofqfaphjqmrmhsmtrorrmaaaaaaaaaaaaaaaaaaaarwpkvwlwqlhworglujtrbabjfufajosummiottkmrkgtaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatvvibacvfubasuvuiowuaaaaaaaaaaaaaaaaijjmaaaaaaaaaaaaaaaaaaaaaaaavvlgcafvbveavijvwiliaaaaaaaaaaaaaaaaaaaavlrwhuqlsrtutrgrvmkrtlgmloglfadoeseajprsllkpghhlvrkhuhhraaaaaaaarkmnqmoktrvmgtmrkvrtgwwvgiiwdadietearwhtkuhwhsjukppshsspaaaaaaaamsutouisvpsumonprhmowushiwqudafweueahmwuhjumjlijplulsnhlaaaaaaaauksiillksuhlnvhumjovskqjqtjkfabtelfawmulujvmijpjurijhouraaaaaaaasksslqjkhwmqhqkworiqqvprjgwvbabgfhcausthvpnspropilpruqrlwtqqtlqtsnpljminmupmkjhuistjpgmswstgbacscdaatcadnfacoeafpcaerfacqeafqbaepcabidacpcadhbacteabmfaetdafcaad";
+        fillValids(G2_207, WalkerG2::new, BacktrackSolver::new);
+    }
+
+    private void fillValids(
+            String bucasURL, Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory) {
+        EBoard board = loadBoard(bucasURL);
+        new BoardVisualiser(board);
+
+        Walker walker = walkerFactory.apply(board);
+        Runnable solver = solverFactory.apply(board, walker);
+        long runTime = -System.currentTimeMillis();
+        solver.run();
+        runTime += System.currentTimeMillis();
+        System.out.printf("Done. Placed %d pieces in %.2f seconds\n", board.getFilledCount(), runTime/1000.0);
+        try {
+            Thread.sleep(1000000000L);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private EBoard loadBoard(String bucasURL) {

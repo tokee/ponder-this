@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Provides next Field wih corresponding Pieces to try.
@@ -39,6 +40,10 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
                 .collect(Collectors.toList());
         return new EBoard.Pair<>(field, pieces);
     }
+    /**
+     * @return All free fields, with corresponding valid pieces, rotated and sorted.
+     */
+    Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll();
 
     /**
      * @return All free fields, with corresponding valid pieces (not rotated), not sorted.

@@ -101,7 +101,8 @@ public class BacktrackReturnOnBothSolver implements Runnable {
 
         EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = walker.get();
         if (free == null) {
-            return false;        }
+            return false;
+        }
         EBoard.Field field = free.left;
         for (EBoard.Piece piece : free.right) {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
