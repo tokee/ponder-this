@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +49,12 @@ public class PieceTracker {
     private final Set<Integer> all = new HashSet<>();
 
     private final EPieces pieces;
+
+    /**
+     * If true, pieces with 2 or 3 edges og the same color are only registered once in {@link #one}.
+     * If false, those pieces are registered 2 or 3 times.
+     */
+    private final boolean REMOVE_DUPLICATES = true;
 
     public PieceTracker(EPieces pieces) {
         this.pieces = pieces;
@@ -89,15 +96,25 @@ public class PieceTracker {
     private void process(long edges, Consumer<Set<Integer>> adjuster) {
 //        System.out.println("PieceTracker.process(edges=" + Long.toBinaryString(edges) + ")");
         // All edges are always defined for pieces, so we permutate and call all possible sets
+        if (REMOVE_DUPLICATES) {
+            Arrays.fill(encounteredOnes, false);
+        }
         for (int rotation = 0 ; rotation < 4 ; rotation++) {
             adjuster.accept(four.get(EBits.getHash(0b1111, edges)));
             adjuster.accept(three.get(EBits.getHash(0b1110, edges)));
             adjuster.accept(two.get(EBits.getHash(0b1100, edges)));
-            adjuster.accept(one.get(EBits.getHash(0b1000, edges)));
+            if (REMOVE_DUPLICATES) {
+                final int oneHash = EBits.getHash(0b1000, edges);
+                if (!encounteredOnes[oneHash]) {
+                    encounteredOnes[oneHash] = true;
+                    adjuster.accept(one.get(oneHash));
+                }
+            }
             adjuster.accept(opposing.get(EBits.getHash(0b1010, edges)));
             edges = EBits.shiftEdgesRight(edges);
         }
     }
+    final boolean[] encounteredOnes = new boolean[24];
 
     /**
      * @return the number of sets that contains the given piece;
