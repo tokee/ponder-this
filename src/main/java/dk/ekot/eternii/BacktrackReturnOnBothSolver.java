@@ -17,6 +17,7 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -41,6 +42,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     private String best = "";
     private final int max;
     private long foundSolutions = 0;
+    private PerformanceCollector collector = new PerformanceCollector("eternii/g2");
 
     public BacktrackReturnOnBothSolver(EBoard board, Walker walker) {
         this(board, walker, Integer.MAX_VALUE);
@@ -79,8 +81,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
         if (minFree > board.getFreeCount()) {
             minFree = board.getFreeCount();
             best = board.getDisplayURL();
-            System.out.println("Free: " + minFree + ": " + best);
-
+            collector.collect(board.getFilledCount(), attempts, best);
         }
         if (System.currentTimeMillis() > nextPrintMS) {
             System.out.printf("Attempts: %dK, free=%3d, min=%3d|%3d, att/sec=%dK, possible=%3.0e best=%s\n",

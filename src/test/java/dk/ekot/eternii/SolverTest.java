@@ -80,7 +80,7 @@ public class SolverTest extends TestCase {
 
     // No clues!
     public void testBacktrackReturnBothSolver_H() {
-        testSolver(WalkerH_BT::new, BacktrackSolver::new, false);
+        testSolver(WalkerH_BT::new, BacktrackReturnOnBothSolver::new, false);
     }
 
     public void testSpiralIn() {

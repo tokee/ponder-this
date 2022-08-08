@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.Comparator;
 
 /**
- * Clue corners, board edge, valids, edges, top-left
+ * Clue corners, valids, board edge, edges, top-left
  *
  */
 public class WalkerG2 extends WalkerImpl {
@@ -35,8 +35,8 @@ public class WalkerG2 extends WalkerImpl {
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
                 comparingInt(this::clueCornersOrdered)
-                .thenComparingInt(this::boardEdges)
                 .thenComparingInt(this::validPieces)
+                .thenComparingInt(this::boardEdges)
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
                 .thenComparingInt(topLeft());
     }
