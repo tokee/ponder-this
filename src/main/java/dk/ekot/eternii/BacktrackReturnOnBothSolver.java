@@ -84,8 +84,9 @@ public class BacktrackReturnOnBothSolver implements Runnable {
             collector.collect(board.getFilledCount(), attempts, best);
         }
         if (System.currentTimeMillis() > nextPrintMS) {
-            System.out.printf("Attempts: %dK, free=%3d, min=%3d|%3d, att/sec=%dK, possible=%3.0e best=%s\n",
-                              attempts/1000, board.getFreeCount(), minFree, board.getFilledCount(),
+            int max = board.getWidth()*board.getHeight();
+            System.out.printf("Attempts: %dK, placed=%3d|%3d, att/sec=%dK, possible=%3.0e best=%s\n",
+                              attempts/1000, board.getFilledCount(), max-minFree,
                               attempts/(System.currentTimeMillis()-startTime), possibilities, best);
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
