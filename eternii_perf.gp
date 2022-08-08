@@ -13,14 +13,15 @@ set linetype 10 lc rgb "#3333ff"
 set output "`echo $IMG`"
 
 set title "Toke's Eternity II solver performance `echo $DAT`"
-set xlabel 'Valid pieces'
+set xlabel "Valid pieces (max=`echo $MAX_VALID`)"
 set ylabel 'Seconds'
 
 set datafile separator "\t"
 
 set logscale y 10
+set grid ytics
 
 set xrange [ 0 : 260 ]
-set yrange [ 0.001 : ]
+set yrange [ 0.01 : ]
 
 plot "`echo $DAT`" using 2:($1/1000) with points lw 1 lc 1 title 'ms'
