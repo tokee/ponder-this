@@ -113,4 +113,31 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
         }
         return 5; // Not a corner
     }
+
+    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> spiralIn(EBoard board) {
+        return priority(PatternCreator.spiralIn(board.getWidth())); // TODO: Check if width differs
+    }
+
+    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> spiralOut(EBoard board) {
+        return priority(PatternCreator.spiralOut(board.getWidth())); // TODO: Check if width differs
+    }
+
+    /**
+     * @param coordinates array of coordinates, where each entry is {@code [x, y]}
+     * @return position in the coordinates array or coordinates.length if outside of array.
+     */
+    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> priority(int[][] coordinates) {
+        final int boardWidth = getBoard().getWidth();
+        return pair -> {
+            int x = pair.left.getX();
+            int y = pair.left.getY();
+            for (int i = 0 ; i < coordinates.length ; i++) {
+                if (coordinates[i][0] == x && coordinates[i][1] == y) {
+                    return i;
+                }
+            }
+            return coordinates.length;
+        };
+    }
+
 }

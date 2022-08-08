@@ -8,6 +8,8 @@
   */
 package dk.ekot.misc;
 
+import com.google.common.primitives.Chars;
+
 import java.awt.*;
 import java.util.Arrays;
 
@@ -99,6 +101,16 @@ public class RomanNumerals {
 
     public static int romanToDecimal(String rom) {
         char[] map = "?£ȳ????@??qЧ????????D?I".toCharArray();
+        char[] s = (rom+"E").toCharArray();
+        int dec = 0;
+        for (int i = 0 ; i < s.length-1 ;) {
+            dec += (map[s[i]-0x42] < map[s[i+1]-0x42] ? -1 : 1) * (map[s[i++]-0x42]-'?');
+        }
+        return dec;
+    }
+
+    public static int romanToDecimalObfuscated(String rom) {
+        char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
         char[] s = (rom+"E").toCharArray();
         int dec = 0;
         for (int i = 0 ; i < s.length-1 ;) {
