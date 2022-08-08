@@ -14,35 +14,32 @@
  */
 package dk.ekot.misc;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  *
  */
-public class GrowableInts {
-    int[] ints = new int[100];
+public class GrowableLongs {
+    long[] longs;
     int pos = 0;
 
-    public GrowableInts() {
-        ints = new int[100];
+    public GrowableLongs() {
+        longs = new long[100];
     }
 
-    public GrowableInts(int initialSize) {
-        ints = new int[initialSize];
+    public GrowableLongs(int initialSize) {
+        longs = new long[initialSize];
     }
 
-    public void add(int v) {
-        if (pos == ints.length) {
-            int[] newInts = new int[ints.length * 2];
-            System.arraycopy(ints, 0, newInts, 0, ints.length);
-            ints = newInts;
+    public void add(long v) {
+        if (pos == longs.length) {
+            long[] newLongs = new long[longs.length * 2];
+            System.arraycopy(longs, 0, newLongs, 0, longs.length);
+            longs = newLongs;
         }
-        ints[pos++] = v;
+        longs[pos++] = v;
     }
 
-    public int get(int index) {
-        return ints[index];
+    public long get(int index) {
+        return longs[index];
     }
 
     public int size() {
@@ -52,9 +49,9 @@ public class GrowableInts {
     /**
      * @return truncated version.
      */
-    public int[] getInts() {
+    public int[] getLongs() {
         int[] result = new int[pos];
-        System.arraycopy(ints, 0, result, 0, pos);
+        System.arraycopy(longs, 0, result, 0, pos);
         return result;
     }
 }

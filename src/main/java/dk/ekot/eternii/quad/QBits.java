@@ -28,11 +28,19 @@ import static dk.ekot.eternii.EPieces.QNULL_P;
  * Not enough room in a single long, so we divide in inner (piece, rotation, piece edges colors)
  * and outer (defined edges, edge colors)
  *
- * qinner (long):
+ * qpieces (int)
  * {@code
- * <2 unused>
- * <20 piece>
- * <2 rotation> 0=north, 1=east, 2=south, 3=west
+ * <8 pieceID> upper left
+ * <8 pieceID> upper right
+ * <8 pieceID> lower right
+ * <8 pieceID> lower left
+ * }
+ *
+ * qinner (long), notice that there are no rotation of quads as all rotations are stored as
+ * individual quads:
+ * {@code
+ * <4 unused>
+ * <20 qpieceID>
  * <2*5 color> piece north edge
  * <2*5 color> piece east edge
  * <2*5 color> piece south edge

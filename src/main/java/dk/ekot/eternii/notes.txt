@@ -176,3 +176,15 @@ the singles bitmap.
 2022-06-14 *********************************************************************************
 
 Use fastutils: https://twitter.com/tagir_valeev/status/1536317236276867073
+
+2022-06-27 *********************************************************************************
+
+11) Merge piece- and edge-tracker
+QuadSet holds Quads and provides a deepCopy as well as removePiece.
+Each free QField that has an adjacent non-free QField (all edges conform to this) holds
+a QuadSet, which might be shared with other free QFields. When the board is modified,
+only the deepCopied "active" QuadSets are modified.
+
+At all times, maintain a set of used pieces so that deepCopy of a QuadSet can be adjusted
+to the current state.
+
