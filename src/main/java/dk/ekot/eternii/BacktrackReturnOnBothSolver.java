@@ -17,6 +17,8 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -42,6 +44,12 @@ public class BacktrackReturnOnBothSolver implements Runnable {
     private String best = "";
     private final int max;
     private long foundSolutions = 0;
+    static {
+        File ef = new File("eternii");
+        if (!ef.exists()) {
+            ef.mkdir();
+        }
+    }
     private PerformanceCollector collector = new PerformanceCollector("eternii/g2");
 
     public BacktrackReturnOnBothSolver(EBoard board, Walker walker) {
