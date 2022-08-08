@@ -109,6 +109,8 @@ public class PieceTracker {
                     encounteredOnes[oneHash] = true;
                     adjuster.accept(one.get(oneHash));
                 }
+            } else {
+                adjuster.accept(one.get(EBits.getHash(0b1000, edges)));
             }
             adjuster.accept(opposing.get(EBits.getHash(0b1010, edges)));
             edges = EBits.shiftEdgesRight(edges);
