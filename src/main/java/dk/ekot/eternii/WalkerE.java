@@ -63,6 +63,12 @@ public class WalkerE implements Walker {
         return all.isEmpty() ? null : toPieces(Collections.min(all, comparatorNonRotating));
     }
 
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
+        return all.isEmpty() ? null : all.stream().sorted(comparatorNonRotating).map(this::toPieces);
+    }
+
     /**
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */

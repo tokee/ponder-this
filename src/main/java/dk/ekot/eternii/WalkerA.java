@@ -49,6 +49,11 @@ public class WalkerA implements Walker {
                 .orElse(null);
     }
 
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
+        return getFreePieces();
+    }
+
     /**
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */

@@ -54,6 +54,11 @@ public class WalkerD implements Walker {
         return all.isEmpty() ? null : toPieces(all.get(0));
     }
 
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
+        return getFreePiecesStrategyA(); // TODO: This does not seem to match get()
+    }
+
     /**
      * @return the free fields with lists of corresponding Pieces. Empty if no free fields.
      */

@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.ToIntFunction;
+import java.util.stream.Stream;
 
 /**
  * Board edge, valids, edges, top-left
@@ -48,6 +49,12 @@ public class WalkerF implements Walker {
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
         return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
+    }
+
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
+        return all.isEmpty() ? null : all.stream().sorted(comparator).map(this::toPieces);
     }
 
     private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparatorGeneric() {

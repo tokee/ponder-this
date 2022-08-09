@@ -131,6 +131,12 @@ public class EBoard {
      * Remove the piece at the given position, updating the tracker and adding the piece to the free bag.
      */
     public void removePiece(int x, int y) {
+        removePiece(x, y, true);
+    }
+    /**
+     * Remove the piece at the given position, updating the tracker and adding the piece to the free bag.
+     */
+    public void removePiece(int x, int y, boolean requireViable) {
         int piece = getPiece(x, y);
         if (piece == EPieces.NULL_P) {
             throw new IllegalStateException("removePiece(" + x + ", " + y + ") called but the field has no piece");
@@ -145,7 +151,7 @@ public class EBoard {
         // Register piece as free
         updatePieceTracking(piece, +1);
         freeBag.add(piece);
-        if (!updatePossible9(x, y)) {
+        if (!updatePossible9(x, y) && requireViable) {
             log.warn("removePiece(" + x + ", " + y + "): Registered at least one field with no possible pieces");
         }
         notifyObservers(x, y, "");
@@ -171,6 +177,13 @@ public class EBoard {
      * @return if the positioning resulted in a negative tracker and was rolled back.
      */
     public boolean placePiece(int x, int y, int piece, int rotation, String label) {
+        return placePiece(x, y, piece, rotation, label, true);
+    }
+    /**
+     * Positions the given piece on the board, updating the tracker and removing the piece from the free bag.
+     * @return if the positioning resulted in a negative tracker and was rolled back.
+     */
+    public boolean placePiece(int x, int y, int piece, int rotation, String label, boolean requireViable) {
 //        System.out.printf("placePiece(x=%d, y=%d, piece=%d, rotation=%d, label='%s')\n",x, y, piece, rotation, label);
 
         if (EBits.hasPiece(board[x][y])) {
@@ -183,7 +196,7 @@ public class EBoard {
         //System.out.printf("\nBefore(%d, %d): %s\n", x, y, EBits.toString(board[x][y]));
         //updateOuterEdges9(x, y);
         updateSurroundingEdgesAndSelf(x, y);
-        if (!updatePossible9(x, y)) { // Rollback
+        if (!updatePossible9(x, y) && requireViable) { // Rollback
             board[x][y] = EBits.BLANK_STATE;
             //updateOuterEdges9(x, y);
             updateSurroundingEdgesAndSelf(x, y);
@@ -210,7 +223,7 @@ public class EBoard {
                 throw new IllegalStateException();
             }
         }*/
-        if (!updateTracker9(x, y, -1)) {
+        if (!updateTracker9(x, y, -1) && requireViable) {
             // At least one tracker is negative so we rollback
             updateTracker9(x, y, +1);
             board[x][y] = EBits.BLANK_STATE;
@@ -220,7 +233,7 @@ public class EBoard {
             updateTracker9(x, y, -1);
             return false;
         }
-        if (!updatePieceTracking(piece, -1)) {
+        if (!updatePieceTracking(piece, -1) && requireViable) {
             // At least one tracker is negative so we rollback
             updatePieceTracking(piece, +1);
             updateTracker9(x, y, +1);
@@ -852,4 +865,7 @@ public class EBoard {
         void boardChanged(int x, int y, String label);
     }
 
+    public PieceTracker getFreeBag() {
+        return freeBag;
+    }
 }
