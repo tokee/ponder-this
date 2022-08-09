@@ -35,8 +35,8 @@ public class WalkerG2 extends WalkerImpl {
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
                 comparingInt(this::clueCornersOrdered)
-                .thenComparingInt(this::boardEdges)
                 .thenComparingInt(this::validPieces)
+                .thenComparingInt(this::boardEdges)
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
                 .thenComparingInt(topLeft());
     }

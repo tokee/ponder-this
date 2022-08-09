@@ -188,3 +188,11 @@ only the deepCopied "active" QuadSets are modified.
 At all times, maintain a set of used pieces so that deepCopy of a QuadSet can be adjusted
 to the current state.
 
+2022-08-09 *********************************************************************************
+
+Attempts: 11105981K, placed=174|210, att/sec=172K, possible=9e+63 best=https://e2.bucas.name/#puzzle=displayTest&board_w=16&board_h=16&board_edges=abdaafhbackfacocacpcabhcacrbadgcadgdaepdacqeaencadteabmdaeibaabedsdahvjskvwvomjvpjnmhhwjrphhgnkpgrinpnqrqgtnnnpgtmqnmrwmijjrbafjdhdajnthwlmnjmllniomwtgihjltkgrjigtgqmqgtlgmprilqunrwswujgisfafgdweatqqwmokqllwoaaaaaaaaaaaaaaaaaaaaqwlrgiiwisoinqoswsoqiujsfaduepbaqrqpkmnrwuhmaaaaaaaaaaaaaaaaaaaalmtpiommoiqoowuiovuwjnnvdaenbjfaqovjnpmohkrprvmkaaaaaaaarmorhmrmttkmmrgtqrtruhhruqlhnouqeabofqfavgtqmpqgrsjpmwksaaaaaaaaovntrnkvkounggkotnpghsknlrlsujtrbabjfufatmsuqhwmjumhksiuaaaaaaaanvijkokvuisoklqiplulkillliwitvvibacvfubasrtuwvlrmqlviigqaaaaaaaaijjmklqjsnhlqoqnuvgolgvvwwvgvvlwcafvbveatkuvlwoklwvwgsjwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafadoeseaujosovmjvijvjjliuoujaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadadieteaopstmiwpjurilkvuuwokaaaaaaaaaaaavhununhhtkknsntknnsngwqndafweueashwuwkuhrwpkvwtwoiqwaaaaaaaaaaaaurhohmorkqhmtjoqskqjqtjkfabtelfawmulujvmpppjtwhpqlhwaaaaaaaaaaaahsjuowmshqkworiqqvprjgwvbabgfhcausthvpnsprophkprhvrkntqvtlqtsnpljminmupmkjhuistjpgmswstgbacscdaatcadnfacoeafpcaerfacqeafqbaepcabidacpcadhbacteabmfaetdafcaad
+
+12) Single edge redundancy
+
+Pieces with the same color on 3 or 3 edges can either be registered once or multiple times for that edge color.
+Experiment with only registering once.
