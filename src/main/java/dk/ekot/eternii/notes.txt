@@ -196,3 +196,6 @@ Attempts: 11105981K, placed=174|210, att/sec=172K, possible=9e+63 best=https://e
 
 Pieces with the same color on 3 or 3 edges can either be registered once or multiple times for that edge color.
 Experiment with only registering once.
+
+2022-08-15 *********************************************************************************
+Check "Alpha/Beta cutokk" aka "Min/max-cutoff"

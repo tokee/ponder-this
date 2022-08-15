@@ -78,6 +78,10 @@ public class SolverTest extends TestCase {
         testSolver(WalkerG2::new, BacktrackReturnOnBothSolver::new);
     }
 
+    public void testBacktrackReturnBothSolver_G2R() {
+        testSolver(WalkerG2R::new, BacktrackReturnOnBothSolver::new);
+    }
+
     // No clues!
     public void testBacktrackReturnBothSolver_H() {
         testSolver(WalkerH_BT::new, BacktrackReturnOnBothSolver::new, false);

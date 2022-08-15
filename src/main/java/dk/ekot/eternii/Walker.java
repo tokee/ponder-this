@@ -83,6 +83,19 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
     }
 
     /**
+     * @return 0 if a corner, 1 if in a 3x3 corners, else 2.
+     */
+    default int cornersToClues(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
+        final int x = pair.left.getX();
+        final int y = pair.left.getY();
+        final int w = getBoard().getWidth();
+        final int h = getBoard().getHeight();
+
+        return  ((x == 0 || x == w-1) && (y== 0 || y == h-1)) ? 0 :
+                ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 1 : 2;
+    }
+
+    /**
      * @return amount of valid pieces.
      */
     default int validPieces(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
@@ -97,6 +110,9 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
         return pair -> pair.left.getY() * boardWidth + pair.left.getX();
     }
 
+    /**
+     * Top-left, top-right. bottom-left, bottom-right corner.
+     */
     default int clueCornersOrdered(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
         final int x = pair.left.getX();
         final int y = pair.left.getY();
