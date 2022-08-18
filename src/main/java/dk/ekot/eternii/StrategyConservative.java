@@ -27,8 +27,11 @@ import java.util.regex.Matcher;
 public class StrategyConservative extends StrategyBase {
     private static final Logger log = LoggerFactory.getLogger(StrategyConservative.class);
 
+    public static final int MAX_TIME_MS = 10*60*1000;
+
     private boolean gotoTop = false;
     private int best = 0;
+    private long nextReset = MAX_TIME_MS;
 
     public StrategyConservative(Walker walker, EListener listener) {
         super(walker, listener, false, true);
@@ -40,13 +43,16 @@ public class StrategyConservative extends StrategyBase {
             best = level;
             listener.localBest(Thread.currentThread().getName(), this, board);
         }
-        if (level == 0) {
+        if (level == 5) {
             gotoTop = false;
+            nextReset = msTotal + MAX_TIME_MS;
         }
-        if (level == 100) {
+        if (gotoTop) {
+            return false;
+        }
+        if (msTotal > nextReset) {
             gotoTop = true;
         }
-
         return !gotoTop;
     }
 }

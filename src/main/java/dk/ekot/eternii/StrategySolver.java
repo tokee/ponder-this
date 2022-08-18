@@ -62,42 +62,48 @@ public class StrategySolver implements Runnable {
      * @return true if the bottom was reached, else false.
      */
     private boolean dive(int depth, double possibilities, long msSinceTop, long attemptsFromTop) {
-        final long localStartTime = System.currentTimeMillis();
 //        board.sanityCheckAll();
         if (board.getFreeCount() == 0) { // Bottom reached
             return true;
         }
         if (!strategy.shouldProcess(board, depth, attemptsFromTop, totalAttempts,
-                                    msSinceTop+(System.currentTimeMillis()-localStartTime),
-                                    (System.currentTimeMillis()-startTime))) {
+                                    msSinceTop, (System.currentTimeMillis()-startTime))) {
             return false;
         }
-
-
-
+        // TODO: Add refreshCandidates-check to Strategy. Maybe the check should return continue|stop|backtrack|refresh?
+        long localTimeDelta = -System.currentTimeMillis();
         Collection<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates = strategy.onlySingleField() ?
                 Collections.singleton(strategy.getWalker().get()) :
                 strategy.getWalker().getAll().collect(Collectors.toList());
+        localTimeDelta += System.currentTimeMillis();
 
         for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
             EBoard.Field field = free.left;
             for (EBoard.Piece piece : free.right) {
                 totalAttempts++;
                 attemptsFromTop++;
-                if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size())) {
+                localTimeDelta -= System.currentTimeMillis();
+                boolean didPlace = board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size());
+                localTimeDelta += System.currentTimeMillis();
+                if (didPlace) {
                     if (dive(depth + 1, possibilities * free.right.size(),
-                             msSinceTop + (System.currentTimeMillis() - localStartTime), attemptsFromTop)) {
+                             msSinceTop + localTimeDelta, attemptsFromTop)) {
                         if (++foundSolutions % 1000 == 0) {
                             System.out.println("Complete solutions so far: " + foundSolutions);
                         }
                     }
+                    localTimeDelta -= System.currentTimeMillis();
                     board.removePiece(field.getX(), field.getY());
+                    localTimeDelta += System.currentTimeMillis();
                 }
                 if (!strategy.shouldProcess(board, depth, attemptsFromTop, totalAttempts,
-                                            msSinceTop + (System.currentTimeMillis() - localStartTime),
-                                            (System.currentTimeMillis() - startTime))) {
+                                            msSinceTop + localTimeDelta, (System.currentTimeMillis() - startTime))) {
                     return false;
                 }
+            }
+            if (!strategy.shouldProcess(board, depth, attemptsFromTop, totalAttempts,
+                                        msSinceTop + localTimeDelta, (System.currentTimeMillis() - startTime))) {
+                return false;
             }
         }
         return false;
