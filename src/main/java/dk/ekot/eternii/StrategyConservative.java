@@ -27,32 +27,28 @@ import java.util.regex.Matcher;
 public class StrategyConservative extends StrategyBase {
     private static final Logger log = LoggerFactory.getLogger(StrategyConservative.class);
 
-    public static final int MAX_TIME_MS = 10*60*1000;
+    public static final int MAX_TIME_MS = 1000;
 
-    private boolean gotoTop = false;
     private int best = 0;
     private long nextReset = MAX_TIME_MS;
 
     public StrategyConservative(Walker walker, EListener listener) {
-        super(walker, listener, false, true);
+        super(walker, listener, true, false, true);
     }
 
     @Override
-    public boolean shouldProcess(EBoard board, int level, long attemptsFromTop, long attemptsTotal, long msFromTop, long msTotal) {
-        if (level > best) {
-            best = level;
-            listener.localBest(Thread.currentThread().getName(), this, board);
+    public Action getAction(StrategySolverState state) {
+        if (state.getLevel() > best) {
+            best = state.getLevel();
+            listener.localBest(Thread.currentThread().getName(), this, state.getBoard());
         }
-        if (level == 5) {
-            gotoTop = false;
-            nextReset = msTotal + MAX_TIME_MS;
+        if (state.getLevel() == 0) {
+            nextReset = state.getMSTotal() + MAX_TIME_MS;
         }
-        if (gotoTop) {
-            return false;
+        if (state.getMSTotal() > nextReset) {
+            nextReset = state.getMSTotal() + MAX_TIME_MS;
+            return Action.restartLevel(0);
         }
-        if (msTotal > nextReset) {
-            gotoTop = true;
-        }
-        return !gotoTop;
+        return Action.continueLocal();
     }
 }
