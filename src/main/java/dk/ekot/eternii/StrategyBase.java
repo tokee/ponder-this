@@ -57,6 +57,10 @@ public abstract class StrategyBase implements Strategy {
         return acceptsUnresolvable;
     }
 
+    public void setAcceptsUnresolvable(boolean acceptsUnresolvable) {
+        this.acceptsUnresolvable = acceptsUnresolvable;
+    }
+
     @Override
     public boolean onlySingleField() {
         return onlySingleField;

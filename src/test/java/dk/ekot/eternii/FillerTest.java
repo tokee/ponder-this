@@ -20,16 +20,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Takes a partly solved puzzle and fills the blanks, even when they produce an illegal solution.
  */
 public class FillerTest extends TestCase {
     private static final Logger log = LoggerFactory.getLogger(FillerTest.class);
-
-    private static final Pattern BUCAS_PIECES = Pattern.compile(".*board_edges=([a-z]*).*");
 
     public void testValidFiller() {
         // teg: 245 https://e2.bucas.name/#puzzle=ThomasEgense&board_w=16&board_h=16&board_edges=adcaaendabteabgbacvbadtcadhdadidafwdafufafgfaelfafqeacrfaencaabecocanjrottpjgwstvwtwtgiwhhlgiqphwtqqusrtgrusluqrqnourqunnqoqbaeqcrbarmorpjnmskqjtnlkiomnlnkopgtnqmqgrwmmuiowqwoiovuwusuvoqwseacqbveaomjvnlomqttllgmtmkigkntktksnqtjkmsutowmsokuwuhwkukjhwhqkcabhepbajijpommitplmmmupijjmtrujsjprjlijugolmspguhlswqlhjklqqhmkbafhbpcajpppmiwpllkiulpljmllulwmprilijjroqtjpqrqlvmqlrwvlslrmtrsfabtckfapllkwvwlkokvpprolsnpwuwsisoujgistgigrtrgmqntwlrqloglrhmobachfoeallwowvvlkvwvrkhvnvokwkrvoggkiiwgigqirjkgnthjrkgtgikkmhgicafhemfawksmvrtkwhtrhunhoujurijuggjiwwvgquiwksiuhwusgsjwkppsgnkpfacnfjbasiujtvvitkuvnhskjumhjvmujgwvvvlgijvvistjuvpsjqovphjqkprhcadpboeaunkovhunusthsphsmonpmmsowuhmlkvuvrnktrqrphkrourhjosuriqodaciepdakrwpuhhrtvphhnlvnnsnspwnhhrpvjshnnvjqosnkqmorpnqstopqvntcafvdgcawqnghwmqppvwloupslgowoklrglosqugvgtqsgvgmpqgnsvpoiisnqwifafqcsbanhlsmrmhvmtraaaagtnqaaaaaaaaaaaaaaaaaaaaqiklaaaaijnvaaaafadubjbaaaaamnwlaaaalhuqaaaailirthjlsjuhovmjntovkmttrgtmnnpgigpndadgbdaasdadweadteaeueaeseaeibaejfabubafmdabofadtdafteadpcaepcacdaac
@@ -81,7 +77,7 @@ public class FillerTest extends TestCase {
 
     private void fillValids(
             String bucasURL, Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory) {
-        EBoard board = loadBoard(bucasURL);
+        EBoard board = EBoard.load(bucasURL);
         new BoardVisualiser(board);
 
         Walker walker = walkerFactory.apply(board);
@@ -97,32 +93,4 @@ public class FillerTest extends TestCase {
         }
     }
 
-    private EBoard loadBoard(String bucasURL) {
-        Matcher m = BUCAS_PIECES.matcher(bucasURL);
-        if (!m.matches()) {
-            throw new IllegalArgumentException("Unable to extract pieces from '" + bucasURL + "'");
-        }
-        String bucasPieces = m.group(1);
-
-        EPieces pieces = EPieces.getEternii();
-        EBoard board = new EBoard(pieces, 16, 16);
-        board.registerFreePieces(pieces.getBag());
-
-        int x = 0;
-        int y = 0;
-        for (int i = 0 ; i < bucasPieces.length() ; i+=4) {
-            String bc = bucasPieces.substring(i, i+4);
-            if (!"aaaa".equals(bc)) {
-                int piece = pieces.getPieceFromString(bc);
-                int rotation = pieces.getRotationFromString(bc);
-                board.placePiece(x, y, piece, rotation);
-            }
-            x++;
-            if (x == board.getWidth()) {
-                x = 0;
-                y++;
-            }
-        }
-        return board;
-    }
 }

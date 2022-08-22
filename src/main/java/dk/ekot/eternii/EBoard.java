@@ -27,6 +27,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -73,6 +75,7 @@ import static dk.ekot.eternii.EPieces.NULL_E;
  */
 public class EBoard {
     private static final Logger log = LoggerFactory.getLogger(EBoard.class);
+    private static final Pattern BUCAS_PIECES = Pattern.compile(".*board_edges=([a-z]*).*");
 
     private final EPieces pieces;
     private final PieceTracker freeBag;
@@ -118,6 +121,35 @@ public class EBoard {
         board.registerFreePieces(pieces.getBag());
         if (clues) {
             pieces.processEterniiClues(board::placePiece);
+        }
+        return board;
+    }
+
+    public static EBoard load(String bucasURL) {
+        Matcher m = BUCAS_PIECES.matcher(bucasURL);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Unable to extract pieces from '" + bucasURL + "'");
+        }
+        String bucasPieces = m.group(1);
+
+        EPieces pieces = EPieces.getEternii();
+        EBoard board = new EBoard(pieces, 16, 16);
+        board.registerFreePieces(pieces.getBag());
+
+        int x = 0;
+        int y = 0;
+        for (int i = 0 ; i < bucasPieces.length() ; i+=4) {
+            String bc = bucasPieces.substring(i, i+4);
+            if (!"aaaa".equals(bc)) {
+                int piece = pieces.getPieceFromString(bc);
+                int rotation = pieces.getRotationFromString(bc);
+                board.placePiece(x, y, piece, rotation);
+            }
+            x++;
+            if (x == board.getWidth()) {
+                x = 0;
+                y++;
+            }
         }
         return board;
     }

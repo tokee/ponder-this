@@ -44,7 +44,7 @@ public class StrategySolver implements Runnable {
     public void run() {
         //board.sanityCheckAll();
         dive(0, 1.0, 1, 0);
-        log.debug(board.getEdgeTracker().toString());
+        //log.debug(board.getEdgeTracker().toString());
     }
 
     public long getFoundSolutions() {
@@ -97,7 +97,9 @@ public class StrategySolver implements Runnable {
                     state.setAttemptsFromTop(++attemptsFromTop);
 
                     msFromTop -= System.currentTimeMillis();
-                    boolean didPlace = board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size());
+                    boolean didPlace = board.placePiece(
+                            field.getX(), field.getY(), piece.piece, piece.rotation,
+                            depth + "," + free.right.size(), !strategy.acceptsUnresolvable());
                     msFromTop += System.currentTimeMillis();
 
                     if (didPlace) {

@@ -24,18 +24,26 @@ public class StrategyReset extends StrategyBase {
     private static final Logger log = LoggerFactory.getLogger(StrategyReset.class);
 
     private final int resetTime;
+    private final long quitTime;
 
     private int best = 0;
     private long nextReset;
 
     public StrategyReset(Walker walker, EListener listener, int resetTime) {
+        this(walker, listener, resetTime, Integer.MAX_VALUE);
+    }
+    public StrategyReset(Walker walker, EListener listener, int resetTime, int maxTime) {
         super(walker, listener, true, false, true);
         this.resetTime = resetTime;
         nextReset = System.currentTimeMillis()+resetTime;
+        quitTime = System.currentTimeMillis()+maxTime;
     }
 
     @Override
     public Action getAction(StrategySolverState state) {
+        if (System.currentTimeMillis() > quitTime) {
+            return Action.quit();
+        }
         if (state.getLevel() > best) {
             best = state.getLevel();
             listener.localBest(Thread.currentThread().getName(), this, state.getBoard(), state);
