@@ -17,23 +17,21 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-
 /**
  *
  */
-public class StrategyConservative extends StrategyBase {
-    private static final Logger log = LoggerFactory.getLogger(StrategyConservative.class);
+public class StrategyReset extends StrategyBase {
+    private static final Logger log = LoggerFactory.getLogger(StrategyReset.class);
 
-    public static final int MAX_TIME_MS = 1000;
+    private final int resetTime;
 
     private int best = 0;
-    private long nextReset = MAX_TIME_MS;
+    private long nextReset;
 
-    public StrategyConservative(Walker walker, EListener listener) {
+    public StrategyReset(Walker walker, EListener listener, int resetTime) {
         super(walker, listener, true, false, true);
+        this.resetTime = resetTime;
+        nextReset = System.currentTimeMillis()+resetTime;
     }
 
     @Override
@@ -43,10 +41,10 @@ public class StrategyConservative extends StrategyBase {
             listener.localBest(Thread.currentThread().getName(), this, state.getBoard(), state);
         }
         if (state.getLevel() == 0) {
-            nextReset = state.getMSTotal() + MAX_TIME_MS;
+            nextReset = state.getMSTotal() + resetTime;
         }
         if (state.getMSTotal() > nextReset) {
-            nextReset = state.getMSTotal() + MAX_TIME_MS;
+            nextReset = state.getMSTotal() + resetTime;
             return Action.restartLevel(0);
         }
         return Action.continueLocal();

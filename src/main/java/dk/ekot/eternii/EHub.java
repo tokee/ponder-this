@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -30,19 +29,29 @@ public class EHub implements EListener, Runnable {
     private static final Logger log = LoggerFactory.getLogger(EHub.class);
 
     private static int globalBest = 0;
+    public static final int DEFAULT_RESET_TIME = 5000;
+    private final int resetTime;
 
     public static void main(String[] args) throws InterruptedException {
-        int threadCount = 5;
+        int threadCount = args.length < 1 ? 5 : Integer.parseInt(args[0]);
+        int resetTime = args.length < 2 ? DEFAULT_RESET_TIME : Integer.parseInt(args[1]);
+
+        System.out.println("Starting " + threadCount + " boards with fixed reset time " + resetTime);
+
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         for (int i = 0 ; i < threadCount ; i++) {
-           executor.submit(new EHub());
+           executor.submit(new EHub(resetTime));
         }
-        System.out.println("Started " + threadCount + " boards");
         executor.awaitTermination(100, TimeUnit.DAYS);
+    }
+
+    public EHub(int resetTime) {
+        this.resetTime = resetTime;
     }
 
     @Override
     public void run() {
+        System.out.println("Beginning solve... " + Thread.currentThread().getName());
         testSolver(WalkerG2R::new);
     }
 
@@ -52,7 +61,7 @@ public class EHub implements EListener, Runnable {
     private void testSolver(Function<EBoard, Walker> walkerFactory, boolean clues) {
         EBoard board = getBoard(clues);
         Walker walker = walkerFactory.apply(board);
-        Strategy strategy = new StrategyConservative(walker, this);
+        Strategy strategy = new StrategyReset(walker, this, resetTime);
         StrategySolver solver = new StrategySolver(board, strategy);
 
         long runTime = -System.currentTimeMillis();
