@@ -79,16 +79,17 @@ public class StrategySolver implements Runnable {
                 }
         }
 
-        msFromTop -= System.currentTimeMillis();
-        Collection<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates = strategy.onlySingleField() ?
-                Collections.singleton(strategy.getWalker().get()) :
-                strategy.getWalker().getAll().collect(Collectors.toList());
-        msFromTop += System.currentTimeMillis();
-
         boolean restart;
         do {
             restart = depth == 0 && strategy.loopLevelZero();
 
+            msFromTop -= System.currentTimeMillis();
+            Collection<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates = strategy.onlySingleField() ?
+                    Collections.singleton(strategy.getWalker().get()) :
+                    strategy.getWalker().getAll().collect(Collectors.toList());
+            msFromTop += System.currentTimeMillis();
+
+            skipCurrent:
             for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free : candidates) {
                 EBoard.Field field = free.left;
                 for (EBoard.Piece piece : free.right) {
@@ -125,7 +126,7 @@ public class StrategySolver implements Runnable {
                             }
                             action = Strategy.Action.continueLocal();
                             restart = true;
-                            break;
+                            break skipCurrent;
                     }
                 }
             }

@@ -73,7 +73,8 @@ public class EHub implements EListener, Runnable {
 
 
     @Override
-    public void localBest(String id, Strategy strategy, EBoard board) {
-        System.out.println("Best for '" + id + "': " + board.getFilledCount() + " " + board.getDisplayURL());
+    public void localBest(String id, Strategy strategy, EBoard board, StrategySolverState state) {
+        System.out.printf("Best for '%s' (%dK attempts/sec): %d %s\n",
+                          id, state.getTotalAttemptsPerMS(), board.getFilledCount(), board.getDisplayURL());
     }
 }

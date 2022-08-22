@@ -18,5 +18,5 @@ package dk.ekot.eternii;
  * Receives information from different threads on board changes.
  */
 public interface EListener {
-    void localBest(String id, Strategy strategy, EBoard board);
+    void localBest(String id, Strategy strategy, EBoard board, StrategySolverState state);
 }

@@ -94,4 +94,8 @@ public class StrategySolverState {
     public void setPossibilities(double possibilities) {
         this.possibilities = possibilities;
     }
+
+    public long getTotalAttemptsPerMS() {
+        return attemptsTotal == 0 ? 0 : attemptsTotal/getMSTotal();
+    }
 }

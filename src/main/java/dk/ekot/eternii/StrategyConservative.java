@@ -40,7 +40,7 @@ public class StrategyConservative extends StrategyBase {
     public Action getAction(StrategySolverState state) {
         if (state.getLevel() > best) {
             best = state.getLevel();
-            listener.localBest(Thread.currentThread().getName(), this, state.getBoard());
+            listener.localBest(Thread.currentThread().getName(), this, state.getBoard(), state);
         }
         if (state.getLevel() == 0) {
             nextReset = state.getMSTotal() + MAX_TIME_MS;
