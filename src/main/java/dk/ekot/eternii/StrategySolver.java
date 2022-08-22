@@ -17,13 +17,10 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Solver where the behaviour is controlled by a Strategy object.
@@ -32,22 +29,19 @@ public class StrategySolver implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(StrategySolver.class);
 
     private final EBoard board;
+    private StrategySolverState state;
     private final Strategy strategy;
 
-    private int minFree;
-    private long totalAttempts = 0;
-    private long startTime;
-    private String best = "";
     private long foundSolutions = 0;
 
     public StrategySolver(EBoard board, Strategy strategy) {
         this.board = board;
+        this.state = new StrategySolverState(board);
         this.strategy = strategy;
     }
 
     @Override
     public void run() {
-        startTime = System.currentTimeMillis()-1; // -1 to avoid division by zero
         //board.sanityCheckAll();
         dive(0, 1.0, 1, 0);
         log.debug(board.getEdgeTracker().toString());
@@ -61,52 +55,83 @@ public class StrategySolver implements Runnable {
      * Iterates all possible fields and pieces, recursively calling for each piece.
      * @return true if the bottom was reached, else false.
      */
-    private boolean dive(int depth, double possibilities, long msSinceTop, long attemptsFromTop) {
+    private Strategy.Action dive(int depth, double possibilities, long msFromTop, long attemptsFromTop) {
 //        board.sanityCheckAll();
-        if (board.getFreeCount() == 0) { // Bottom reached
-            return true;
-        }
-        if (!strategy.shouldProcess(board, depth, attemptsFromTop, totalAttempts,
-                                    msSinceTop, (System.currentTimeMillis()-startTime))) {
-            return false;
-        }
-        // TODO: Add refreshCandidates-check to Strategy. Maybe the check should return continue|stop|backtrack|refresh?
-        long localTimeDelta = -System.currentTimeMillis();
-        Collection<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates = strategy.onlySingleField() ?
-                Collections.singleton(strategy.getWalker().get()) :
-                strategy.getWalker().getAll().collect(Collectors.toList());
-        localTimeDelta += System.currentTimeMillis();
+        state.incAttemptsTotal();
+        state.setPossibilities(possibilities);
+        state.setAttemptsFromTop(attemptsFromTop);
+        state.setLevel(depth);
+        state.setMsFromTop(msFromTop);
 
-        for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
-            EBoard.Field field = free.left;
-            for (EBoard.Piece piece : free.right) {
-                totalAttempts++;
-                attemptsFromTop++;
-                localTimeDelta -= System.currentTimeMillis();
-                boolean didPlace = board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size());
-                localTimeDelta += System.currentTimeMillis();
-                if (didPlace) {
-                    if (dive(depth + 1, possibilities * free.right.size(),
-                             msSinceTop + localTimeDelta, attemptsFromTop)) {
-                        if (++foundSolutions % 1000 == 0) {
-                            System.out.println("Complete solutions so far: " + foundSolutions);
-                        }
-                    }
-                    localTimeDelta -= System.currentTimeMillis();
-                    board.removePiece(field.getX(), field.getY());
-                    localTimeDelta += System.currentTimeMillis();
-                }
-                if (!strategy.shouldProcess(board, depth, attemptsFromTop, totalAttempts,
-                                            msSinceTop + localTimeDelta, (System.currentTimeMillis() - startTime))) {
-                    return false;
-                }
-            }
-            if (!strategy.shouldProcess(board, depth, attemptsFromTop, totalAttempts,
-                                        msSinceTop + localTimeDelta, (System.currentTimeMillis() - startTime))) {
-                return false;
-            }
+        // TODO: Reconsider this
+        if (board.getFreeCount() == 0) { // Bottom reached
+            return Strategy.Action.continueLocal();
         }
-        return false;
+
+        Strategy.Action action = strategy.getAction(state);
+        switch (action.command) {
+            case quit: return action;
+            case continueLocal: break;
+            case continueLevel:
+            case restartLevel:
+                if (action.level < depth) {
+                    return action;
+                }
+        }
+
+        boolean restart;
+        do {
+            restart = depth == 0 && strategy.loopLevelZero();
+
+            msFromTop -= System.currentTimeMillis();
+            Collection<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates = strategy.onlySingleField() ?
+                    Collections.singleton(strategy.getWalker().get()) :
+                    strategy.getWalker().getAll().collect(Collectors.toList());
+            msFromTop += System.currentTimeMillis();
+
+            skipCurrent:
+            for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free : candidates) {
+                EBoard.Field field = free.left;
+                for (EBoard.Piece piece : free.right) {
+                    state.incAttemptsTotal();
+                    state.setAttemptsFromTop(++attemptsFromTop);
+
+                    msFromTop -= System.currentTimeMillis();
+                    boolean didPlace = board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size());
+                    msFromTop += System.currentTimeMillis();
+
+                    if (didPlace) {
+                        action = dive(depth + 1, possibilities * free.right.size(), msFromTop, attemptsFromTop);
+                        msFromTop -= System.currentTimeMillis();
+                        board.removePiece(field.getX(), field.getY());
+                        msFromTop += System.currentTimeMillis();
+                        state.setMsFromTop(msFromTop);
+                    } else {
+                        action = strategy.getAction(state);
+                    }
+                    switch (action.command) {
+                        case quit:
+                            return action;
+                        case continueLocal:
+                            break;
+                        case continueLevel:
+                            if (action.level < depth) {
+                                return action;
+                            }
+                            action = Strategy.Action.continueLocal();
+                            break;
+                        case restartLevel:
+                            if (action.level < depth) {
+                                return action;
+                            }
+                            action = Strategy.Action.continueLocal();
+                            restart = true;
+                            break skipCurrent;
+                    }
+                }
+            }
+        } while (restart);
+        return action;
     }
 
 }

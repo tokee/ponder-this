@@ -24,20 +24,27 @@ import java.util.regex.Matcher;
 /**
  *
  */
-public class StrategyBase implements Strategy {
+public abstract class StrategyBase implements Strategy {
     private static final Logger log = LoggerFactory.getLogger(StrategyBase.class);
     protected Walker walker;
     protected EListener listener;
+    private boolean loopLevelZero;
     protected boolean acceptsUnresolvable;
     protected boolean onlySingleField;
 
     private List<String> eLog = new ArrayList<>();
 
-    public StrategyBase(Walker walker, EListener listener, boolean acceptsUnresolvable, boolean onlySingleField) {
+    public StrategyBase(Walker walker, EListener listener, boolean loopLevelZero, boolean acceptsUnresolvable, boolean onlySingleField) {
         this.walker = walker;
         this.listener = listener;
+        this.loopLevelZero = loopLevelZero;
         this.acceptsUnresolvable = acceptsUnresolvable;
         this.onlySingleField = onlySingleField;
+    }
+
+    @Override
+    public boolean loopLevelZero() {
+        return loopLevelZero;
     }
 
     @Override
@@ -61,8 +68,7 @@ public class StrategyBase implements Strategy {
     }
 
     @Override
-    public boolean shouldProcess(
-            EBoard board, int level, long attemptsFromTop, long attemptsTotal, long msFromTop, long msTotal) {
-        return true;
+    public Action getAction(StrategySolverState state) {
+        return Action.continueLocal();
     }
 }

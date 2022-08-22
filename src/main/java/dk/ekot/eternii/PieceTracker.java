@@ -54,7 +54,7 @@ public class PieceTracker {
      * If true, pieces with 2 or 3 edges og the same color are only registered once in {@link #one}.
      * If false, those pieces are registered 2 or 3 times.
      */
-    private final boolean REMOVE_DUPLICATES = true;
+    private final boolean REMOVE_DUPLICATES = false;
 
     public PieceTracker(EPieces pieces) {
         this.pieces = pieces;

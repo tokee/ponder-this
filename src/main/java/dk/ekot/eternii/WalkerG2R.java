@@ -39,8 +39,8 @@ public class WalkerG2R extends WalkerImpl {
 
     private final Comparator<EBoard.Pair<EBoard.Field, Set<Integer>>> comparatorSet = getFieldComparatorSet();
 
-    public static Random random;
-    static {
+    public Random random;
+    {
         int seed = new Random().nextInt();
         log.info("Random seed=" + seed);
         random = new Random(seed);
