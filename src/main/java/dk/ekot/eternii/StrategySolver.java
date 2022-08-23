@@ -105,7 +105,7 @@ public class StrategySolver implements Runnable {
                     if (didPlace) {
                         action = dive(depth + 1, possibilities * free.right.size(), msFromTop, attemptsFromTop);
                         msFromTop -= System.currentTimeMillis();
-                        board.removePiece(field.getX(), field.getY());
+                        board.removePiece(field.getX(), field.getY(), !strategy.acceptsUnresolvable());
                         msFromTop += System.currentTimeMillis();
                         state.setMsFromTop(msFromTop);
                     } else {

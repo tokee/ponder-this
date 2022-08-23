@@ -199,3 +199,4 @@ Experiment with only registering once.
 
 2022-08-15 *********************************************************************************
 Check "Alpha/Beta cutokk" aka "Min/max-cutoff"
+

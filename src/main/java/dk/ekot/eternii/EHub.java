@@ -136,7 +136,14 @@ public class EHub implements EListener, Runnable {
 //        System.out.println("Activating phase 2 for marked " + board.getFilledCount());
         StrategyBase strategy = new StrategyReset(walker, this, DEFAULT_PHASE2_RESET, DEFAULT_PHASE2_TIMEOUT);
         strategy.setAcceptsUnresolvable(true);
+        strategy.setOnlySingleField(false);
         StrategySolver solver = new StrategySolver(board, strategy);
         executor.submit(solver);
     }
 }
+/*
+
+ Phase 2: pool-1-thread-16 (0K attempts/sec): 213 https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaafhbabtfacsbabpcafjbaaaaaaaaafqfaelfadteabmdaeibafoeacrfaadcdpcahssptgwssqugphiqjnthaaaaaaaaqjkllthjtpjtmiwpisoioqwsrpnqdaepcnfasnnnwlmnugolimhgtrvmaaaaaaaaknhshlsnjmllwuhmoujuwswunqoseacqaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaahsjusskslrlshmorjvomwlwvogllcadgaaaaaaaaaaaaaaaaaaaaaaaaaaaankoujhukkprhlsnpowmsoiqwwililiridacifubalwmuvvlwgtqvaaaaaaaarluqomnlupmmrilpngrimtlgqqwtlvmqrnkvcaenbhcamkqhlwokquiwaaaaaaaaujsinnvjmpjnllkprwvllrqwwpkrmonpkvkoeabvcocaqnqoouqniowuaaaaaaaastopvvitjqovkwhqvkvwqjskkgrjnnpgkpgnbaepckfaqmokqhwmwqlhaaaaaaaaommiijjmosujhvjsvijvsjgironjpprogtnpeaetftdaovntwppvloupaaaaaaaamttkjoqtuvgojgwvjigggqiintmqrwhtnspweaesdidanqwipqrqunrqaaaaaaaatrkgqrtrglorwollggkoigtgmpqghhrpptwheabtdweawvgwrkhvrphkaaaaaaaakrvwtkvrolnklkilkgiktmrgqgqmrtrgwvwtbacvepcagmsphjumhhwjaaaaaaaavoknvmjonrkmijurijpjrijjqooiriqowtgicadtcrbasmtrujvmwgsjaaaaaaaakuvtjtruksntuvuspnsvjminorrmqvprgsgvdadsbgbatnqgvijnstjiaaaaaaaavuworhounlvhulplsuhlisourtusplmtghhldadhbeaaqbaejbabjfabaaaaaaaawdafofadvcafpcachbacoeabueaemfaehcafdaac
+
+
+ */
