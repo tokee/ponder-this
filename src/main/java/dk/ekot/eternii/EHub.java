@@ -66,7 +66,7 @@ public class EHub implements EListener, Runnable {
     @Override
     public void run() {
         System.out.println("Beginning solve... " + Thread.currentThread().getName());
-        testSolver(WalkerG2R::new);
+        testSolver(WalkerG2R::new, true);
     }
 
     private void testSolver(Function<EBoard, Walker> walkerFactory) {
