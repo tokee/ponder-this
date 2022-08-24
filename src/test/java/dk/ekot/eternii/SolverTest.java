@@ -56,6 +56,9 @@ public class SolverTest extends TestCase {
     public void testBacktrackReturnBothSolver_F() {
         testSolver(WalkerF::new, BacktrackReturnOnBothSolver::new);
     }
+    public void testExp() {
+        testSolver(WalkerExp::new, BacktrackReturnOnBothSolver::new);
+    }
 
     public void testBacktrackReturnBothSolver_B() {
         testSolver(WalkerB::new, BacktrackReturnOnBothSolver::new);
@@ -76,6 +79,14 @@ public class SolverTest extends TestCase {
 
     public void testBacktrackReturnBothSolver_G2() {
         testSolver(WalkerG2::new, BacktrackReturnOnBothSolver::new);
+    }
+
+    public void testCornerclueFirst() {
+        testSolver(WalkerGClueStart::new, BacktrackReturnOnBothSolver::new);
+    }
+
+    public void testCornerclue5() {
+        testSolver(WalkerGCornerClue5::new, BacktrackReturnOnBothSolver::new);
     }
 
     public void testBacktrackReturnBothSolver_G2R() {

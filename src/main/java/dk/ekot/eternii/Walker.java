@@ -76,7 +76,7 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
     default int clueCorners(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
         final int x = pair.left.getX();
         final int y = pair.left.getY();
-        final int w = getBoard().getWidth();
+        final int w = getBoard().getWidth(); // 16
         final int h = getBoard().getHeight();
 
         return ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 0 : 1;
@@ -109,6 +109,19 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
         final int boardWidth = getBoard().getWidth();
         return pair -> pair.left.getY() * boardWidth + pair.left.getX();
     }
+
+    /**
+     * @return nearest to top-left or bottom-right corner, measured row by row.
+     */
+    default ToIntFunction<? super EBoard.Pair<EBoard.Field, ? extends Collection<?>>> topLeftBottomRight() {
+        final int boardWidth = getBoard().getWidth();
+        return pair -> {
+            final int tl = pair.left.getY() * boardWidth + pair.left.getX();
+            final int br = 255-tl;
+            return Math.min(tl, br);
+        };
+    }
+
 
     /**
      * Top-left, top-right. bottom-left, bottom-right corner.
@@ -148,7 +161,6 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
      * @return position in the coordinates array or coordinates.length if outside of array.
      */
     default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> priority(int[][] coordinates) {
-        final int boardWidth = getBoard().getWidth();
         return pair -> {
             int x = pair.left.getX();
             int y = pair.left.getY();
@@ -160,5 +172,52 @@ public interface Walker extends Supplier<EBoard.Pair<EBoard.Field, List<EBoard.P
             return coordinates.length;
         };
     }
+
+    /**
+     * @param coordinates array of array of coordinates, where each entry is {@code [x, y]}
+     * @return position in the coordinates array array or 256 if outside of array.
+     */
+    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> priority(int[][][] coordinates) {
+        return pair -> {
+            int x = pair.left.getX();
+            int y = pair.left.getY();
+            for (int i = 0 ; i < coordinates.length ; i++) {
+                final int[][] group = coordinates[i];
+                for (int j = 0; j < group.length; j++) {
+                    if (group[j][0] == x && group[j][1] == y) {
+                        return i;
+                    }
+                }
+            }
+            return 256;
+        };
+    }
+
+    /**
+     * @return distance to origo (closer is better).
+     */
+    default int origoDist(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair, int origoX, int origoY) {
+        final int x = pair.left.getX();
+        final int y = pair.left.getY();
+        final int w = getBoard().getWidth();
+        final int h = getBoard().getHeight();
+
+        final int deltaX = x-origoX;
+        final int deltaY = y-origoY;
+        return (deltaX*deltaX)+(deltaY*deltaY); // Don't care about square as this is only ofr comparison
+    }
+
+    /**
+     * @return 0 is inside rectangle (all edges inclusive) else 1.
+     */
+    default ToIntFunction<? super EBoard.Pair<EBoard.Field, ? extends Collection<?>>> rect(int x1, int y1, int x2, int y2) {
+        return pair -> {
+            final int x = pair.left.getX();
+            final int y = pair.left.getY();
+            return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? 0 : 1;
+        };
+    }
+
+
 
 }
