@@ -109,6 +109,7 @@ public class StrategySolver implements Runnable {
                         msFromTop += System.currentTimeMillis();
                         state.setMsFromTop(msFromTop);
                     } else {
+                        // TODO: Collect all non.placed minus current piece, increase counter for each/count(non.placed)
                         action = strategy.getAction(state);
                     }
                     switch (action.command) {

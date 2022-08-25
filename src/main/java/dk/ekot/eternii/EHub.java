@@ -37,20 +37,23 @@ public class EHub implements EListener, Runnable {
     private static int globalBest = 0;
     private static int globalBestPhase2 = 0;
     public static final int DEFAULT_RESET_TIME = 5000;
+    public static final int DEFAULT_MAX_TIME = 500000000;
     public static final int DEFAULT_PHASE2_RESET = 1000;
     public static final int DEFAULT_PHASE2_TIMEOUT = 60000;
     private final int resetTime;
+    private final int maxTime;
     private static ExecutorService executor;
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
         int threadCount = args.length < 1 ? 5 : Integer.parseInt(args[0]);
         int resetTime = args.length < 2 ? DEFAULT_RESET_TIME : Integer.parseInt(args[1]);
+        int maxTime = args.length < 3 ? DEFAULT_MAX_TIME : Integer.parseInt(args[2]);
 
         System.out.println("Starting " + threadCount + " boards with fixed reset time " + resetTime);
         executor = Executors.newFixedThreadPool(threadCount*2);
         List<Future<?>> jobs = new ArrayList<>();
         for (int i = 0 ; i < threadCount ; i++) {
-           jobs.add(executor.submit(new EHub(resetTime)));
+           jobs.add(executor.submit(new EHub(resetTime, maxTime)));
         }
         for (Future<?> job: jobs) {
             job.get();
@@ -59,8 +62,9 @@ public class EHub implements EListener, Runnable {
         System.out.println("Finished running");
     }
 
-    public EHub(int resetTime) {
+    public EHub(int resetTime, int maxTime) {
         this.resetTime = resetTime;
+        this.maxTime = maxTime;
     }
 
     @Override
@@ -76,11 +80,12 @@ public class EHub implements EListener, Runnable {
     private void testSolver(Function<EBoard, Walker> walkerFactory, boolean clues) {
         EBoard board = getBoard(clues);
         Walker walker = walkerFactory.apply(board);
-        Strategy strategy = new StrategyReset(walker, this, resetTime);
+        Strategy strategy = new StrategyReset(walker, this, resetTime, maxTime);
         StrategySolver solver = new StrategySolver(board, strategy);
 
 //        long runTime = -System.currentTimeMillis();
         solver.run();
+        System.out.println(board.getTopTerminators(15));
 //        runTime += System.currentTimeMillis();
 //        System.out.printf("Done. Placed %d pieces in %.2f seconds\n", board.getFilledCount(), runTime/1000.0);
 //        try {
@@ -126,7 +131,7 @@ public class EHub implements EListener, Runnable {
         globalBest = board.getFilledCount();
         System.out.printf("Phase 1: %s (%dK attempts/sec): %d %s\n",
                           id, state.getTotalAttemptsPerMS(), board.getFilledCount(), board.getDisplayURL());
-        if (globalBest > 195) { // Magic number, sorry!
+        if (globalBest >= 200) { // Magic number, sorry!
             activatePhase2(board.getDisplayURL());
         }
     }

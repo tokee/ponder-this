@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -86,6 +87,9 @@ public class EBoard {
     private final long[][] board; // states, as defined in EBits
     private final Set[][] possible; // TODO: Figure out how to hack around the "no generic array creation"-limitation
     private final EdgeTracker edgeTracker = new EdgeTracker();
+
+    // Index = piece ID, incement with 1 each time placePiece returns false
+    private final long[] terminators = new long[256];
 
     private final Set<Observer> observers = new HashSet<>();
 
@@ -234,6 +238,7 @@ public class EBoard {
             updateSurroundingEdgesAndSelf(x, y);
             updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
+            terminators[piece]++;
             return false;
 //            log.warn("placePiece(" + x + ", " + y + ", piece=" + piece + ", rotation=" + rotation +
 //                     "): Registered at least one field with no possible pieces");
@@ -263,6 +268,7 @@ public class EBoard {
             updateSurroundingEdgesAndSelf(x, y);
             updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
+            terminators[piece]++;
             return false;
         }
         if (!updatePieceTracking(piece, -1) && requireViable) {
@@ -274,6 +280,7 @@ public class EBoard {
             updateSurroundingEdgesAndSelf(x, y);
             updatePossible9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
+            terminators[piece]++;
             return false;
         }
         if (!freeBag.remove(piece)) {
@@ -832,6 +839,14 @@ public class EBoard {
             this.right = right;
         }
 
+        public S getLeft() {
+            return left;
+        }
+
+        public T getRight() {
+            return right;
+        }
+
         @Override
         public String toString() {
             return "[" + left + ", " + right + "]";
@@ -899,5 +914,26 @@ public class EBoard {
 
     public PieceTracker getFreeBag() {
         return freeBag;
+    }
+
+    /**
+     * @return a list of the topX pieces that caused placePiece to return false;
+     */
+    public String getTopTerminators(int topX) {
+        List<Pair<Integer, Long>> sorted = new ArrayList<>();
+        for (int i = 0 ; i < terminators.length ; i++) {
+            sorted.add(new Pair<>(i, terminators[i]));
+        }
+        sorted.sort(Comparator.comparingLong(Pair::getRight));
+        Collections.reverse(sorted);
+        StringBuilder sb = new StringBuilder(topX * 10);
+        for (int i = 0 ; i < topX ; i++) {
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            sb.append(pieces.toDisplayString(sorted.get(i).getLeft(), 0));
+            sb.append(" ").append(sorted.get(i).getRight());
+        }
+        return sb.toString();
     }
 }
