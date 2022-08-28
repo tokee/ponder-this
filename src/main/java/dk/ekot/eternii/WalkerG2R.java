@@ -62,6 +62,16 @@ public class WalkerG2R extends WalkerImpl {
     }
 
     @Override
+    public Move get() {
+        List<Move> minima = ExtractionUtils.minima(getAll(), moveComparator);
+        Move move = minima.get(random.nextInt(minima.size()));
+        shuffle(move);
+        return move;
+    }
+
+    // TODO: Implement getAll like get()
+
+    @Override
     public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAllRotated() {
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> shuffled = new ArrayList<>(all.size());
@@ -77,6 +87,12 @@ public class WalkerG2R extends WalkerImpl {
         List<Integer> pieces = new ArrayList<>(pair.right);
         Collections.shuffle(pieces, random);
         return new EBoard.Pair<>(pair.left, new LinkedHashSet<>(pieces));
+    }
+
+    private void shuffle(Move move) {
+        List<Integer> pieceIDs = new ArrayList<>(move.getPieceIDs());
+        Collections.shuffle(pieceIDs, random);
+        move.setLocalPieceIDs(new LinkedHashSet<>(pieceIDs));
     }
 
     @Override
