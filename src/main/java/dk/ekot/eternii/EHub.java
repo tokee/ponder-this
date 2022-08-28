@@ -81,7 +81,8 @@ public class EHub implements EListener, Runnable {
         EBoard board = getBoard(clues);
         Walker walker = walkerFactory.apply(board);
         Strategy strategy = new StrategyReset(walker, this, resetTime, maxTime);
-        StrategySolver solver = new StrategySolver(board, strategy);
+        //StrategySolver solver = new StrategySolver(board, strategy);
+        StrategySolverMove solver = new StrategySolverMove(board, strategy);
 
 //        long runTime = -System.currentTimeMillis();
         solver.run();

@@ -96,7 +96,7 @@ public interface Walker {
         }
 
         public int piecesSize() {
-            return getPieceIDs().size();
+            return (localPieceIDs == null ? board.getPieceIDs(x, y) : localPieceIDs).size();
         }
 
         public void setLocalPieceIDs(Set<Integer> localPieceIDs) {
