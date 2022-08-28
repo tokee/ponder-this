@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -64,12 +65,34 @@ public interface Walker {
             return y*board.getWidth() + x;
         }
 
-        // TODO: Add fillArray-method for less GC overhead
+        /**
+         * Not recommended due to garbage collection overhead. Use {@link #fillPieceIDs(int[])} instead.
+         * @return pieceIDs.
+         */
         public Set<Integer> getPieceIDs() {
             if (localPieceIDs == null) {
                 localPieceIDs = new HashSet<>(board.getPieceIDs(x, y)); // We copy to avoid concurrent modificaton exception
             }
             return localPieceIDs;
+        }
+
+        /**
+         * Adds pieceIDs to the given buffer. This is the recommended way to get the pieceIDs.
+         * @return the number of added IDs.
+         */
+        public int fillPieceIDs(int[] buffer) {
+            AtomicInteger index = new AtomicInteger(0);
+            (localPieceIDs == null ? board.getPieceIDs(x, y) : localPieceIDs).forEach(
+                    id -> buffer[index.getAndIncrement()] = id);
+            return index.get();
+        }
+
+        public int[] getPieceIDsArray() {
+            final Set<Integer> ids = localPieceIDs == null ? board.getPieceIDs(x, y) : localPieceIDs;
+            int[] buffer = new int[ids.size()];
+            AtomicInteger index = new AtomicInteger(0);
+            ids.forEach(id -> buffer[index.getAndIncrement()] = id);
+            return buffer;
         }
 
         public int piecesSize() {

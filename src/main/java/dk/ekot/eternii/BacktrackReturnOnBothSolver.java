@@ -96,19 +96,19 @@ public class BacktrackReturnOnBothSolver implements Runnable {
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
-        Walker.Move move = walker.get();
+        final Walker.Move move = walker.get();
         if (move == null) {
             return false;
         }
-        Collection<Integer> pieceIDs = move.getPieceIDs();
+        final int[] pieceIDs = move.getPieceIDsArray();
         for (int pieceID : pieceIDs) {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
             for (int rotation : move.getValidRotations(pieceID)) {
                 //System.out.println("Placing " + board.getPieces().toDisplayString(pieceID, rotation));
                 attempts++;
-                if (board.placePiece(move.getX(), move.getY(), pieceID, rotation, depth + "," + pieceIDs.size())) {
-                    if (dive(depth + 1, possibilities * pieceIDs.size())) {
+                if (board.placePiece(move.getX(), move.getY(), pieceID, rotation, depth + "," + pieceIDs.length)) {
+                    if (dive(depth + 1, possibilities * pieceIDs.length)) {
                         if (++foundSolutions % 1000 == 0) {
                             System.out.println("Complete solutions so far: " + foundSolutions);
                         }
