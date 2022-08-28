@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 
 /**
@@ -46,15 +45,20 @@ public class WalkerF implements Walker {
     }
 
     @Override
-    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
-        return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
+    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
+        return all.isEmpty() ? null : toRotatedPieces(Collections.min(all, comparator));
     }
 
     @Override
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
-        return all.isEmpty() ? null : all.stream().sorted(comparator).map(this::toPieces);
+    public Stream<Move> getAll() {
+        throw new UnsupportedOperationException("Not implemented for old Walker");
+    }
+
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAllRotated() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
+        return all.isEmpty() ? null : all.stream().sorted(comparator).map(this::toRotatedPieces);
     }
 
     private Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparatorGeneric() {

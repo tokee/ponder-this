@@ -85,8 +85,8 @@ public class StrategySolver implements Runnable {
 
             msFromTop -= System.currentTimeMillis();
             Collection<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates = strategy.onlySingleField() ?
-                    Collections.singleton(strategy.getWalker().get()) :
-                    strategy.getWalker().getAll().collect(Collectors.toList());
+                    Collections.singleton(strategy.getWalker().getLegacy()) :
+                    strategy.getWalker().getAllRotated().collect(Collectors.toList());
             msFromTop += System.currentTimeMillis();
 
             skipCurrent:

@@ -32,6 +32,16 @@ public class WalkerG2 extends WalkerImpl {
     }
 
     @Override
+    protected Comparator<Move> getMoveComparator() {
+        return Comparator.
+                comparingInt(this::onClueCornersOrdered)
+                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(this::onBoardEdges)
+                .thenComparingInt(move -> 4-move.getOuterEdgeCount()) // Least free edges
+                .thenComparingInt(Move::getTopLeftPos);
+    }
+
+    @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
                 comparingInt(this::clueCornersOrdered)
@@ -40,6 +50,5 @@ public class WalkerG2 extends WalkerImpl {
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
                 .thenComparingInt(topLeft());
     }
-
 
 }

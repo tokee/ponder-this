@@ -307,4 +307,18 @@ public class EBits {
         }
         return form + bin;
     }
+
+    /**
+     * @return true if the given innerEdges matches set outer edges. No outer edges = true.
+     */
+    public static boolean innerEdgesMatchesSetOuter(long state, long innerEdges) {
+        final int defined = getDefinedEdges(state);
+        boolean ok;
+        ok =  (0b1000 & defined) == 0 || getNorthEdge(state) == getPieceNorthEdge(innerEdges);
+        ok &= (0b0100 & defined) == 0 || getEastEdge(state)  == getPieceEastEdge(innerEdges);
+        ok &= (0b0010 & defined) == 0 || getSouthEdge(state) == getPieceSouthEdge(innerEdges);
+        ok &= (0b0001 & defined) == 0 || getWestEdge(state)  == getPieceWestEdge(innerEdges);
+        return ok;
+    }
+
 }

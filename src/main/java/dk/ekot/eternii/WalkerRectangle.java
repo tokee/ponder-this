@@ -33,10 +33,19 @@ class WalkerRectangle extends WalkerImpl {
     }
 
     @Override
+    protected Comparator<Move> getMoveComparator() {
+        return Comparator.<Move>
+                        comparingInt(move -> rect.isInside(move.getX(), move.getY()) ? 0 : 1)
+                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(move -> 4 - move.getOuterEdgeCount()); // Least free edges
+    }
+
+    @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.<EBoard.Pair<EBoard.Field, ? extends Collection<?>>>
                         comparingInt(pair -> rect.isInside(pair.left.getX(), pair.left.getY()) ? 0 : 1)
                 .thenComparingInt(this::validPieces)
                 .thenComparingInt(pair -> 4 - pair.left.getOuterEdgeCount()); // Least free edges
     }
+
 }

@@ -32,6 +32,15 @@ public class WalkerH_BT extends WalkerImpl {
     }
 
     @Override
+    protected Comparator<Move> getMoveComparator() {
+        return Comparator.
+                comparingInt(this::onBoardEdges)
+                .thenComparingInt(Move::getTopLeftPos)
+                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(move -> 4-move.getOuterEdgeCount());
+    }
+
+    @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
                 comparingInt(this::boardEdges)
@@ -39,6 +48,7 @@ public class WalkerH_BT extends WalkerImpl {
                 .thenComparingInt(this::validPieces)
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount());
     }
+
 
 
 }

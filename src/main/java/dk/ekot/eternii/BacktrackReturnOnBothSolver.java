@@ -18,10 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
+import java.util.Collection;
 
 /**
  * Tries to solve the puzzle by trying all fields, all pieces until there are no more pieces (or fields) or a piece
@@ -99,23 +96,34 @@ public class BacktrackReturnOnBothSolver implements Runnable {
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
-        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = walker.get();
-        if (free == null) {
+        Walker.Move move = walker.get();
+        if (move == null) {
             return false;
         }
-        EBoard.Field field = free.left;
-        for (EBoard.Piece piece : free.right) {
+        Collection<Integer> pieceIDs = move.getPieceIDs();
+        for (int pieceID : pieceIDs) {
 //                log.debug("Placing at ({}, {}) piece={} rot={}",
 //                          field.getX(), field.getY(), piece.piece, piece.rotation);
-            attempts++;
-            if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size())) {
-                if (dive(depth+1, possibilities*free.right.size())) {
-                    if (++foundSolutions % 1000 == 0) {
-                        System.out.println("Complete solutions so far: " + foundSolutions);
+            for (int rotation : move.getValidRotations(pieceID)) {
+                //System.out.println("Placing " + board.getPieces().toDisplayString(pieceID, rotation));
+                attempts++;
+                if (board.placePiece(move.getX(), move.getY(), pieceID, rotation, depth + "," + pieceIDs.size())) {
+                    if (dive(depth + 1, possibilities * pieceIDs.size())) {
+                        if (++foundSolutions % 1000 == 0) {
+                            System.out.println("Complete solutions so far: " + foundSolutions);
+                        }
                     }
+                    board.removePiece(move.getX(), move.getY());
+                } else {
+//                    System.out.println("Unable to place piece. Stopping");
+  //                  try {
+    //                    Thread.sleep(10000000);
+      //              } catch (InterruptedException e) {
+        //                throw new RuntimeException(e);
+          //          }
                 }
-                board.removePiece(field.getX(), field.getY());
-            }/* else {
+
+            /* else {
                 if (piece.piece > 3) {
                     System.out.println("Solver: Could not place @" + field + ": " + piece + " " + board.getPieces().toDisplayString(piece.piece, piece.rotation));
                     board.placeUntrackedPiece(field.getX()+1, field.getY(), piece.piece, piece.rotation);
@@ -127,6 +135,7 @@ public class BacktrackReturnOnBothSolver implements Runnable {
                 }
             }  */
 //                log.debug("Failed placement, trying next (if any)");
+            }
         }
         return false;
     }

@@ -55,18 +55,23 @@ public class WalkerE implements Walker {
     }
 
     @Override
-    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
+    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
 /*        return getFreePiecesStrategyA()
                 .findFirst()
                 .orElse(null);*/
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
-        return all.isEmpty() ? null : toPieces(Collections.min(all, comparatorNonRotating));
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
+        return all.isEmpty() ? null : toRotatedPieces(Collections.min(all, comparatorNonRotating));
     }
 
     @Override
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
-        return all.isEmpty() ? null : all.stream().sorted(comparatorNonRotating).map(this::toPieces);
+    public Stream<Move> getAll() {
+        throw new UnsupportedOperationException("Not implemented for old Walker");
+    }
+
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAllRotated() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
+        return all.isEmpty() ? null : all.stream().sorted(comparatorNonRotating).map(this::toRotatedPieces);
     }
 
     /**

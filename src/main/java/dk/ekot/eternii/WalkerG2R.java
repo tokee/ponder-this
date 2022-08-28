@@ -51,32 +51,42 @@ public class WalkerG2R extends WalkerImpl {
     }
 
     @Override
-    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
+    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
         if (all.isEmpty()) {
             return null;
         }
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> minima = ExtractionUtils.minima(all.stream(), comparatorSet);
         EBoard.Pair<EBoard.Field, Set<Integer>> pair = minima.get(random.nextInt(minima.size()));
-        return toPieces(shuffle(pair));
+        return toRotatedPieces(shuffle(pair));
     }
 
     @Override
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAllRotated() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> shuffled = new ArrayList<>(all.size());
         for (EBoard.Pair<EBoard.Field, Set<Integer>> pair: all) {
             shuffled.add(shuffle(pair));
         }
         Collections.shuffle(shuffled, random);
         shuffled.sort(comparatorSet); // Makes sense as Java sort is stable
-        return all.isEmpty() ? null : shuffled.stream().sorted(comparator).map(this::toPieces);
+        return all.isEmpty() ? null : shuffled.stream().sorted(comparator).map(this::toRotatedPieces);
     }
 
     private EBoard.Pair<EBoard.Field, Set<Integer>> shuffle(EBoard.Pair<EBoard.Field, Set<Integer>> pair) {
         List<Integer> pieces = new ArrayList<>(pair.right);
         Collections.shuffle(pieces, random);
         return new EBoard.Pair<>(pair.left, new LinkedHashSet<>(pieces));
+    }
+
+    @Override
+    protected Comparator<Move> getMoveComparator() {
+        return Comparator.
+                comparingInt(this::onClueCornersOrdered)
+                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(this::onBoardEdges)
+                .thenComparingInt(move -> 4-move.getOuterEdgeCount()) // Least free edges
+                .thenComparingInt(Move::getTopLeftPos);
     }
 
     @Override
@@ -88,6 +98,7 @@ public class WalkerG2R extends WalkerImpl {
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
                 .thenComparingInt(topLeft());
     }
+
 
     protected <C> Comparator<EBoard.Pair<EBoard.Field, Set<C>>> getFieldComparatorSet() {
         return Comparator.<EBoard.Pair<EBoard.Field, Set<C>>>

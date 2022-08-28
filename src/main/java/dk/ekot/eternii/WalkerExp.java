@@ -33,9 +33,21 @@ public class WalkerExp extends WalkerImpl {
     }
 
     @Override
+    protected Comparator<Move> getMoveComparator() {
+        return Comparator.
+                //comparingInt(this::onBoardEdges)
+                comparingInt(this::onClueCornersOrdered)
+                //.thenComparingInt(this::onClueCornersOrdered)
+                //.thenComparingInt(this::onBoardEdges)
+                .thenComparingInt(onTopLeftBottomRight());
+    }
+
+    @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
-                comparingInt(this::clueCornersOrdered)
+                comparingInt(this::boardEdges)
+                //comparingInt(this::clueCornersOrdered)
+                //.thenComparingInt(this::clueCornersOrdered)
                 //.thenComparingInt(this::boardEdges)
                 .thenComparingInt(topLeftBottomRight());
     }

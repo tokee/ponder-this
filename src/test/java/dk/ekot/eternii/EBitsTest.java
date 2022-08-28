@@ -85,4 +85,36 @@ public class EBitsTest extends TestCase {
 
     }
 
+    public void testInnerOuterMatch() {
+        long state = EBits.BLANK_STATE;
+        state = EBits.setNorthEdge(state, 12);
+        state = EBits.setEastEdge(state, 13);
+        state = EBits.updateDefinedEdges(state);
+        assertEquals("Defined edges should be correct", 0b1100, EBits.getDefinedEdges(state));
+        {
+            long inner = EBits.setPieceNorthEdge(EBits.BLANK_STATE, 3);
+            inner = EBits.setPieceEastEdge(inner, 13);
+            inner = EBits.setPieceSouthEdge(inner, 5);
+            inner = EBits.setPieceWestEdge(inner, 4);
+            inner = inner >> 32;
+            assertFalse(EBits.innerEdgesMatchesSetOuter(state, inner));
+        }
+        {
+            long inner = EBits.setPieceNorthEdge(EBits.BLANK_STATE, 12);
+            inner = EBits.setPieceEastEdge(inner, 13);
+            inner = EBits.setPieceSouthEdge(inner, 5);
+            inner = EBits.setPieceWestEdge(inner, 4);
+            inner = inner >> 32;
+            assertTrue(EBits.innerEdgesMatchesSetOuter(state, inner));
+        }
+    }
+
+    public void testUpperLeft() {
+        EPieces pieces = EPieces.getEternii();
+        long state = 4616189613769261024L;
+        for (int rot = 0 ; rot < 4 ; rot++) {
+            System.out.println("rot=" + rot + ": " + EBits.innerEdgesMatchesSetOuter(state, pieces.getEdges(0, rot)));
+        }
+    }
+//
 }

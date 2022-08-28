@@ -43,14 +43,19 @@ public class WalkerA implements Walker {
     }
 
     @Override
-    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
+    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
         return getFreePieces()
                 .findFirst()
                 .orElse(null);
     }
 
     @Override
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
+    public Stream<Move> getAll() {
+        throw new UnsupportedOperationException("Not implemented for old Walker");
+    }
+
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAllRotated() {
         return getFreePieces();
     }
 

@@ -87,7 +87,7 @@ public class StatsSolver implements Runnable {
             nextPrintMS = System.currentTimeMillis() + printDeltaMS;
         }
 
-        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = walker.get();
+        EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free = walker.getLegacy();
         if (free == null) {
             return false;        }
         EBoard.Field field = free.left;

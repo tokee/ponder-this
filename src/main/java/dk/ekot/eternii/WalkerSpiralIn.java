@@ -33,6 +33,15 @@ public class WalkerSpiralIn extends WalkerImpl {
     }
 
     @Override
+    protected Comparator<Move> getMoveComparator() {
+        return Comparator.
+                comparingInt(onSpiralOut(board))
+                .thenComparingInt(onSpiralIn(board))
+                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(move -> 4-move.getOuterEdgeCount());
+    }
+
+    @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
                 comparingInt(spiralOut(board))
@@ -40,6 +49,7 @@ public class WalkerSpiralIn extends WalkerImpl {
                 .thenComparingInt(this::validPieces)
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount());
     }
+
 
     private ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> exactlyOne() {
         return pair -> pair.right.size() == 1 ? 0 : 1;

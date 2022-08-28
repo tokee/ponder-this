@@ -17,9 +17,7 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -74,7 +72,7 @@ public class BacktrackSolver implements Runnable {
 //        }
 
         List<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> candidates =
-                walker.getAll().collect(Collectors.toList()); // TODO Why not use the stream directly?
+                walker.getAllRotated().collect(Collectors.toList()); // TODO Why not use the stream directly?
         for (EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free: candidates) {
             EBoard.Field field = free.left;
 

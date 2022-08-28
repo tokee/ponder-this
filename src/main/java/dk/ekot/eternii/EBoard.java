@@ -110,7 +110,7 @@ public class EBoard {
                 .forEach(this.freeBag::add);*/
 //        log.debug("EdgeTracker blank: " + getEdgeTracker());
         updateEdgeTrackerAll(-1);
-        updatePossibleAll(); // Must be after freeBag construction
+        updatePossiblePiecesAll(); // Must be after freeBag construction
 //        log.debug("EdgeTracker after EBoard construction: " + getEdgeTracker());
     }
 
@@ -187,7 +187,7 @@ public class EBoard {
         // Register piece as free
         updatePieceTracking(piece, +1);
         freeBag.add(piece);
-        if (!updatePossible9(x, y) && requireViable) {
+        if (!updatePossiblePieces9(x, y) && requireViable) {
             log.warn("removePiece(" + x + ", " + y + "): Registered at least one field with no possible pieces");
         }
         notifyObservers(x, y, "");
@@ -232,13 +232,15 @@ public class EBoard {
         //System.out.printf("\nBefore(%d, %d): %s\n", x, y, EBits.toString(board[x][y]));
         //updateOuterEdges9(x, y);
         updateSurroundingEdgesAndSelf(x, y);
-        if (!updatePossible9(x, y) && requireViable) { // Rollback
+        if (!updatePossiblePieces9(x, y) && requireViable) { // Rollback
             board[x][y] = EBits.BLANK_STATE;
             //updateOuterEdges9(x, y);
             updateSurroundingEdgesAndSelf(x, y);
-            updatePossible9(x, y); // TODO: React on false
+            updatePossiblePieces9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             terminators[piece]++;
+//            log.debug("Placing piece #{} {} at ({}, {}) lead to 1+ fields with no matching pieces",
+//                      piece, pieces.toDisplayString(piece, rotation), x, y);
             return false;
 //            log.warn("placePiece(" + x + ", " + y + ", piece=" + piece + ", rotation=" + rotation +
 //                     "): Registered at least one field with no possible pieces");
@@ -266,9 +268,11 @@ public class EBoard {
             board[x][y] = EBits.BLANK_STATE;
             //updateOuterEdges9(x, y);
             updateSurroundingEdgesAndSelf(x, y);
-            updatePossible9(x, y); // TODO: React on false
+            updatePossiblePieces9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             terminators[piece]++;
+//            log.debug("Placing piece #{} {} at ({}, {}) lead to the edge-9 tracker reaching 1- negative entries. Outer: {}",
+//                      piece, pieces.toDisplayString(piece, rotation), x, y, getOuterPiecesStr(x, y));
             return false;
         }
         if (!updatePieceTracking(piece, -1) && requireViable) {
@@ -278,9 +282,11 @@ public class EBoard {
             board[x][y] = EBits.BLANK_STATE;
             //updateOuterEdges9(x, y);
             updateSurroundingEdgesAndSelf(x, y);
-            updatePossible9(x, y); // TODO: React on false
+            updatePossiblePieces9(x, y); // TODO: React on false
             updateTracker9(x, y, -1);
             terminators[piece]++;
+//            log.debug("Placing piece #{} {} at ({}, {}) lead to the edge-piece tracker reaching 1- negative entries",
+//                      piece, pieces.toDisplayString(piece, rotation), x, y);
             return false;
         }
         if (!freeBag.remove(piece)) {
@@ -294,12 +300,26 @@ public class EBoard {
     }
 
     /**
+     * @return human readable representation of the pieces at n, e, s, w relative to the given position.
+     */
+    private String getOuterPiecesStr(int x, int y) {
+        return  "n:" + getPieceStr(x, y-1) +
+               " e:" + getPieceStr(x+1, y) +
+               " s:" + getPieceStr(x, y+1) +
+               " w:" + getPieceStr(x-1, y);
+    }
+
+    private String getPieceStr(int x, int y) {
+        return hasPiece(x, y) ? pieces.toDisplayString(getPiece(x, y), getRotation(x, y)) : "▢";
+    }
+
+    /**
      * Updates possible pieces for all fields.
      * @return false if at least 1 field does not have any possible pieces.
      */
-    private boolean updatePossibleAll() {
+    private boolean updatePossiblePiecesAll() {
         AtomicBoolean ok = new AtomicBoolean(true);
-        visitAll((x, y) -> ok.set(ok.get() & updatePossible(x, y)));
+        visitAll((x, y) -> ok.set(ok.get() & updatePossiblePieces(x, y)));
         return ok.get();
     }
 
@@ -307,9 +327,9 @@ public class EBoard {
      * Updates possible pieces for the 9 nearest fields.
      * @return false if at least 1 field does not have any possible pieces.
      */
-    private boolean updatePossible9(int origoX, int origoY) {
+    private boolean updatePossiblePieces9(int origoX, int origoY) {
         AtomicBoolean ok = new AtomicBoolean(true);
-        visit9(origoX, origoY, (x, y) -> ok.set(ok.get() & updatePossible(x, y)));
+        visit9(origoX, origoY, (x, y) -> ok.set(ok.get() & updatePossiblePieces(x, y)));
         return ok.get();
     }
 
@@ -317,7 +337,7 @@ public class EBoard {
      * Updates possible pieces for the field.
      * @return false if there are no possible pieces.
      */
-    private boolean updatePossible(int x, int y) {
+    private boolean updatePossiblePieces(int x, int y) {
         if (EBits.hasPiece(board[x][y])) {
             return true;
         }
@@ -558,10 +578,26 @@ public class EBoard {
             }
         }
     }
+    /**
+     * Visit all fields; both with and without pieces.
+     */
     public void visitAll(BiConsumer<Integer, Integer> visitor) {
         for (int y = 0 ; y < height ;y++) {
             for (int x = 0 ; x < width ; x++) {
                 visitor.accept(x, y);
+            }
+        }
+    }
+
+    /**
+     * Visit all fields without pieces.
+     */
+    public void visitAllFree(BiConsumer<Integer, Integer> visitor) {
+        for (int y = 0 ; y < height ;y++) {
+            for (int x = 0 ; x < width ; x++) {
+                if (!EBits.hasPiece(board[x][y])) {
+                    visitor.accept(x, y);
+                }
             }
         }
     }
@@ -647,6 +683,9 @@ public class EBoard {
         return sb.toString();
     }
 
+    /**
+     * @deprecated should return ALL valid rotations and check if all present surrounding fields matches
+     */
     public int getValidRotationFailing(int x, int y, int piece) {
         for (int rotation = 0 ; rotation < 4 ; rotation++) {
             if (fits(x, y, piece, rotation)) {
@@ -654,8 +693,8 @@ public class EBoard {
             }
         }
         long state = board[x][y];
-        String message = "The piece " + piece + "(" + pieces.toDisplayString(piece, 0) + ") at (" + x + ", " + y +
-                         ") could not be rotated to fit." +
+        String message = "The piece " + piece + "(" + pieces.toDisplayString(piece, 0) +
+                         ") at (" + x + ", " + y + ") could not be rotated to fit." +
                          "\nabove=" + lenientPieceDisplay(x, y-1) +
                          "\nright=" + lenientPieceDisplay(x+1, y) +
                          "\nbelow=" + lenientPieceDisplay(x, y+1) +
@@ -668,6 +707,39 @@ public class EBoard {
 
         throw new IllegalStateException(message);
     }
+
+
+    private final int[] ROT_BUF = new int[4];
+    public int[] getValidRotations(int x, int y, int pieceID) {
+        final long state = board[x][y];
+        int index = 0;
+        for (int rot = 0 ; rot < 4 ; rot++) {
+            long pieceEdges = pieces.getEdges(pieceID, rot);
+            if (EBits.innerEdgesMatchesSetOuter(state, pieceEdges)) {
+                ROT_BUF[index++] = rot;
+            }
+        }
+        if (index != 0) {
+            int[] res = new int[index];
+            System.arraycopy(ROT_BUF, 0, res, 0, index);
+            return res;
+        }
+        String message = "The piece " + pieceID + "(" + pieces.toDisplayString(pieceID, 0) +
+                         ") at (" + x + ", " + y + ") could not be rotated to fit." +
+                         "\nabove=" + lenientPieceDisplay(x, y-1) +
+                         "\nright=" + lenientPieceDisplay(x+1, y) +
+                         "\nbelow=" + lenientPieceDisplay(x, y+1) +
+                         "\nleft =" + lenientPieceDisplay(x-1, y) +
+                         "\nexpected outer n=" + pieces.edgeToString(EBits.getNorthEdge(state)) +
+                         " e=" + pieces.edgeToString(EBits.getEastEdge(state)) +
+                         " s=" + pieces.edgeToString(EBits.getSouthEdge(state)) +
+                         " w=" + pieces.edgeToString(EBits.getWestEdge(state)) +
+                         "\nboard = " + getDisplayURL();
+
+        throw new IllegalStateException(message);
+    }
+
+
     private String lenientPieceDisplay(int x, int y) {
         if (x >= 0 && x < width && y >= 0 && y < height) {
             int piece = EBits.getPiece(board[x][y]);
@@ -715,6 +787,12 @@ public class EBoard {
 
     public long getState(int x, int y) {
         return board[x][y];
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<Integer> getPieceIDs(int x, int y) {
+        // TODO: Verify that this is always up to date!
+        return (Set<Integer>)possible[x][y];
     }
 
     /**
@@ -794,6 +872,7 @@ public class EBoard {
          * Checks the 4 possible rotations of the given piece to see if it fits the field.
          * @param piece
          * @return the matching rotation or -1 if no match.
+         * @deprecated should return ALL valid rotations and check if all present surrounding fields matches
          */
         public int getValidRotation(int piece) {
             return EBoard.this.getValidRotationFailing(x, y, piece);
@@ -816,11 +895,11 @@ public class EBoard {
         }
 
         @SuppressWarnings("unchecked")
-        public Set<Integer> getBestPiecesNonRotating() {
+        public Set<Integer> getBestPiecesNonRotatingNew() {
             return (Set<Integer>)possible[x][y];
         }
         // TODO: Verify the above method works properly
-        public Set<Integer> getBestPiecesNonRotatingOld() {
+        public Set<Integer> getBestPiecesNonRotating() {
             return freeBag.getBestMatching(board[x][y]);
         }
 

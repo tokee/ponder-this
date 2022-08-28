@@ -14,9 +14,6 @@
  */
 package dk.ekot.eternii;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -27,30 +24,37 @@ import java.util.stream.Stream;
 /**
  * Super class for Walkers.
  *
- * Requests all free fields with piece-IDs and used {@link #comparator} to return {@code min} in {@link #get()}.
+ * Requests all free fields with piece-IDs and used {@link #comparator} to return {@code min} in {@link #getLegacy()}.
  *
  */
 public abstract class WalkerImpl implements Walker {
     final EBoard board;
     final EPieces pieces;
     final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
+    final Comparator<Move> moveComparator;
 
     public WalkerImpl(EBoard board) {
         this.board = board;
         this.pieces = board.getPieces();
         comparator = getFieldComparator();
+        moveComparator = getMoveComparator();
     }
 
     @Override
-    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
-        return all.isEmpty() ? null : toPieces(Collections.min(all, comparator));
+    public Stream<Move> getAll() {
+        return streamRawMoves().sorted(moveComparator);
     }
 
     @Override
-    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAll() {
-        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
-        return all.isEmpty() ? null : all.stream().sorted(comparator).map(this::toPieces);
+    public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
+        return all.isEmpty() ? null : toRotatedPieces(Collections.min(all, comparator));
+    }
+
+    @Override
+    public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAllRotated() {
+        List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
+        return all.isEmpty() ? null : all.stream().sorted(comparator).map(this::toRotatedPieces);
     }
 
     @Override
@@ -58,5 +62,10 @@ public abstract class WalkerImpl implements Walker {
         return board;
     }
 
+    /**
+     * @deprecated use {@link #getMoveComparator()} instead.
+     */
     protected abstract Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator();
+
+    protected abstract Comparator<Move> getMoveComparator();
 }

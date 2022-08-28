@@ -45,6 +45,16 @@ public class WalkerGClueStart extends WalkerImpl {
     };
 
     @Override
+    protected Comparator<Move> getMoveComparator() {
+        return Comparator.
+                comparingInt(onPriority(CORNER_CLUES_FIRST))
+                .thenComparingInt(Move::getTopLeftPos)
+                .thenComparingInt(this::onBoardEdges)
+                .thenComparingInt(move -> 4-move.getOuterEdgeCount()) // Least free edges
+                .thenComparingInt(Move::getTopLeftPos);
+    }
+
+    @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
                 comparingInt(priority(CORNER_CLUES_FIRST))
@@ -53,6 +63,5 @@ public class WalkerGClueStart extends WalkerImpl {
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
                 .thenComparingInt(topLeft());
     }
-
 
 }

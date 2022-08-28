@@ -200,6 +200,13 @@ public class StatsTest extends TestCase {
         }
 
         @Override
+        protected Comparator<Move> getMoveComparator() {
+            return Comparator.<Move>
+                            comparingInt(move -> move.getX() < 2 && move.getY() < 2 ? 0 : 1)
+                    .thenComparingInt(Move::piecesSize);
+        }
+
+        @Override
         protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
             return Comparator.<EBoard.Pair<EBoard.Field, ? extends Collection<?>>>
                             comparingInt(pair -> pair.left.getX() < 2 && pair.left.getY() < 2 ? 0 : 1)
@@ -210,6 +217,14 @@ public class StatsTest extends TestCase {
     private static class WalkerQuadAll extends WalkerImpl {
         public WalkerQuadAll(EBoard board) {
             super(board);
+        }
+
+        @Override
+        protected Comparator<Move> getMoveComparator() {
+            return Comparator.<Move>
+                            comparingInt(move -> move.getX() > 0 && move.getX() < 3 &&
+                                                 move.getY() > 0 && move.getY() < 3 ? 0 : 1)
+                    .thenComparingInt(Move::piecesSize);
         }
 
         @Override
@@ -227,6 +242,14 @@ public class StatsTest extends TestCase {
         public WalkerQuadSelected(EBoard board, int[][] valids) {
             super(board);
             this.valids = valids;
+        }
+
+        @Override
+        protected Comparator<Move> getMoveComparator() {
+            return Comparator.<Move>
+                            comparingInt(move -> isValid(move.getX(), move.getY()) ? 0 : 1)
+                    .thenComparingInt(Move::piecesSize)
+                    .thenComparingInt(move -> 4-move.getOuterEdgeCount()); // Least free edges
         }
 
         @Override
@@ -255,11 +278,11 @@ public class StatsTest extends TestCase {
         }
 
         @Override
-        public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> get() {
-            List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeRaw();
+        public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
+            List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
             return all.stream()
                     .min(comparator)
-                    .map(this::toPieces)
+                    .map(this::toRotatedPieces)
                     .orElse(null);
         }
 
@@ -268,6 +291,14 @@ public class StatsTest extends TestCase {
                     .filter(piece -> pieces.getType(piece) != EPieces.INNER)
                     .collect(Collectors.toSet()));
         }*/
+
+        @Override
+        protected Comparator<Move> getMoveComparator() {
+            return Comparator.<Move>
+                            comparingInt(move -> move.getX() > 10 && move.getX() < 13 &&
+                                                 move.getY() > 0 && move.getY() < 3 ? 0 : 1)
+                    .thenComparingInt(Move::piecesSize);
+        }
 
         @Override
         protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {

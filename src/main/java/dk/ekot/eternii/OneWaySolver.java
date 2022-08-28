@@ -39,7 +39,7 @@ public class OneWaySolver  implements Runnable {
     @Override
     public void run() {
         EBoard.Pair<EBoard.Field, List<EBoard.Piece>> free;
-        while ((free = walker.get()) != null) {
+        while ((free = walker.getLegacy()) != null) {
 //            System.out.println(board.getEdgeTracker());
             if (free.right.isEmpty()) {
                 return;
