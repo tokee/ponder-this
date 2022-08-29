@@ -39,18 +39,27 @@ public interface Walker {
         final EBoard board;
         final int x;
         final int y;
+        final int w;
+        final int h;
+        int piecesSize;
         Set<Integer> localPieceIDs = null;
 
         public Move(EBoard board, EBoard.Field field) {
             this.board = board;
             x = field.getX();
             y = field.getY();
+            w = board.getWidth();
+            h = board.getHeight();
+            piecesSize = board.getPieceIDs(x, y).size(); // Very often called
         }
 
         public Move(EBoard board, int x, int y) {
             this.board = board;
             this.x = x;
             this.y = y;
+            w = board.getWidth();
+            h = board.getHeight();
+            piecesSize = board.getPieceIDs(x, y).size(); // Very often called
         }
 
         public int getX() {
@@ -62,7 +71,7 @@ public interface Walker {
         }
 
         public int getTopLeftPos() {
-            return y*board.getWidth() + x;
+            return y*w + x;
         }
 
         /**
@@ -96,11 +105,12 @@ public interface Walker {
         }
 
         public int piecesSize() {
-            return (localPieceIDs == null ? board.getPieceIDs(x, y) : localPieceIDs).size();
+            return piecesSize;
         }
 
         public void setLocalPieceIDs(Set<Integer> localPieceIDs) {
             this.localPieceIDs = localPieceIDs;
+            piecesSize = localPieceIDs.size();
         }
 
         public int[] getValidRotations(int pieceID) {
@@ -108,11 +118,31 @@ public interface Walker {
         }
 
         public boolean isOnEdge() {
-            return (x == 0 || x == board.getWidth()-1) && (y == 0 || y == board.getHeight()-1);
+            return (x == 0 || x == w-1) && (y == 0 || y == h-1);
         }
 
         public int getOuterEdgeCount() {
             return EBits.countDefinedEdges(board.getState(x, y));
+        }
+
+        /**
+         * Top-left, top-right. bottom-left, bottom-right corner.
+         */
+        public int clueCornersOrdered() {
+            if (x < 3) {
+                if (y < 3) {
+                    return 1;
+                } else if (y >= h - 3){
+                    return 3;
+                }
+            } else if (x >= w - 3) {
+                if (y < 3) {
+                    return 2;
+                } else if (y >= h - 3){
+                    return 4;
+                }
+            }
+            return 5;
         }
     }
 
@@ -284,30 +314,6 @@ public interface Walker {
     default int clueCornersOrdered(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
         final int x = pair.left.getX();
         final int y = pair.left.getY();
-        final int w = getBoard().getWidth();
-        final int h = getBoard().getHeight();
-
-        if (x < 3) {
-            if (y < 3) {
-                return 1;
-            } else if (y >= h - 3){
-                return 3;
-            }
-        } else if (x >= w - 3) {
-            if (y < 3) {
-                return 2;
-            } else if (y >= h - 3){
-                return 4;
-            }
-        }
-        return 5;
-    }
-    /**
-     * Top-left, top-right. bottom-left, bottom-right corner.
-     */
-    default int onClueCornersOrdered(Move move) {
-        final int x = move.getX();
-        final int y = move.getY();
         final int w = getBoard().getWidth();
         final int h = getBoard().getHeight();
 

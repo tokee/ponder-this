@@ -34,7 +34,7 @@ public class WalkerG2 extends WalkerImpl {
     @Override
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
-                comparingInt(this::onClueCornersOrdered)
+                comparingInt(Move::clueCornersOrdered)
                 .thenComparingInt(Move::piecesSize)
                 .thenComparingInt(this::onBoardEdges)
                 .thenComparingInt(move -> 4-move.getOuterEdgeCount()) // Least free edges
