@@ -91,6 +91,7 @@ public class StrategySolverMove implements Runnable {
             skipCurrent:
             for (Walker.Move move : candidates) {
                 final int[] pieceIDs = move.getPieceIDsArray();
+                // TODO: Shuffle these when we use Random
                 for (int pieceID : pieceIDs) {
                     for (int rotation : move.getValidRotations(pieceID)) {
 

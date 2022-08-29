@@ -51,6 +51,7 @@ public class EPieces {
     private final int[] s;
     private final int[] w;
     private final int[] type; // 0=base, 1=edge, 2=corner
+    private final long[][] rotEdges; // rot, pieceID
 
     // Holds pieces (not compounds)
     private final Set<Integer> bag = new HashSet<>();
@@ -70,6 +71,7 @@ public class EPieces {
         s = new int[total];
         w = new int[total];
         type = new int[total];
+        rotEdges = new long[4][total];
         if (total == 256) {
             init256();
         } else {
@@ -94,11 +96,20 @@ public class EPieces {
         final String realclues = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaargouaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaartrjaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaavddoaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaajdsoaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafsknaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         final String clues = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaartrjaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaavddoaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaajdsoaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafsknaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     }
+    public void processEterniiCornerClues(ClueCallback clueCallback) {
+        clueCallback.clue(2, 2, getPieceFromString("wlmn"), getRotationFromString("wlmn")); // Top left
+        clueCallback.clue(13, 2, getPieceFromString("wswu"), getRotationFromString("wswu")); // Top right
+        clueCallback.clue(2, 13, getPieceFromString("ujvm"), getRotationFromString("ujvm")); // Bottom left
+        clueCallback.clue(13, 13, getPieceFromString("qvpr"), getRotationFromString("qvpr")); // Bottom right
+    }
 
     /**
      * @return edges in the {@code 4*<5 bits>} format (piece location in bits) from {@link EBits}.
      */
     public long getEdges(int piece, int rotation) {
+        return rotEdges[rotation][piece];
+    }
+    public long getEdgesCalculate(int piece, int rotation) {
         // TODO: Consider precalculating all of this and simply return it
         long edges = 0;
         edges = EBits.setPieceNorthEdge(edges, getTop(piece, rotation));
@@ -106,6 +117,8 @@ public class EPieces {
         edges = EBits.setPieceSouthEdge(edges, getBottom(piece, rotation));
         return EBits.setPieceWestEdge(edges, getLeft(piece, rotation));
     }
+
+
     public long getEdgesAsBase(int piece, int rotation) {
         // TODO: Consider precalculating all of this and simply return it
         return getEdges(piece, rotation) >> EBits.PIECE_EDGES_SHIFT;
@@ -159,6 +172,12 @@ public class EPieces {
                 type[piece] = (n[piece] == 0 ? 1 : 0) + (e[piece] == 0 ? 1 : 0) + (s[piece] == 0 ? 1 : 0) + (w[piece] == 0 ? 1 : 0);
                 bag.add(piece);
                 ++piece;
+            }
+            // Pre-calculate rotated edges
+            for (int rot = 0 ; rot < 4 ; rot++) {
+                for (int pID = 0 ; pID < 256 ; pID++) {
+                    rotEdges[rot][pID] = getEdgesCalculate(pID, rot);
+                }
             }
 
             edges = new BufferedImage[MAP.length()];

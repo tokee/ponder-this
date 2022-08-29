@@ -118,7 +118,7 @@ public interface Walker {
         }
 
         public boolean isOnEdge() {
-            return (x == 0 || x == w-1) && (y == 0 || y == h-1);
+            return x == 0 || x == w-1 || y == 0 || y == h-1;
         }
 
         public int getOuterEdgeCount() {

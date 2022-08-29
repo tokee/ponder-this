@@ -130,6 +130,7 @@ public class SolverTest extends TestCase {
         board.registerFreePieces(pieces.getBag());
         if (clues) {
             pieces.processEterniiClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
+            //pieces.processEterniiCornerClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
         }
         new BoardVisualiser(board);
         new BoardVisualiser(board, true);
