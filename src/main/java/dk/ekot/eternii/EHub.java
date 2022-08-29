@@ -45,9 +45,9 @@ public class EHub implements EListener, Runnable {
     private static ExecutorService executor;
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
-        int threadCount = args.length < 1 ? 5 : Integer.parseInt(args[0]);
-        int resetTime = args.length < 2 ? DEFAULT_RESET_TIME : Integer.parseInt(args[1]);
-        int maxTime = args.length < 3 ? DEFAULT_MAX_TIME : Integer.parseInt(args[2]);
+        int threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 5;
+        int resetTime = args.length >= 2 ? Integer.parseInt(args[1]) : DEFAULT_RESET_TIME;
+        int maxTime = args.length >= 3 ? Integer.parseInt(args[2]) : DEFAULT_MAX_TIME;
 
         System.out.println("Starting " + threadCount + " boards with fixed reset time " + resetTime);
         executor = Executors.newFixedThreadPool(threadCount*2);

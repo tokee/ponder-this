@@ -24,7 +24,7 @@ import java.util.function.Function;
 /**
  * Takes a partly solved puzzle and fills the blanks, even when they produce an illegal solution.
  */
-public class FillerTest extends TestCase {
+public class FillerTest extends TestCase implements EListener {
     private static final Logger log = LoggerFactory.getLogger(FillerTest.class);
 
     public void testValidFiller() {
@@ -83,16 +83,20 @@ public class FillerTest extends TestCase {
         String TL1 = "https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaafhbackfacocafhcafgfadufaftdaelfadteabmdafjbabjfabgbacrbaadcdsdahvjskvwvomjvhgimgjiguhsjtrwhlslrtgwsmpqgjpppjttpgiwtrilidadidhdajnthwlmnjmlliwpmiliwsuhlwovullwowmulqlvmpriltusrwswulgosdadgdgcatmrgmupmlplupropingrhlsnvhnlwkuhuvtkvijviwgisoqwwmsoonpmdaencpcarsjppgmsllogouplgsquskssnvokulkvthjljumhgoluqnqospwnpvwpeabvcqeajskqmwksoklwprhkqrtrsmtrorrmkmnrjovmmnlolktnqhmkwmqhwuhmbafueteaksntkppslsnphwustqqwttlqrujtnkouvkoklqiktjkqminjqwoihqkwfafqeueanvhupsuvnqosunrqqrpnluqrjsiuoiisowuiinqwkpgnnsvpommskrvmfacrepbahhrpukjholnkrwvlpkrwqmokijjmistjutmsqvgtgwwvvvlwmtrvvphtcaepboearhmojqphngwqvvlgrtkvovntjnnvtmqnmiomgqiiwlrqlkplrphkhsspeaeseqbamqgqphiqwjhhlijjkkgintkknpgtqrqponjrigpnrtrgplmthuqlsthueabtbpcagnnpaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabjbanmpjujvmaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqvprrnkvfacnbhcaptwhvvitaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaapstoknhscaencdaaweadibaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatcadhbaceaab";
         String TLBR1 = "https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaafhbackfacocafhcafgfacnfacpcaencacqeadgcaepdabteabgbacrbaadcdsdahvjskvwvomjvhgimgjignmpjpqgmntmqqvgtgwwvpmiwttkmgiwtrilidadidhdajnthwlmnjmllinjmiomnpprogmspmupmgoluwmsoiommkuwowswulgosdadgdpcatwhpmqhwlvmqjgwvmkigrphkskpppgnkllogsuhlmhjuwqlhwinqowuidafwchbahwjhhqkwmqgqwsoqiujshwkupkrwntkkopsthiqpjpjilsnpnhlsuqlhfafqbtfajoqtklwoghhlourhjosukqmortrqkuvtsthuqqwtjskqntkslgmtlorgfadofufaqrluwhtrhruhrmorsommmnloaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaijjmaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaawvwtpnsvtovniqoorpnqcaepfqeagtnqusrtssksiuksoujuiwquvvlwwppvhhrpwushsgruvgsgouvgnvhueabveqbangwqrjkgklqjktnljistqorilnkopmonrgtmsjwgrijjsouivjqohukjbafubpcawnspkounqnqonpgnsuvprijukkgioggktrkgwmmrjovmuploqrqpkmnrfaemcrfasmtrujvmqphjgtnpvvitjnnvgringrtrkhvrmwuhvwlwlrqwqvprntqveaetfjbattpjvphthsspnqosiklqnvokijnvtrujvmtrulwmlkilqtjkplmtqttleadtbeaapbaehcabsbacoeablfaeoeafndaeufadtdafweadibaejbabmdabtcaddaac";
 
-        fillValids(TLBR1, WalkerG2R::new, BacktrackSolver::new);
+        fillValids(TLBR1, WalkerG2R::new);
     }
 
     private void fillValids(
-            String bucasURL, Function<EBoard, Walker> walkerFactory, BiFunction<EBoard, Walker, Runnable> solverFactory) {
+            String bucasURL, Function<EBoard, Walker> walkerFactory) {
         EBoard board = EBoard.load(bucasURL);
         new BoardVisualiser(board);
 
         Walker walker = walkerFactory.apply(board);
-        Runnable solver = solverFactory.apply(board, walker);
+        //Runnable solver = new BacktrackSolver(board, walker);
+        StrategyBase strategy = new StrategyReset(walker, this, 200, 10000000);
+        strategy.setAcceptsUnresolvable(true);
+        strategy.setOnlySingleField(false);
+        Runnable solver = new StrategySolver(board, strategy);
         long runTime = -System.currentTimeMillis();
         solver.run();
         runTime += System.currentTimeMillis();
@@ -104,4 +108,9 @@ public class FillerTest extends TestCase {
         }
     }
 
+    @Override
+    public void localBest(String id, Strategy strategy, EBoard board, StrategySolverState state) {
+        System.out.printf("Filler: %s (%dK attempts/sec): %d %s\n",
+                          id, state.getTotalAttemptsPerMS(), board.getFilledCount(), board.getDisplayURL());
+    }
 }
