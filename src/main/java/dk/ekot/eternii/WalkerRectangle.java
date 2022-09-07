@@ -37,7 +37,7 @@ class WalkerRectangle extends WalkerImpl {
         return Comparator.<Move>
                         comparingInt(move -> rect.isInside(move.getX(), move.getY()) ? 0 : 1)
                 .thenComparingInt(Move::piecesSize)
-                .thenComparingInt(move -> 4 - move.getOuterEdgeCount()); // Least free edges
+                .thenComparingInt(move -> 4 - move.leastSetOuterEdgesFirst()); // Least free edges
     }
 
     @Override

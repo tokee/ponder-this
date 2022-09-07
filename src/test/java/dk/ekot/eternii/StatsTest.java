@@ -249,7 +249,7 @@ public class StatsTest extends TestCase {
             return Comparator.<Move>
                             comparingInt(move -> isValid(move.getX(), move.getY()) ? 0 : 1)
                     .thenComparingInt(Move::piecesSize)
-                    .thenComparingInt(move -> 4-move.getOuterEdgeCount()); // Least free edges
+                    .thenComparingInt(move -> 4-move.leastSetOuterEdgesFirst()); // Least free edges
         }
 
         @Override
@@ -281,7 +281,7 @@ public class StatsTest extends TestCase {
         public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
             List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
             return all.stream()
-                    .min(comparator)
+                    .min(fieldComparator)
                     .map(this::toRotatedPieces)
                     .orElse(null);
         }

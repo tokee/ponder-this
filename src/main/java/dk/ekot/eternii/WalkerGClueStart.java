@@ -48,10 +48,10 @@ public class WalkerGClueStart extends WalkerImpl {
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
                 comparingInt(onPriority(CORNER_CLUES_FIRST))
-                .thenComparingInt(Move::getTopLeftPos)
-                .thenComparingInt(this::onBoardEdges)
-                .thenComparingInt(move -> 4-move.getOuterEdgeCount()) // Least free edges
-                .thenComparingInt(Move::getTopLeftPos);
+                .thenComparingInt(Move::topLeftFirst)
+                .thenComparingInt(Move::boardEdgeFirst)
+                .thenComparingInt(Move::mostSetOuterEdgesFirst) // Least free edges
+                .thenComparingInt(Move::topLeftFirst);
     }
 
     @Override

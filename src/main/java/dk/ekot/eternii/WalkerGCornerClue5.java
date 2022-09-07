@@ -48,12 +48,12 @@ public class WalkerGCornerClue5 extends WalkerImpl {
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
                 comparingInt(Move::clueCornersOrdered)
-                .thenComparingInt(this::onBoardEdges)
+                .thenComparingInt(Move::boardEdgeFirst)
 //                .thenComparingInt(priority(BL_TO_TR))
                 .thenComparingInt(onRect(1, 8, 7, 14))
                 .thenComparingInt(Move::piecesSize)
-                .thenComparingInt(move -> 4-move.getOuterEdgeCount()) // Least free edges
-                .thenComparingInt(Move::getTopLeftPos);
+                .thenComparingInt(Move::mostSetOuterEdgesFirst) // Least free edges
+                .thenComparingInt(Move::topLeftFirst);
     }
 
     @Override

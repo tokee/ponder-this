@@ -38,7 +38,7 @@ public class WalkerSpiralIn extends WalkerImpl {
                 comparingInt(onSpiralOut(board))
                 .thenComparingInt(onSpiralIn(board))
                 .thenComparingInt(Move::piecesSize)
-                .thenComparingInt(move -> 4-move.getOuterEdgeCount());
+                .thenComparingInt(move -> 4-move.leastSetOuterEdgesFirst());
     }
 
     @Override

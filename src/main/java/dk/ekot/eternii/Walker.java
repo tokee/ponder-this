@@ -41,6 +41,7 @@ public interface Walker {
         final int y;
         final int w;
         final int h;
+        final int fieldCount;
         int piecesSize;
         Set<Integer> localPieceIDs = null;
 
@@ -50,6 +51,7 @@ public interface Walker {
             y = field.getY();
             w = board.getWidth();
             h = board.getHeight();
+            fieldCount = w*h;
             piecesSize = board.getPieceIDs(x, y).size(); // Very often called
         }
 
@@ -59,6 +61,7 @@ public interface Walker {
             this.y = y;
             w = board.getWidth();
             h = board.getHeight();
+            fieldCount = w*h;
             piecesSize = board.getPieceIDs(x, y).size(); // Very often called
         }
 
@@ -68,10 +71,6 @@ public interface Walker {
 
         public int getY() {
             return y;
-        }
-
-        public int getTopLeftPos() {
-            return y*w + x;
         }
 
         /**
@@ -121,8 +120,24 @@ public interface Walker {
             return x == 0 || x == w-1 || y == 0 || y == h-1;
         }
 
-        public int getOuterEdgeCount() {
+        /* Comparators below */
+
+        public int leastSetOuterEdgesFirst() {
             return EBits.countDefinedEdges(board.getState(x, y));
+        }
+        public int mostSetOuterEdgesFirst() {
+            return 4-EBits.countDefinedEdges(board.getState(x, y));
+        }
+
+        public int boardEdgeFirst() {
+            return x == 0 || x == w-1 || y == 0 || y == h-1 ? 0 : 1;
+        }
+
+        /**
+         * @return 0 if in one of the four 3x3 corners, else 1.
+         */
+        public int clueCornersFirst() {
+            return ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 0 : 1;
         }
 
         /**
@@ -143,6 +158,31 @@ public interface Walker {
                 }
             }
             return 5;
+        }
+
+        public int topLeftFirst() {
+            return y*w + x;
+        }
+
+        public int bottomRightFirst() {
+            return fieldCount-(y*w + x);
+        }
+
+        /**
+         * @return 0 if a corner, 1 if in a 3x3 corners, else 2.
+         */
+        public int cornersToCluesFirst() {
+            return  ((x == 0 || x == w-1) && (y== 0 || y == h-1)) ? 0 :
+                    ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 1 : 2;
+        }
+
+        /**
+         * @return nearest to top-left or bottom-right corner, measured row by row.
+         */
+        public int topLeftBottomRightBestFirst() {
+            final int tl = topLeftFirst();
+            final int br = 255-tl;
+            return Math.min(tl, br);
         }
     }
 
@@ -216,12 +256,6 @@ public interface Walker {
                pair.left.getX() == getBoard().getWidth() - 1 ||
                pair.left.getY() == getBoard().getHeight() - 1 ? 0 : 1;
     }
-    /**
-     * @return 0 if board edge piece, else 1.
-     */
-    default int onBoardEdges(Move move) {
-        return move.isOnEdge() ? 0 : 1;
-    }
 
     /**
      * @return 0 if in one of the four 3x3 corners, else 1.
@@ -234,17 +268,6 @@ public interface Walker {
 
         return ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 0 : 1;
     }
-    /**
-     * @return 0 if in one of the four 3x3 corners, else 1.
-     */
-    default int onClueCorners(Move move) {
-        final int x = move.getX();
-        final int y = move.getY();
-        final int w = getBoard().getWidth(); // 16
-        final int h = getBoard().getHeight();
-
-        return ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 0 : 1;
-    }
 
     /**
      * @return 0 if a corner, 1 if in a 3x3 corners, else 2.
@@ -252,18 +275,6 @@ public interface Walker {
     default int cornersToClues(EBoard.Pair<EBoard.Field, ? extends Collection<?>> pair) {
         final int x = pair.left.getX();
         final int y = pair.left.getY();
-        final int w = getBoard().getWidth();
-        final int h = getBoard().getHeight();
-
-        return  ((x == 0 || x == w-1) && (y== 0 || y == h-1)) ? 0 :
-                ((x <= 2 || x >= w-3) && (y <= 2 || y >= h-3)) ? 1 : 2;
-    }
-    /**
-     * @return 0 if a corner, 1 if in a 3x3 corners, else 2.
-     */
-    default int onCornersToClues(Move move) {
-        final int x = move.getX();
-        final int y = move.getY();
         final int w = getBoard().getWidth();
         final int h = getBoard().getHeight();
 
@@ -293,16 +304,6 @@ public interface Walker {
         final int boardWidth = getBoard().getWidth();
         return pair -> {
             final int tl = pair.left.getY() * boardWidth + pair.left.getX();
-            final int br = 255-tl;
-            return Math.min(tl, br);
-        };
-    }
-    /**
-     * @return nearest to top-left or bottom-right corner, measured row by row.
-     */
-    default ToIntFunction<Move> onTopLeftBottomRight() {
-        return move -> {
-            final int tl = move.getTopLeftPos();
             final int br = 255-tl;
             return Math.min(tl, br);
         };

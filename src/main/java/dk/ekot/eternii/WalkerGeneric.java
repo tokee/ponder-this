@@ -21,34 +21,27 @@ import java.util.Collection;
 import java.util.Comparator;
 
 /**
- * Clue corners, valids, board edge, edges, top-left
+ * For experimentation
  *
  */
-public class WalkerG extends WalkerImpl {
-    private static final Logger log = LoggerFactory.getLogger(WalkerG.class);
+public class WalkerGeneric extends WalkerImpl {
+    private static final Logger log = LoggerFactory.getLogger(WalkerGeneric.class);
 
-    public WalkerG(EBoard board) {
-        super(board);
+    public WalkerGeneric(EBoard board, Comparator<Move> comparator) {
+        super(board, comparator);
     }
 
     @Override
     protected Comparator<Move> getMoveComparator() {
-        return Comparator.
-                comparingInt(Move::clueCornersOrdered)
-                .thenComparingInt(Move::piecesSize)
-                .thenComparingInt(Move::boardEdgeFirst)
-                .thenComparingInt(move -> 4-move.leastSetOuterEdgesFirst()) // Least free edges
-                .thenComparingInt(Move::topLeftFirst);
+        if (moveComparator == null) {
+            throw new IllegalArgumentException("moveComparator not defined");
+        }
+        return moveComparator; // Set explicitly by the constructor
     }
 
     @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
-        return Comparator.
-                comparingInt(this::clueCorners)
-                .thenComparingInt(this::validPieces)
-                .thenComparingInt(this::boardEdges)
-                .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges
-                .thenComparingInt(topLeft());
+        return null;
     }
 
 }

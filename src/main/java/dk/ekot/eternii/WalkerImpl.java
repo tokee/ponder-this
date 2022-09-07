@@ -24,20 +24,27 @@ import java.util.stream.Stream;
 /**
  * Super class for Walkers.
  *
- * Requests all free fields with piece-IDs and used {@link #comparator} to return {@code min} in {@link #getLegacy()}.
+ * Requests all free fields with piece-IDs and used {@link #fieldComparator} to return {@code min} in {@link #getLegacy()}.
  *
  */
 public abstract class WalkerImpl implements Walker {
     final EBoard board;
     final EPieces pieces;
-    final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> comparator;
+    final Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> fieldComparator;
     final Comparator<Move> moveComparator;
 
     public WalkerImpl(EBoard board) {
         this.board = board;
         this.pieces = board.getPieces();
-        comparator = getFieldComparator();
+        fieldComparator = getFieldComparator();
         moveComparator = getMoveComparator();
+    }
+
+    public WalkerImpl(EBoard board, Comparator<Move> moveComparator) {
+        this.board = board;
+        this.pieces = board.getPieces();
+        fieldComparator = getFieldComparator();
+        this.moveComparator = moveComparator;
     }
 
     @Override
@@ -48,13 +55,13 @@ public abstract class WalkerImpl implements Walker {
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
-        return all.isEmpty() ? null : toRotatedPieces(Collections.min(all, comparator));
+        return all.isEmpty() ? null : toRotatedPieces(Collections.min(all, fieldComparator));
     }
 
     @Override
     public Stream<EBoard.Pair<EBoard.Field, List<EBoard.Piece>>> getAllRotated() {
         List<EBoard.Pair<EBoard.Field, Set<Integer>>> all = getFreeFieldsRaw();
-        return all.isEmpty() ? null : all.stream().sorted(comparator).map(this::toRotatedPieces);
+        return all.isEmpty() ? null : all.stream().sorted(fieldComparator).map(this::toRotatedPieces);
     }
 
     @Override

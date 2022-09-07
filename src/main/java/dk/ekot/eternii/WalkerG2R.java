@@ -80,7 +80,7 @@ public class WalkerG2R extends WalkerImpl {
         }
         Collections.shuffle(shuffled, random);
         shuffled.sort(comparatorSet); // Makes sense as Java sort is stable
-        return all.isEmpty() ? null : shuffled.stream().sorted(comparator).map(this::toRotatedPieces);
+        return all.isEmpty() ? null : shuffled.stream().sorted(fieldComparator).map(this::toRotatedPieces);
     }
 
     private EBoard.Pair<EBoard.Field, Set<Integer>> shuffle(EBoard.Pair<EBoard.Field, Set<Integer>> pair) {
@@ -100,9 +100,9 @@ public class WalkerG2R extends WalkerImpl {
         return Comparator.
                 comparingInt(Move::clueCornersOrdered)
                 .thenComparingInt(Move::piecesSize)
-                .thenComparingInt(this::onBoardEdges)
-                .thenComparingInt(move -> 4-move.getOuterEdgeCount()) // Least free edges
-                .thenComparingInt(Move::getTopLeftPos);
+                .thenComparingInt(Move::boardEdgeFirst)
+                .thenComparingInt(Move::mostSetOuterEdgesFirst) // Least free edges
+                .thenComparingInt(Move::topLeftFirst);
     }
 
     @Override

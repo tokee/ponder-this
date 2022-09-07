@@ -34,10 +34,10 @@ public class WalkerH_BT extends WalkerImpl {
     @Override
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
-                comparingInt(this::onBoardEdges)
-                .thenComparingInt(Move::getTopLeftPos)
+                comparingInt(Move::boardEdgeFirst)
+                .thenComparingInt(Move::topLeftFirst)
                 .thenComparingInt(Move::piecesSize)
-                .thenComparingInt(move -> 4-move.getOuterEdgeCount());
+                .thenComparingInt(move -> 4-move.leastSetOuterEdgesFirst());
     }
 
     @Override

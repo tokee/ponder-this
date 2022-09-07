@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.function.ToIntFunction;
 
 /**
  * For experimentation
@@ -36,10 +35,12 @@ public class WalkerExp extends WalkerImpl {
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
                 //comparingInt(this::onBoardEdges)
-                comparingInt(Move::clueCornersOrdered)
+                //comparingInt(Move::clueCornersOrdered)
 //                .thenComparingInt(Move::piecesSize)
 //                .thenComparingInt(this::onBoardEdges)
-                .thenComparingInt(onTopLeftBottomRight());
+                //.thenComparingInt(onTopLeftBottomRight());
+                comparingInt(Move::topLeftFirst);
+                //.thenComparingInt(Move::getTopLeftPos);
     }
 
     @Override

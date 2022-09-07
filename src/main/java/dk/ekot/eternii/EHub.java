@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
@@ -70,8 +71,10 @@ public class EHub implements EListener, Runnable {
     @Override
     public void run() {
         System.out.println("Beginning solve... " + Thread.currentThread().getName());
-        //testSolver(WalkerExp::new, true);
-        testSolver(WalkerG2R::new, true);
+        testSolver(board -> new WalkerGeneric(board, Comparator.
+                           comparingInt(Walker.Move::topLeftFirst)
+        ),false);
+        //testSolver(WalkerG2R::new, true);
     }
 
     private void testSolver(Function<EBoard, Walker> walkerFactory) {
@@ -84,16 +87,8 @@ public class EHub implements EListener, Runnable {
         //StrategySolver solver = new StrategySolver(board, strategy);
         StrategySolverMove solver = new StrategySolverMove(board, strategy);
 
-//        long runTime = -System.currentTimeMillis();
         solver.run();
         System.out.println(board.getTopTerminators(15));
-//        runTime += System.currentTimeMillis();
-//        System.out.printf("Done. Placed %d pieces in %.2f seconds\n", board.getFilledCount(), runTime/1000.0);
-//        try {
-//            Thread.sleep(1000000000L);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
     }
 
 
@@ -125,7 +120,6 @@ public class EHub implements EListener, Runnable {
             return;
         }
 
-
         if (board.getFilledCount() <= globalBest) {
             return;
         }
@@ -140,9 +134,10 @@ public class EHub implements EListener, Runnable {
     private void activatePhase2(String bucasURL) {
         EBoard board = EBoard.load(bucasURL);
         Walker walker = new WalkerG2R(board);
+        walker = new WalkerGeneric(board, Comparator.comparingInt(Walker.Move::bottomRightFirst));
 //        System.out.println("Activating phase 2 for marked " + board.getFilledCount());
         StrategyBase strategy = new StrategyReset(walker, this, DEFAULT_PHASE2_RESET, DEFAULT_PHASE2_TIMEOUT);
-        strategy.setAcceptsUnresolvable(true);
+        //strategy.setAcceptsUnresolvable(true);
         strategy.setOnlySingleField(false);
         StrategySolver solver = new StrategySolver(board, strategy);
         executor.submit(solver);

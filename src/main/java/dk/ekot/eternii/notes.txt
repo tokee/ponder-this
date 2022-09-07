@@ -200,3 +200,6 @@ Experiment with only registering once.
 2022-08-15 *********************************************************************************
 Check "Alpha/Beta cutokk" aka "Min/max-cutoff"
 
+
+ Phase 2: pool-1-thread-13 (94K attempts/sec): 244 https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaafhbackfadtcaftdafgfacnfacocafhcadufabmdafjbaelfadteaendaabedweahptwkrwptrgrtkvrgikkngriolughwqluhmwmkqhjhuklsuhtopsnpmobaepeibatvviwkrvgrjkvmkrkigmriliujsiqphjmmupqhwmuqlhunrqplsnmtpleabtbgbavgsgrusgjtrukkntgtrklgmtsjwghhwjusthwuwslpluroppslgoprilbacrbhcasjuhskqjrphknqrprqpqmokqwmsowksmtnlkwlmnlkilppskgmspinjmcaencqeauiwqqphihhrpruhhploukpllsuvpsuvulwmummrwiwpmsoqwsujojuoueaeuepcawnsphlsnrwvlhqkwooiqlnkovjnnvomjmniorkmnprhkqvprjqovosnqeaeschbasknhsntkvijnklqiiwilkuhwnvhumujviowummiohmrmpqgmoqnqnouqeabobveantqvtpjtjnmpqgtniwtghtrwhjltjlijwvwlijvvrijjgqiintmqusrtbacsemfaqlvmjmllmsomtgwstqvgrluqlogliqwowlrqvhnljumhisoumtrsrvmtcafvfoeavuwolkvuoggkwwvgvjgwurijglorwvvlrkhvnvokmjovoqtjrtrqmrgtfacreteawvwtvlgvghhlvjshgisjiwgioklwvrnkhmororrmonjrtovnriqoggjicadgeqbawinqgpnihsspsksssiukgtgilqttngwqouvgrhoujnthaaaaqugsaaaadadsbpcansvpnnnsaaaastjiaaaagtnptkmtaaaavphtaaaatmsuaaaagnkppgnndadgcpcavwppaaaappjpaaaakuwonhhuaaaaisoihwustqqwaaaaijjmklqjaaaadacicdaapcadvbacjbabtfabwdafhdadidadofadufafqfafubafjfabqeafpdaecaad
+

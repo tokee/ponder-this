@@ -2,6 +2,7 @@ package dk.ekot.eternii;
 
 import junit.framework.TestCase;
 
+import java.util.Comparator;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -57,7 +58,12 @@ public class SolverTest extends TestCase {
         testSolver(WalkerF::new, BacktrackReturnOnBothSolver::new);
     }
     public void testExp() {
-        testSolver(WalkerExp::new, BacktrackReturnOnBothSolver::new);
+        testSolver(WalkerExp::new, BacktrackReturnOnBothSolver::new, false);
+    }
+    public void testGeneric() {
+        testSolver(board -> new WalkerGeneric(board, Comparator.
+                           comparingInt(Walker.Move::bottomRightFirst)
+                   ), BacktrackReturnOnBothSolver::new, false);
     }
 
     public void testBacktrackReturnBothSolver_B() {
