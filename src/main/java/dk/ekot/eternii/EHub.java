@@ -82,10 +82,16 @@ public class EHub implements EListener, Runnable {
     }
     private void testSolver(Function<EBoard, Walker> walkerFactory, boolean clues) {
         EBoard board = getBoard(clues);
-        Walker walker = walkerFactory.apply(board);
-        Strategy strategy = new StrategyReset(walker, this, resetTime, maxTime);
+
+        Walker walker = new WalkerGeneric(board, Comparator.
+                comparingInt(Walker.Move::topLeftFirst));
+        Strategy strategy = new StrategyLeveledReset(walker, this, 0.00001, 5, 500, 30);
+        StrategySolverMove solver = new StrategySolverMove(board, strategy, new Random());
+
+//        Walker walker = walkerFactory.apply(board);
+//        Strategy strategy = new StrategyReset(walker, this, resetTime, maxTime);
         //StrategySolver solver = new StrategySolver(board, strategy);
-        StrategySolverMove solver = new StrategySolverMove(board, strategy);
+//        StrategySolverMove solver = new StrategySolverMove(board, strategy);
 
         solver.run();
         System.out.println(board.getTopTerminators(15));
@@ -133,8 +139,8 @@ public class EHub implements EListener, Runnable {
 
     private void activatePhase2(String bucasURL) {
         EBoard board = EBoard.load(bucasURL);
-        Walker walker = new WalkerG2R(board);
-        walker = new WalkerGeneric(board, Comparator.comparingInt(Walker.Move::bottomRightFirst));
+        //Walker walker = new WalkerG2R(board);
+        Walker walker = new WalkerGeneric(board, Comparator.comparingInt(Walker.Move::bottomRightFirst));
 //        System.out.println("Activating phase 2 for marked " + board.getFilledCount());
         StrategyBase strategy = new StrategyReset(walker, this, DEFAULT_PHASE2_RESET, DEFAULT_PHASE2_TIMEOUT);
         //strategy.setAcceptsUnresolvable(true);

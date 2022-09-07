@@ -216,13 +216,7 @@ public class ExtractionUtils {
         for (int i = 0 ; i < sampleIndices.length ; i++) {
             sampleIndices[i] = i;
         }
-        // Array shuffling algorithm taken from the Collections.shuffle method
-        for (int i = sampleIndices.length; i > 1; i--) {
-            int p = random.nextInt(i);
-            int tmp = sampleIndices[i-1];
-            sampleIndices[i-1] = sampleIndices[p];
-            sampleIndices[p] = tmp;
-        }
+        shuffle(sampleIndices, random);
 
         final int realSampleSize = Math.min(maxSampleSize, values.size());
         Arrays.sort(sampleIndices, 0, realSampleSize); // Preserve original order of values
@@ -241,6 +235,26 @@ public class ExtractionUtils {
                 }).
                 limit(realSampleSize).
                 collect(Collectors.toList());
+    }
+
+    public static void shuffle(int[] values, Random random) {
+        // Array shuffling algorithm taken from the Collections.shuffle method
+        for (int i = values.length; i > 1; i--) {
+            int p = random.nextInt(i);
+            int tmp = values[i - 1];
+            values[i - 1] = values[p];
+            values[p] = tmp;
+        }
+    }
+
+    public static void shuffle(long[] values, Random random) {
+        // Array shuffling algorithm taken from the Collections.shuffle method
+        for (int i = values.length; i > 1; i--) {
+            int p = random.nextInt(i);
+            long tmp = values[i - 1];
+            values[i - 1] = values[p];
+            values[p] = tmp;
+        }
     }
 
     /**

@@ -58,6 +58,10 @@ public class StrategySolverState {
         return msFromTop;
     }
 
+    public long getStartTime() {
+        return startTime;
+    }
+
     public void setLevel(int level) {
         if (bestLevel < level) {
             bestLevel = level;

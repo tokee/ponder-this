@@ -14,6 +14,8 @@
  */
 package dk.ekot.eternii;
 
+import dk.ekot.misc.ExtractionUtils;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -222,6 +224,11 @@ public interface Walker {
      * @return all possible moves, prioritized by the Walker implementation.
      */
     Stream<Move> getAll();
+
+    default Stream<Move> getMinima() {
+        throw new UnsupportedOperationException("Not implemented for this walker");
+    }
+
 
     /**
      * @return All free fields, with corresponding valid pieces (not rotated), not sorted.

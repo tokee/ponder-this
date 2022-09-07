@@ -14,11 +14,14 @@
  */
 package dk.ekot.eternii;
 
+import dk.ekot.misc.ExtractionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 /**
@@ -32,11 +35,16 @@ public class StrategySolverMove implements Runnable {
     private final Strategy strategy;
 
     private long foundSolutions = 0;
+    private final Random random;
 
     public StrategySolverMove(EBoard board, Strategy strategy) {
+        this(board, strategy, null);
+    }
+    public StrategySolverMove(EBoard board, Strategy strategy, Random random) {
         this.board = board;
         this.state = new StrategySolverState(board);
         this.strategy = strategy;
+        this.random = random;
     }
 
     @Override
@@ -48,6 +56,10 @@ public class StrategySolverMove implements Runnable {
 
     public long getFoundSolutions() {
         return foundSolutions;
+    }
+
+    public boolean isRandom() {
+        return random != null;
     }
 
     /**
@@ -83,14 +95,21 @@ public class StrategySolverMove implements Runnable {
             restart = depth == 0 && strategy.loopLevelZero();
 
             msFromTop -= System.currentTimeMillis();
-            Collection<Walker.Move> candidates = strategy.onlySingleField() ?
-                    Collections.singleton(strategy.getWalker().get()) :
-                    strategy.getWalker().getAll().collect(Collectors.toList());
+            List<Walker.Move> candidates = strategy.onlySingleField() ?
+                    Collections.singletonList(strategy.getWalker().get()) :
+                    strategy.getWalker().getMinima().collect(Collectors.toList());
             msFromTop += System.currentTimeMillis();
+
+            if (random != null) {
+                Collections.shuffle(candidates, random);
+            }
 
             skipCurrent:
             for (Walker.Move move : candidates) {
                 final int[] pieceIDs = move.getPieceIDsArray();
+                if (random != null) {
+                    ExtractionUtils.shuffle(pieceIDs, random);
+                }
                 // TODO: Shuffle these when we use Random
                 for (int pieceID : pieceIDs) {
                     for (int rotation : move.getValidRotations(pieceID)) {

@@ -17,9 +17,12 @@ package dk.ekot.eternii;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 /**
- * If a given level takes too long to react, backtracking at most X levels is initiated.
- * "Too long" is x2*level^2 + x*level + base.
+ * If a given level takes too long to progress, backtracking at most X levels is initiated.
+ * "Too long" is x*level^y + base.
  * "X levels" is a maxBacktrack.
  */
 public class StrategyLeveledReset extends StrategyBase {
@@ -27,45 +30,61 @@ public class StrategyLeveledReset extends StrategyBase {
 
     private final double base;
     private final double x;
-    private final double x2;
+    private final double y;
     private final long[] maxTopTimesMS = new long[256];
+
 
     private final int maxBacktrack;
     private final long maxTotalTimeMS;
 
     private final long quitTime;
-    private int best = 0;
+    private int totalBest = 0;
 
-    public StrategyLeveledReset(Walker walker, EListener listener, double x2, double x, double base, int maxBacktrack) {
-        this(walker, listener, x2, x, base, maxBacktrack, Integer.MAX_VALUE);
+    private int localBest = 0;
+    private long localStartTime = System.currentTimeMillis();
+
+    public StrategyLeveledReset(Walker walker, EListener listener, double x, double y, double base, int maxBacktrack) {
+        this(walker, listener, x, y, base, maxBacktrack, Integer.MAX_VALUE);
     }
-    public StrategyLeveledReset(Walker walker, EListener listener, double x2, double x, double base,
+    public StrategyLeveledReset(Walker walker, EListener listener, double x, double y, double base,
                                 int maxBacktrack, int maxTotalTimeMS) {
         super(walker, listener, true, false, true);
-        this.x2 = x2;
         this.x = x;
+        this.y = y;
         this.base = base;
 
         for (int i = 0; i < maxTopTimesMS.length ; i++) {
-            maxTopTimesMS[i] = Math.round(x2*i*i + x*i + base);
+            maxTopTimesMS[i] = Math.round(x*Math.pow(i, y) + base);
         }
         this.maxBacktrack = maxBacktrack;
         this.maxTotalTimeMS = maxTotalTimeMS;
         quitTime = System.currentTimeMillis()+maxTotalTimeMS;
+        setOnlySingleField(false); // Does not make sense to have deterministic here
+        System.out.println("Reset times: " + Arrays.stream(new int[]{0, 50, 100, 150, 200, 250}).
+                boxed().
+                map(i -> maxTopTimesMS[i]).
+                collect(Collectors.toList()));
     }
 
     @Override
     public Action getAction(StrategySolverState state) {
+        if (state.getLevel() > totalBest) {
+            totalBest = state.getLevel();
+            listener.localBest(Thread.currentThread().getName(), this, state.getBoard(), state);
+        }
         if (System.currentTimeMillis() > quitTime) {
             return Action.quit();
         }
-        if (state.getLevel() > best) {
-            best = state.getLevel();
-            listener.localBest(Thread.currentThread().getName(), this, state.getBoard(), state);
+        if (state.getLevel() > localBest) {
+            localBest = state.getLevel();
+            localStartTime = System.currentTimeMillis();
+        } else if (System.currentTimeMillis()-localStartTime > maxTopTimesMS[state.getLevel()]) {
+            int resetLevel = Math.max(0, state.getLevel()-maxBacktrack);
+            localBest = -1;
+            //System.out.println("Resetting from " + state.getLevel() + " to " + resetLevel);
+            return Action.restartLevel(resetLevel);
         }
-        if (state.getMsFromTop() > maxTopTimesMS[state.getLevel()]) {
-            return Action.restartLevel(Math.max(0, state.getLevel()-maxBacktrack));
-        }
+
         return Action.continueLocal();
     }
 }

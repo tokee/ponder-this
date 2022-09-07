@@ -3,6 +3,7 @@ package dk.ekot.eternii;
 import junit.framework.TestCase;
 
 import java.util.Comparator;
+import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -61,9 +62,24 @@ public class SolverTest extends TestCase {
         testSolver(WalkerExp::new, BacktrackReturnOnBothSolver::new, false);
     }
     public void testGeneric() {
+
         testSolver(board -> new WalkerGeneric(board, Comparator.
-                           comparingInt(Walker.Move::bottomRightFirst)
-                   ), BacktrackReturnOnBothSolver::new, false);
+                           comparingInt(Walker.Move::topLeftFirst)
+                   ),
+                   (board, walker) -> new StrategySolverMove(
+                           board,
+                           new StrategyLeveledReset(walker, getTopListener(), 0.00001, 5, 500, 30),
+                           new Random()),
+                   true);
+    }
+
+    private EListener getTopListener() {
+        return new EListener() {
+            @Override
+            public void localBest(String id, Strategy strategy, EBoard board, StrategySolverState state) {
+                System.out.println(board.getFilledCount() + ": " + board.getDisplayURL());
+            }
+        };
     }
 
     public void testBacktrackReturnBothSolver_B() {

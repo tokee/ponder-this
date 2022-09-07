@@ -14,6 +14,8 @@
  */
 package dk.ekot.eternii;
 
+import dk.ekot.misc.ExtractionUtils;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -51,6 +53,13 @@ public abstract class WalkerImpl implements Walker {
     public Stream<Move> getAll() {
         return streamRawMoves().sorted(moveComparator);
     }
+
+    @Override
+    public Stream<Move> getMinima() {
+        return ExtractionUtils.minima(streamRawMoves(), moveComparator).stream();
+    }
+
+
 
     @Override
     public EBoard.Pair<EBoard.Field, List<EBoard.Piece>> getLegacy() {
