@@ -36,7 +36,7 @@ public class WalkerH_BT extends WalkerImpl {
         return Comparator.
                 comparingInt(Move::boardEdgeFirst)
                 .thenComparingInt(Move::topLeftFirst)
-                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(Move::validPiecesSize)
                 .thenComparingInt(move -> 4-move.leastSetOuterEdgesFirst());
     }
 

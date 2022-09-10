@@ -203,7 +203,7 @@ public class StatsTest extends TestCase {
         protected Comparator<Move> getMoveComparator() {
             return Comparator.<Move>
                             comparingInt(move -> move.getX() < 2 && move.getY() < 2 ? 0 : 1)
-                    .thenComparingInt(Move::piecesSize);
+                    .thenComparingInt(Move::validPiecesSize);
         }
 
         @Override
@@ -224,7 +224,7 @@ public class StatsTest extends TestCase {
             return Comparator.<Move>
                             comparingInt(move -> move.getX() > 0 && move.getX() < 3 &&
                                                  move.getY() > 0 && move.getY() < 3 ? 0 : 1)
-                    .thenComparingInt(Move::piecesSize);
+                    .thenComparingInt(Move::validPiecesSize);
         }
 
         @Override
@@ -248,7 +248,7 @@ public class StatsTest extends TestCase {
         protected Comparator<Move> getMoveComparator() {
             return Comparator.<Move>
                             comparingInt(move -> isValid(move.getX(), move.getY()) ? 0 : 1)
-                    .thenComparingInt(Move::piecesSize)
+                    .thenComparingInt(Move::validPiecesSize)
                     .thenComparingInt(move -> 4-move.leastSetOuterEdgesFirst()); // Least free edges
         }
 
@@ -297,7 +297,7 @@ public class StatsTest extends TestCase {
             return Comparator.<Move>
                             comparingInt(move -> move.getX() > 10 && move.getX() < 13 &&
                                                  move.getY() > 0 && move.getY() < 3 ? 0 : 1)
-                    .thenComparingInt(Move::piecesSize);
+                    .thenComparingInt(Move::validPiecesSize);
         }
 
         @Override

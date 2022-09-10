@@ -64,7 +64,13 @@ public class SolverTest extends TestCase {
     public void testGeneric() {
 
         testSolver(board -> new WalkerGeneric(board, Comparator.
-                           comparingInt(Walker.Move::topLeftFirst)
+                           comparingInt(Walker.Move::clueCornersOrdered).
+                           thenComparingInt(Walker.Move.rectFirst(0, 0, 15, 2)).
+                           thenComparingInt(Walker.Move.rectFirst(0, 13, 15, 15)).
+//                           thenComparingInt(Walker.Move::boardEdgeFirst).
+                           thenComparingInt(Walker.Move::validPiecesSize).
+//                           thenComparingInt(Walker.Move::mostSetOuterEdgesFirst).
+                           thenComparingInt(Walker.Move::topLeftFirst)
                    ),
                    (board, walker) -> new StrategySolverMove(
                            board,
@@ -154,8 +160,9 @@ public class SolverTest extends TestCase {
             pieces.processEterniiClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
             //pieces.processEterniiCornerClues((x, y, piece, rotation) -> board.placePiece(x, y, piece, rotation, ""));
         }
-        new BoardVisualiser(board);
-        new BoardVisualiser(board, true);
+        new BoardVisualiser(board, BoardVisualiser.TYPE.live);
+        new BoardVisualiser(board, BoardVisualiser.TYPE.best);
+        new BoardVisualiser(board, BoardVisualiser.TYPE.best_unplaced);
         return board;
     }
 

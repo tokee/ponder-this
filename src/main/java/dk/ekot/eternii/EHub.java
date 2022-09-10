@@ -14,7 +14,6 @@
  */
 package dk.ekot.eternii;
 
-import org.apache.commons.collections.ArrayStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -41,20 +39,27 @@ public class EHub implements EListener, Runnable {
     public static final int DEFAULT_MAX_TIME = 500000000;
     public static final int DEFAULT_PHASE2_RESET = 1000;
     public static final int DEFAULT_PHASE2_TIMEOUT = 60000;
-    private final int resetTime;
-    private final int maxTime;
+
+    private final boolean clues;
+    private final int resetTime = 0; // Not used here
+    private final int maxTime = 0;   // Not used here
     private static ExecutorService executor;
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
+        if (args.length >= 1 && "-h".equals(args[0])) {
+            System.out.println("EHub <threads> <hints (def: true)>");
+            return;
+        }
         int threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 5;
-        int resetTime = args.length >= 2 ? Integer.parseInt(args[1]) : DEFAULT_RESET_TIME;
-        int maxTime = args.length >= 3 ? Integer.parseInt(args[2]) : DEFAULT_MAX_TIME;
+        boolean clues = args.length >= 2 ? Boolean.parseBoolean(args[1]) : true;
+        //int resetTime = args.length >= 2 ? Integer.parseInt(args[1]) : DEFAULT_RESET_TIME;
+        //int maxTime = args.length >= 3 ? Integer.parseInt(args[2]) : DEFAULT_MAX_TIME;
 
-        System.out.println("Starting " + threadCount + " boards with fixed reset time " + resetTime);
+        System.out.println("Starting " + threadCount + " boards with clues=" + clues);
         executor = Executors.newFixedThreadPool(threadCount*2);
         List<Future<?>> jobs = new ArrayList<>();
         for (int i = 0 ; i < threadCount ; i++) {
-           jobs.add(executor.submit(new EHub(resetTime, maxTime)));
+           jobs.add(executor.submit(new EHub(clues)));
         }
         for (Future<?> job: jobs) {
             job.get();
@@ -63,9 +68,12 @@ public class EHub implements EListener, Runnable {
         System.out.println("Finished running");
     }
 
-    public EHub(int resetTime, int maxTime) {
-        this.resetTime = resetTime;
-        this.maxTime = maxTime;
+//    public EHub(int resetTime, int maxTime) {
+  //      this.resetTime = resetTime;
+    //    this.maxTime = maxTime;
+   // }
+    public EHub(boolean clues) {
+        this.clues = clues;
     }
 
     @Override
@@ -73,12 +81,12 @@ public class EHub implements EListener, Runnable {
         System.out.println("Beginning solve... " + Thread.currentThread().getName());
         testSolver(board -> new WalkerGeneric(board, Comparator.
                            comparingInt(Walker.Move::topLeftFirst)
-        ),false);
+        ),clues);
         //testSolver(WalkerG2R::new, true);
     }
 
     private void testSolver(Function<EBoard, Walker> walkerFactory) {
-        testSolver(walkerFactory, true);
+        testSolver(walkerFactory, clues);
     }
     private void testSolver(Function<EBoard, Walker> walkerFactory, boolean clues) {
         EBoard board = getBoard(clues);

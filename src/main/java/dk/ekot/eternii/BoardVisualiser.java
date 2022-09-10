@@ -22,6 +22,10 @@ import java.awt.*;
 import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
 import java.text.AttributedString;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Opens a windows showing an {@link EBoard} and tracks changes.
@@ -38,20 +42,25 @@ public class BoardVisualiser implements EBoard.Observer {
     private final BufferedImage boardImage;
     private final int edgeWidth;
     private final int edgeHeight;
-    private final boolean onlyUpdateOnBetter;
     private boolean needsUpdate = false;
     private final String[][] labels;
+    private final TYPE type;
 
     private int best = 0;
     private boolean showPossiblePieces = true;
 
-    public BoardVisualiser(EBoard board) {
-        this(board, false);
-    }
+    public enum TYPE {live, best, best_unplaced}
 
+    public BoardVisualiser(EBoard board) {
+        this(board, TYPE.best);
+    }
     public BoardVisualiser(EBoard board, boolean onlyUpdateOnBetter) {
+        this(board, onlyUpdateOnBetter ? TYPE.best : TYPE.live);
+    }
+    public BoardVisualiser(EBoard board, TYPE type) {
         this.board = board;
-        this.onlyUpdateOnBetter = onlyUpdateOnBetter;
+        this.type = type;
+
         labels = new String[board.getWidth()][board.getHeight()];
         for (int x = 0 ; x < labels.length ; x++) {
             labels[x] = new String[board.getWidth()];
@@ -68,6 +77,13 @@ public class BoardVisualiser implements EBoard.Observer {
         invalidateAll();
         boardDisplayComponent = BaseGraphics.displayImage(boardImage);
 
+        if (type == TYPE.live) {
+            startThread();
+        }
+        board.registerObserver(this);
+    }
+
+    private void startThread() {
         Thread t = new Thread(() -> {
             while (true) {
                 invalidateConditionally();
@@ -80,7 +96,6 @@ public class BoardVisualiser implements EBoard.Observer {
         }, "BoardVisualizer");
         t.setDaemon(true);
         t.start();
-        board.registerObserver(this);
     }
 
     public boolean isShowPossiblePieces() {
@@ -95,7 +110,7 @@ public class BoardVisualiser implements EBoard.Observer {
         if (!needsUpdate) {
             return;
         }
-        if (onlyUpdateOnBetter) {
+        if (type == TYPE.best || type == TYPE.best_unplaced) {
             if (board.getFilledCount() > best) {
                 best = board.getFilledCount();
                 invalidateAll();
@@ -107,6 +122,39 @@ public class BoardVisualiser implements EBoard.Observer {
     }
 
     private void invalidateAll() {
+        if (type == TYPE.best_unplaced) {
+            drawUnplaced();
+        } else {
+            drawPlaced();
+        }
+    }
+
+    private void drawUnplaced() {
+        // Get all unplaced pieceIDs
+        LinkedHashSet<Integer > pieceIDs = new LinkedHashSet<>(board.getWidth() * board.getHeight());
+        for (int i = 0 ; i < board.getWidth()*board.getHeight() ; i++) {
+            pieceIDs.add(i);
+        }
+        board.visitAllPlaced((x, y) -> {
+            pieceIDs.remove(board.getPiece(x, y));
+        });
+        Iterator<Integer> pieceIDsI = pieceIDs.iterator();
+        // Paint tiles for unplaced pieces
+        for (int y = 0 ; y < board.getHeight() ; y++) {
+            for (int x = 0 ; x < board.getWidth() ; x++) {
+                BufferedImage tile = pieces.getBlank();
+                if (pieceIDsI.hasNext()) {
+                    tile = pieces.getPieceImage(pieceIDsI.next(), 0);
+                }
+                boardImage.getGraphics().drawImage(tile, x * edgeWidth, y * edgeHeight, null);
+            }
+        }
+        if (boardDisplayComponent != null) {
+            boardDisplayComponent.repaint(100L, 0, 0, board.getWidth()*edgeWidth, board.getHeight()*edgeHeight);
+        }
+    }
+
+    private void drawPlaced() {
         for (int y = 0 ; y < board.getHeight() ; y++) {
             for (int x = 0 ; x < board.getWidth() ; x++) {
                 updateTile(x, y);
@@ -117,7 +165,7 @@ public class BoardVisualiser implements EBoard.Observer {
     @Override
     public void boardChanged(int x, int y, String label) {
         labels[x][y] = label;
-        if (onlyUpdateOnBetter) { // Update immediately on better
+        if (type == TYPE.best || type == TYPE.best_unplaced) { // Update immediately on better
             if (board.getFilledCount() > best) {
                 best = board.getFilledCount();
                 invalidateAll();

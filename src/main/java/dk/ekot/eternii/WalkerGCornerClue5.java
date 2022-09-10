@@ -50,8 +50,8 @@ public class WalkerGCornerClue5 extends WalkerImpl {
                 comparingInt(Move::clueCornersOrdered)
                 .thenComparingInt(Move::boardEdgeFirst)
 //                .thenComparingInt(priority(BL_TO_TR))
-                .thenComparingInt(onRect(1, 8, 7, 14))
-                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(Walker.Move.rectFirst(1, 8, 7, 14))
+                .thenComparingInt(Move::validPiecesSize)
                 .thenComparingInt(Move::mostSetOuterEdgesFirst) // Least free edges
                 .thenComparingInt(Move::topLeftFirst);
     }

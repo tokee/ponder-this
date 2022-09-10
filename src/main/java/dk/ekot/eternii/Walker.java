@@ -14,8 +14,6 @@
  */
 package dk.ekot.eternii;
 
-import dk.ekot.misc.ExtractionUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -105,7 +103,7 @@ public interface Walker {
             return buffer;
         }
 
-        public int piecesSize() {
+        public int validPiecesSize() {
             return piecesSize;
         }
 
@@ -185,6 +183,16 @@ public interface Walker {
             final int tl = topLeftFirst();
             final int br = 255-tl;
             return Math.min(tl, br);
+        }
+        /**
+         * @return 0 is inside rectangle (all edges inclusive) else 1.
+         */
+        public static ToIntFunction<Move> rectFirst(int x1, int y1, int x2, int y2) {
+            return move -> {
+                final int x = move.getX();
+                final int y = move.getY();
+                return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? 0 : 1;
+            };
         }
     }
 
@@ -457,16 +465,6 @@ public interface Walker {
         return pair -> {
             final int x = pair.left.getX();
             final int y = pair.left.getY();
-            return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? 0 : 1;
-        };
-    }
-    /**
-     * @return 0 is inside rectangle (all edges inclusive) else 1.
-     */
-    default ToIntFunction<Move> onRect(int x1, int y1, int x2, int y2) {
-        return move -> {
-            final int x = move.getX();
-            final int y = move.getY();
             return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? 0 : 1;
         };
     }

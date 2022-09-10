@@ -602,6 +602,19 @@ public class EBoard {
         }
     }
 
+    /**
+     * Visit all fields with pieces.
+     */
+    public void visitAllPlaced(BiConsumer<Integer, Integer> visitor) {
+        for (int y = 0 ; y < height ;y++) {
+            for (int x = 0 ; x < width ; x++) {
+                if (EBits.hasPiece(board[x][y])) {
+                    visitor.accept(x, y);
+                }
+            }
+        }
+    }
+
 
     /**
      * Requested edge of the piece at the given position, EPieces.EDGE_EDGE if outside of the board and NULL_E if no piece.

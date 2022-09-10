@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -87,11 +86,12 @@ public class FillerTest extends TestCase implements EListener {
         String topLeft1 = "Phase 1: pool-1-thread-5 (242K attempts/sec): 204 https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaafhbafgfackfadtcaftdacnfafhcadufaendadteabmdafjbaelfadweaacddgcahhlggimhklqithjltrwhnkvrhvrkuwovnspwtgwsmpqgjttplqttwoiqcacocpcalmtpmupmqlhujmllwksmvkokrvmkomjvpjnmwgsjqmqgtrsmtrgringrcaencqeatjkqpppjhhrplsuhskssolnkmnwljminnlomslrlqjklskqjgikkgqiieafqemfakqhmpqrqrluqulplsnplnsnnwuwsiwquoklwrwpkkrvwqwlrkuhwiowufadofubahmwurmhmujvmprsjpnqrnvjnwtwvqvntlgvvpnigvijnlprihiqpwgiidadgbgbawqnghwmqvjgwshvjqkwhjhukwqlhntmqvvitijvvjrijrmorqlvmiwildafwbjbanthjmsutgvgsvlwvwvwlulkvlwolmsowiuksvgouiwtgokuwvrtkiqorfafqbpcahsspuvpsgtqvwhptwjhhkgrjolugorglkgtroslgthusunvhtksnounkfafuchbasjuhpjijqovjpprohtvprvmtusuvgrustusrlwmuushwvpnsskppntkkfabtboeaurhoilirvhnlruhhvtkumrgtujtruoujsujomhjuhunhnrquphkrkprhbaepepcahjqpiggjnnpghlsnkpllgnkptovnuisojjlijmijniomqooikqmortrqeabtcrbaqvprgwwvppvwstoplgmtkoggvmjospgmloupiisoommiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         String topLeft1br = "Filler: main (5K attempts/sec): 222 https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaafhbafgfackfadtcaftdacnfafhcadufaendadteabmdafjbaelfadweaacddgcahhlggimhklqithjltrwhnkvrhvrkuwovnspwtgwsmpqgjttplqttwoiqcacocpcalmtpmupmqlhujmllwksmvkokrvmkomjvpjnmwgsjqmqgtrsmtrgringrcaencqeatjkqpppjhhrplsuhskssolnkmnwljminnlomslrlqjklskqjgikkgqiieafqemfakqhmpqrqrluqulplsnplnsnnwuwsiwquoklwrwpkkrvwqwlrkuhwiowufadofubahmwurmhmujvmprsjpnqrnvjnwtwvqvntlgvvpnigvijnlprihiqpwgiidadgbgbawqnghwmqvjgwshvjqkwhjhukwqlhntmqvvitijvvjrijrmorqlvmiwildafwbjbanthjmsutgvgsvlwvwvwlulkvlwolmsowiuksvgouiwtgokuwvrtkiqorfafqbpcahsspuvpsgtqvwhptwjhhkgrjolugorglkgtroslgthusunvhtksnounkfafuchbasjuhpjijqovjpprohtvprvmtusuvgrustusrlwmuushwvpnsskppntkkfabtboeaurhoilirvhnlruhhvtkumrgtujtruoujsujomhjuhunhnrquphkrkprhbaepepcahjqpiggjnnpghlsnkpllgnkptovnuisojjlijmijniomqooikqmortrqeabtcrbaqvprgwwvppvwstoplgmtkoggvmjospgmloupiisoommiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaajsiueaesdcaaidacidadhdadpcadvbacveabqbaejfabvcafsbachcabrfacoeafibaeeaab";
 
+        String misc1 = "212: https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abeaabjbaeibafqeabjfaepbafoeafgfadofadhdafwdafqfacrfadtcadidaabdeseajgisiiwgqphijppppskpoiisggjiouvghhruwjhhqphjrsjptgwsigtgbabgemfainjmwlmnhwqlppvwkrwpiqorjklqvrnkrmorhjumhukjjuouwswutjisbafjfufajosumnioqosnvuwowokuoiqolprinqrpovjqusuvksssowmswvgwitvvfabtfhbassphiukssgruwvjgkokvqnqorqunrtrqjoqtunkospwnmonpggkovvlgbacvbpcapropkgtrrjkgjrijkmnrqhwmuqlhrluqqiklkkgiwhqknlvhkpllloupcacocrbaonjraaaaaaaaaaaaaaaawhptlsnhuhlskrphgtmrqqwtvntqlktnuhwkcabhbveajnnvaaaaaaaaaaaaaaaapjijnvijlrwvphhrmrmhwmmrtrsmtrgrwhtrbachepdanigpaaaaaaaaaaaaaaaaimhgijjmwgsjhhlgmorhmmiospgmgnkpaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadabmaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabacscpcagtnprvmtmkrvillkgoslkqmowlrqjmlltplmsuvprhoumwuhinqwnnsncaenckfantkkmsutrtuslgmtsgvgmkigrvwklwvvlwvwvkvwolnkugolqmqgsommeaboftdakmttujvmuhsjmkqhvrtkilirwoklvntovoknvmjonlomorglqvprmqlvbaeqdgdatnqgvhunsknhqjsktrujijurkqtjttlqkuvtjsiuoqwsgmpqpjnmlthjeadtdcaaqeacueaendaesdadufadubafteablfaevcafidacweadpcaenfachcafdaac";
 
-        String START = topLeft1br;
+        String START = misc1;
         //fillValids(topLeft1, WalkerG2R::new);
         fillValids(START, board -> new WalkerGeneric(board, Comparator.
-                comparingInt(Walker.Move::piecesSize)
+                comparingInt(Walker.Move::validPiecesSize)
         ));
     }
 
@@ -103,7 +103,7 @@ public class FillerTest extends TestCase implements EListener {
 
         Walker walker = walkerFactory.apply(board);
         //Runnable solver = new BacktrackSolver(board, walker);
-        StrategyBase strategy = new StrategyReset(walker, this, 200, 10000000);
+        StrategyBase strategy = new StrategyReset(walker, this, 2000, 10000000);
         strategy.setAcceptsUnresolvable(true);
         strategy.setOnlySingleField(false);
         Runnable solver = new StrategySolverMove(board, strategy);

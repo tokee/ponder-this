@@ -99,7 +99,7 @@ public class WalkerG2R extends WalkerImpl {
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
                 comparingInt(Move::clueCornersOrdered)
-                .thenComparingInt(Move::piecesSize)
+                .thenComparingInt(Move::validPiecesSize)
                 .thenComparingInt(Move::boardEdgeFirst)
                 .thenComparingInt(Move::mostSetOuterEdgesFirst) // Least free edges
                 .thenComparingInt(Move::topLeftFirst);

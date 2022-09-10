@@ -81,7 +81,7 @@ public class StrategyLeveledReset extends StrategyBase {
         } else if (System.currentTimeMillis()-localStartTime > maxTopTimesMS[state.getLevel()]) {
             int resetLevel = Math.max(0, state.getLevel()-maxBacktrack);
             localBest = -1;
-            //System.out.println("Resetting from " + state.getLevel() + " to " + resetLevel);
+            System.out.println("Resetting from " + state.getLevel() + " to " + resetLevel);
             return Action.restartLevel(resetLevel);
         }
 
