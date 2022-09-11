@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.Random;
 import java.util.function.Function;
 
 /**
@@ -87,26 +88,29 @@ public class FillerTest extends TestCase implements EListener {
         String topLeft1br = "Filler: main (5K attempts/sec): 222 https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaafhbafgfackfadtcaftdacnfafhcadufaendadteabmdafjbaelfadweaacddgcahhlggimhklqithjltrwhnkvrhvrkuwovnspwtgwsmpqgjttplqttwoiqcacocpcalmtpmupmqlhujmllwksmvkokrvmkomjvpjnmwgsjqmqgtrsmtrgringrcaencqeatjkqpppjhhrplsuhskssolnkmnwljminnlomslrlqjklskqjgikkgqiieafqemfakqhmpqrqrluqulplsnplnsnnwuwsiwquoklwrwpkkrvwqwlrkuhwiowufadofubahmwurmhmujvmprsjpnqrnvjnwtwvqvntlgvvpnigvijnlprihiqpwgiidadgbgbawqnghwmqvjgwshvjqkwhjhukwqlhntmqvvitijvvjrijrmorqlvmiwildafwbjbanthjmsutgvgsvlwvwvwlulkvlwolmsowiuksvgouiwtgokuwvrtkiqorfafqbpcahsspuvpsgtqvwhptwjhhkgrjolugorglkgtroslgthusunvhtksnounkfafuchbasjuhpjijqovjpprohtvprvmtusuvgrustusrlwmuushwvpnsskppntkkfabtboeaurhoilirvhnlruhhvtkumrgtujtruoujsujomhjuhunhnrquphkrkprhbaepepcahjqpiggjnnpghlsnkpllgnkptovnuisojjlijmijniomqooikqmortrqeabtcrbaqvprgwwvppvwstoplgmtkoggvmjospgmloupiisoommiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaajsiueaesdcaaidacidadhdadpcadvbacveabqbaejfabvcafsbachcabrfacoeafibaeeaab";
 
         String misc1 = "212: https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abeaabjbaeibafqeabjfaepbafoeafgfadofadhdafwdafqfacrfadtcadidaabdeseajgisiiwgqphijppppskpoiisggjiouvghhruwjhhqphjrsjptgwsigtgbabgemfainjmwlmnhwqlppvwkrwpiqorjklqvrnkrmorhjumhukjjuouwswutjisbafjfufajosumnioqosnvuwowokuoiqolprinqrpovjqusuvksssowmswvgwitvvfabtfhbassphiukssgruwvjgkokvqnqorqunrtrqjoqtunkospwnmonpggkovvlgbacvbpcapropkgtrrjkgjrijkmnrqhwmuqlhrluqqiklkkgiwhqknlvhkpllloupcacocrbaonjraaaaaaaaaaaaaaaawhptlsnhuhlskrphgtmrqqwtvntqlktnuhwkcabhbveajnnvaaaaaaaaaaaaaaaapjijnvijlrwvphhrmrmhwmmrtrsmtrgrwhtrbachepdanigpaaaaaaaaaaaaaaaaimhgijjmwgsjhhlgmorhmmiospgmgnkpaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadabmaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabacscpcagtnprvmtmkrvillkgoslkqmowlrqjmlltplmsuvprhoumwuhinqwnnsncaenckfantkkmsutrtuslgmtsgvgmkigrvwklwvvlwvwvkvwolnkugolqmqgsommeaboftdakmttujvmuhsjmkqhvrtkilirwoklvntovoknvmjonlomorglqvprmqlvbaeqdgdatnqgvhunsknhqjsktrujijurkqtjttlqkuvtjsiuoqwsgmpqpjnmlthjeadtdcaaqeacueaendaesdadufadubafteablfaevcafidacweadpcaenfachcafdaac";
+        String topLeft2 = "Phase 1: pool-1-thread-3 (454K attempts/sec): 212 https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abeaafubafqfackfafhcafgfadofadhdacidadpcaepdabteabgbaeibadteaabdemfaupmmqrqpkgtrhhlggimhommihjumijpjpppjpvwptkuvgrjkijurtrujbacrfjbamijjqwoitgiwlorgmmsomrwmusgrpwnspmiwwksmuhwkjlthulplugolcadgbjbajrijonjriomnriqostjiwvwtgtqvnlktijjlsiujwquittlqplmtoglldadgbhcaiqphjklqmnrkqgtnjiggwgiiqmqgkigmjvviulkvuqrllvmqmujvlwmudafwcnfaplsnlkilrwpktqqwgmpqinjmqrpngtmrvvitkokvrhmomwuhjhhwmrmhfacrfufasrtuingrpmonqhwmptwhjkqtpllkmnwligpnkoggmjvouhsjhrphmorrcacofhbatvphgwwvollwwvvlwkrvqmoklljmwvwlpsuvgvgsvlgvsnhlpgtnrtrgcadtbpcapropwhtrlsuhvpnsrsjpouisjuouwswuutmsgigtgqiihmkqttkmrsmtdadscqeaosnqtopsuvgontqvjoqtiqooovjqwvkvmkrvgikkisoiknhskvrnmtrvdaftelfankolppskgnnpqwinqlhwomnljovmklworqwlkwhqovuwhnlvrqunrtrqfabtfvcaoknvsntknvjnijnvhukjnhhuvjshwgsjwstghwusuiowliwiuksirphkbaepcvbantovtpjtjnmpnnsnkpgnhjqpskqjssskthusunvhouqnwokuslgohuqleaeubjfaosujjgismspgaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-        String START = misc1;
+        String START = topLeft2;
         //fillValids(topLeft1, WalkerG2R::new);
         fillValids(START, board -> new WalkerGeneric(board, Comparator.
-                comparingInt(Walker.Move::validPiecesSize)
+                comparingInt(Walker.Move::bottomRightFirst)
+//                comparingInt(Walker.Move::validPiecesSize)
         ));
     }
 
     private void fillValids(
             String bucasURL, Function<EBoard, Walker> walkerFactory) {
         EBoard board = EBoard.load(bucasURL);
-        new BoardVisualiser(board);
-        new BoardVisualiser(board, true);
+        new BoardVisualiser(board, BoardVisualiser.TYPE.live);
+        new BoardVisualiser(board, BoardVisualiser.TYPE.best);
+        new BoardVisualiser(board, BoardVisualiser.TYPE.best_unplaced);
 
         Walker walker = walkerFactory.apply(board);
         //Runnable solver = new BacktrackSolver(board, walker);
-        StrategyBase strategy = new StrategyReset(walker, this, 2000, 10000000);
+        StrategyBase strategy = new StrategyReset(walker, this, 500, 10000000);
         strategy.setAcceptsUnresolvable(true);
         strategy.setOnlySingleField(false);
-        Runnable solver = new StrategySolverMove(board, strategy);
+        Runnable solver = new StrategySolverMove(board, strategy, new Random());
         long runTime = -System.currentTimeMillis();
         solver.run();
         runTime += System.currentTimeMillis();

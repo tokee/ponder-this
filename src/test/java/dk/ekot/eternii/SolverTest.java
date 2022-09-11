@@ -65,8 +65,10 @@ public class SolverTest extends TestCase {
 
         testSolver(board -> new WalkerGeneric(board, Comparator.
                            comparingInt(Walker.Move::clueCornersOrdered).
-                           thenComparingInt(Walker.Move.rectFirst(0, 0, 15, 2)).
+                           thenComparingInt(Walker.Move.rectFirst(0,  0, 15,  2)).
                            thenComparingInt(Walker.Move.rectFirst(0, 13, 15, 15)).
+                           thenComparingInt(Walker.Move.rectFirst(0,  3,  2, 12)).
+                           thenComparingInt(Walker.Move.rectFirst(13, 3, 15, 12)).
 //                           thenComparingInt(Walker.Move::boardEdgeFirst).
                            thenComparingInt(Walker.Move::validPiecesSize).
 //                           thenComparingInt(Walker.Move::mostSetOuterEdgesFirst).

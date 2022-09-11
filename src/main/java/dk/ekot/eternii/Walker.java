@@ -252,13 +252,14 @@ public interface Walker {
     }
 
     /**
-     * @return all possible moves, left-to-right, top-to-bottom (cheap operation).
+     * @return all possible moves that have non-0 candidates, left-to-right, top-to-bottom (cheap operation).
      */
     default Stream<Move> streamRawMoves() {
         final EBoard board = getBoard();
         return board.streamAllFields().
-                filter(EBoard.Field::isFree)
-                .map(field -> new Move(board, field));
+                filter(EBoard.Field::isFree).
+                filter(field -> !board.getPieceIDs(field.getX(), field.getY()).isEmpty()).
+                map(field -> new Move(board, field));
     }
 
     /* Comparators below ---------------------------------------------------------------------------------------- */
