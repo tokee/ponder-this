@@ -47,7 +47,7 @@ public class WalkerGClueStart extends WalkerImpl {
     @Override
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
-                comparingInt(onPriority(CORNER_CLUES_FIRST))
+                comparingInt(Walker.onPriority(CORNER_CLUES_FIRST))
                 .thenComparingInt(Move::topLeftFirst)
                 .thenComparingInt(Move::boardEdgeFirst)
                 .thenComparingInt(Move::mostSetOuterEdgesFirst) // Least free edges
@@ -57,7 +57,7 @@ public class WalkerGClueStart extends WalkerImpl {
     @Override
     protected Comparator<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> getFieldComparator() {
         return Comparator.
-                comparingInt(priority(CORNER_CLUES_FIRST))
+                comparingInt(Walker.priority(CORNER_CLUES_FIRST))
                 .thenComparingInt(this::validPieces)
                 .thenComparingInt(this::boardEdges)
                 .thenComparingInt(pair -> 4-pair.left.getOuterEdgeCount()) // Least free edges

@@ -160,6 +160,10 @@ public interface Walker {
             return 5;
         }
 
+        public int identity() {
+            return 0;
+        }
+
         public int topLeftFirst() {
             return y*w + x;
         }
@@ -350,17 +354,17 @@ public interface Walker {
         return 5;
     }
 
-    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> spiralIn(EBoard board) {
+    static ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> spiralIn(EBoard board) {
         return priority(PatternCreator.spiralIn(board.getWidth())); // TODO: Check if width differs
     }
-    default ToIntFunction<Move> onSpiralIn(EBoard board) {
+    static ToIntFunction<Move> onSpiralIn(EBoard board) {
         return onPriority(PatternCreator.spiralIn(board.getWidth())); // TODO: Check if width differs
     }
 
-    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> spiralOut(EBoard board) {
+    static ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> spiralOut(EBoard board) {
         return priority(PatternCreator.spiralOut(board.getWidth())); // TODO: Check if width differs
     }
-    default ToIntFunction<Move> onSpiralOut(EBoard board) {
+    static ToIntFunction<Move> onSpiralOut(EBoard board) {
         return onPriority(PatternCreator.spiralOut(board.getWidth())); // TODO: Check if width differs
     }
 
@@ -368,7 +372,7 @@ public interface Walker {
      * @param coordinates array of coordinates, where each entry is {@code [x, y]}
      * @return position in the coordinates array or coordinates.length if outside of array.
      */
-    default ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> priority(int[][] coordinates) {
+    static ToIntFunction<EBoard.Pair<EBoard.Field, ? extends Collection<?>>> priority(int[][] coordinates) {
         return pair -> {
             int x = pair.left.getX();
             int y = pair.left.getY();
@@ -384,7 +388,7 @@ public interface Walker {
      * @param coordinates array of coordinates, where each entry is {@code [x, y]}
      * @return position in the coordinates array or coordinates.length if outside of array.
      */
-    default ToIntFunction<Move> onPriority(int[][] coordinates) {
+    static ToIntFunction<Move> onPriority(int[][] coordinates) {
         return move -> {
             int x = move.getX();
             int y = move.getY();

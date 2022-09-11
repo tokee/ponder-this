@@ -61,18 +61,19 @@ public class SolverTest extends TestCase {
     public void testExp() {
         testSolver(WalkerExp::new, BacktrackReturnOnBothSolver::new, false);
     }
+
+    /* --------------------------------------------------------------------------------------------------------------- */
+
     public void testGeneric() {
 
         testSolver(board -> new WalkerGeneric(board, Comparator.
-                           comparingInt(Walker.Move::clueCornersOrdered).
-                           thenComparingInt(Walker.Move.rectFirst(0,  0, 15,  2)).
-                           thenComparingInt(Walker.Move.rectFirst(0, 13, 15, 15)).
-                           thenComparingInt(Walker.Move.rectFirst(0,  3,  2, 12)).
-                           thenComparingInt(Walker.Move.rectFirst(13, 3, 15, 12)).
-//                           thenComparingInt(Walker.Move::boardEdgeFirst).
+                           comparingInt(Walker.Move::identity).
+
+                           thenComparingInt(Walker.Move::clueCornersOrdered).
+                           thenComparingInt(Walker.onSpiralIn(board)).
                            thenComparingInt(Walker.Move::validPiecesSize).
-//                           thenComparingInt(Walker.Move::mostSetOuterEdgesFirst).
-                           thenComparingInt(Walker.Move::topLeftFirst)
+
+                           thenComparingInt(Walker.Move::identity)
                    ),
                    (board, walker) -> new StrategySolverMove(
                            board,
@@ -80,6 +81,22 @@ public class SolverTest extends TestCase {
                            new Random()),
                    true);
     }
+
+    private Comparator<Walker.Move> getOutsideInComperator() {
+        return Comparator.
+                comparingInt(Walker.Move::clueCornersOrdered).
+                thenComparingInt(Walker.Move.rectFirst(0, 0, 15, 2)).
+                thenComparingInt(Walker.Move.rectFirst(0, 13, 15, 15)).
+                thenComparingInt(Walker.Move.rectFirst(0, 3, 2, 12)).
+                thenComparingInt(Walker.Move.rectFirst(13, 3, 15, 12)).
+//                           thenComparingInt(Walker.Move::boardEdgeFirst).
+        thenComparingInt(Walker.Move::validPiecesSize).
+//                           thenComparingInt(Walker.Move::mostSetOuterEdgesFirst).
+        thenComparingInt(Walker.Move::topLeftFirst);
+    }
+
+    /* --------------------------------------------------------------------------------------------------------------- */
+
 
     private EListener getTopListener() {
         return new EListener() {
