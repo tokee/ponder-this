@@ -3,7 +3,10 @@ package dk.ekot.eternii;
 import junit.framework.TestCase;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /*
  *  Licensed under the Apache License", " Version 2.0 (the "License");
@@ -63,6 +66,56 @@ public class EPiecesTest extends TestCase {
             System.out.print(jefToBase(piece) + " ");
         }
         System.out.println();
+    }
+
+    public void testDumpEterniiStats() {
+        EPieces pieces = EPieces.getEternii();
+
+        for (int edges = 0 ; edges <=2 ; edges++) {
+            int count = 0;
+            for (int id = 0 ; id < 256 ; id++) {
+                if (pieces.getType(id) == edges) {
+                    count++;
+                }
+            }
+            System.out.println("Edges " + edges + ": " + count);
+        }
+
+        Set<Integer> cornerColors = new HashSet<>();
+        Set<Integer> edgeColors = new HashSet<>();
+        Set<Integer> edgeOColors = new HashSet<>();
+        Set<Integer> innerColors = new HashSet<>();
+        for (int id = 0 ; id < 256 ; id++) {
+            if (pieces.getType(id) == EPieces.EDGE) {
+                for (int rot = 0 ; rot < 4 ; rot++) {
+                    if (pieces.getTop(id, rot) == EPieces.EDGE_EDGE) {
+                        edgeColors.add(pieces.getLeft(id, rot));
+                        edgeColors.add(pieces.getRight(id, rot));
+                        edgeOColors.add(pieces.getBottom(id, rot));
+                    }
+                }
+            } else if (pieces.getType(id) == EPieces.INNER){
+                for (int rot = 0 ; rot < 4 ; rot++) {
+                    innerColors.add(pieces.getTop(id, rot));
+                }
+            } else { // Corner
+                System.out.println("Corner: " + pieces.toDisplayString(id, 0));
+                for (int rot = 0 ; rot < 4 ; rot++) {
+                    if (pieces.getTop(id, rot) == EPieces.EDGE_EDGE && pieces.getRight(id, rot) == EPieces.EDGE_EDGE) {
+                        cornerColors.add(pieces.getBottom(id, rot));
+                        cornerColors.add(pieces.getLeft(id, rot));
+                    }
+                }
+            }
+        }
+        System.out.println("Corner colors: " + colDump(cornerColors));
+        System.out.println("Edge colors:   " + colDump(edgeColors));
+        System.out.println("EdgeO colors:  " + colDump(edgeOColors));
+        System.out.println("Inner colors:  " + colDump(innerColors));
+    }
+
+    private String colDump(Set<Integer> colors) {
+        return colors.stream().map(zeroed -> (char)('a' + zeroed)).collect(Collectors.toList()) + " " + colors.size();
     }
 
     // "aabd", "aabe", "aacd", "aadc"
