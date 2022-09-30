@@ -15,14 +15,14 @@
 package dk.ekot.eternii.quad;
 
 import dk.ekot.misc.Bitmap;
-import dk.ekot.misc.GrowableInts;
-import dk.ekot.misc.GrowableLongArray;
-import dk.ekot.misc.GrowableLongs;
+import dk.ekot.misc.IntersectionBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Holds Quads, packed as longs as defined in {@link QBits}.
+ * Holds a shadowing bitmap representing quads.
+ *
+ * Quads are never removed but instead masked.
  */
 public class QuadSet {
     private static final Logger log = LoggerFactory.getLogger(QuadSet.class);
@@ -33,59 +33,23 @@ public class QuadSet {
     private int need = 0;
 
     /**
-     * Number of Quads in this set.
+     * Number of Quads in this set, live as well as dead.
      */
-    private int size = 0;
+    private int allSize = 0;
 
-    private GrowableInts qpieces;
-    private GrowableLongs qinners;
-    private Bitmap existing;
+    private Bitmap subset;
 
-    public QuadSet(int maxQuads) {  // TODO: Make auto-extending Bitmap
-        qpieces = new GrowableInts(maxQuads);
-        qinners = new GrowableLongs(maxQuads);
-        existing = new Bitmap(maxQuads);
+    public QuadSet(Bitmap base, int startBlock, int endBlock) {
+        subset = new IntersectionBitmap(base, startBlock, endBlock);
+        System.arraycopy(base.getBacking(), startBlock, subset.getBacking(), 0, subset.getBacking().length);
     }
 
-    /**
-     * Trim the holding structures down to size, without any room for further quads.
-     */
-    public void trim() {
-        // TODO: Implement this
-        log.warn("trim not implemented yet!");
+    public boolean isNeedSatisfied() {
+        return need <= subset.cardinality();
     }
 
-    /**
-     * Add a Quad. No checking for duplicates!
-     * @param qinner af defined in {@link QBits}.
-     */
-    public void addQuad(long qinner) {
-        qinners.add(qinner);
-    }
-
-    /**
-     * @return a deep copy of this QuadSet.
-     */
-    public QuadSet deepCopy() {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    /**
-     * Remove all Quads which contains the given piece.
-     * @param pieceID an ID from 0 to 255, inclusive.
-     * @return true if {@code need} <= size, else false.
-     */
-    public boolean removePiece(int pieceID) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    /**
-     * Remove all Quads which contains any of the given pieces.
-     * @param pieceIDs bitmap of size 256, where each set bit signals a pieceID.
-     * @return true if {@code need} <= size, else false.
-     */
-    public boolean removePieces(long[] pieceIDs) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public int thisOrNext(int index) {
+        return subset.thisOrNext(index);
     }
 
     /**
@@ -96,9 +60,16 @@ public class QuadSet {
     }
 
     /**
+     * @param need number of free Fields that needs 1 element from this QuadSet
+     */
+    public void setNeed(int need) {
+        this.need = need;
+    }
+
+    /**
      * @return number of Quads in this set.
      */
-    public int getSize() {
-        return size;
+    public int getAvailable() {
+        return subset.cardinality();
     }
 }

@@ -1,0 +1,158 @@
+/*
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+package dk.ekot.eternii.quad;
+
+import dk.ekot.misc.Bitmap;
+import dk.ekot.misc.GrowableBitmap;
+import dk.ekot.misc.GrowableInts;
+import dk.ekot.misc.GrowableLongs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Holds Quads, packed as ints & longs as defined in {@link QBits}.
+ *
+ * Quads are never removed but instead masked.
+ */
+public class QuadBag {
+    private static final Logger log = LoggerFactory.getLogger(QuadBag.class);
+
+    /**
+     * Number of free Fields that needs 1 element from this QuadSet.
+     */
+    private int need = 0;
+
+    /**
+     * Number of Quads in this set.
+     */
+    private int size = 0;
+
+    private GrowableInts qpieces;
+    private GrowableLongs qinners;
+    private Bitmap existing;
+
+    public QuadBag() {
+        qpieces = new GrowableInts();
+        qinners = new GrowableLongs();
+        existing = new GrowableBitmap(0);
+    }
+
+    /**
+     * Trim the holding structures down to size, without any room for further quads.
+     */
+    public void trim() {
+        // TODO: Implement this
+        log.warn("trim not implemented yet!");
+    }
+
+    /**
+     * Add a Quad. No checking for duplicates!
+     * @param qinner af defined in {@link QBits}.
+     */
+    public void addQuad(int qpiece, long qinner) {
+        qpieces.add(qpiece);
+        qinners.add(qinner);
+        existing.set(size++);
+    }
+
+    /**
+     * Remove all Quads which contains any of the marked pieces.
+     * @param pieceMask an array of length 256, each entry representing the piece with index as ID.
+     *                 0 means the piece should be removed, 1 means it should be kept.
+     * @return true if {@code need <= size}, else false.
+     */
+    public void hideQPieces(byte[] pieceMask) {
+        for (int i = 0 ; i < size ; i++) {
+            final int pieceIDs = qpieces.get(i);
+            if (pieceMask[pieceIDs & 0xFF] +
+                pieceMask[(pieceIDs >> 8) & 0xFF] +
+                pieceMask[(pieceIDs >> 16) & 0xFF] +
+                pieceMask[(pieceIDs >> 24) & 0xFF] != 4 &&
+                existing.get(i)) {
+                existing.clear(i);
+            }
+        }
+    }
+
+    /**
+     * Add all Quads which contains any of the marked pieces.
+     * @param pieceMask an array of length 256, each entry representing the piece with index as ID.
+     *                 0 means the piece should be removed, 1 means it should be kept.
+     * @return true if {@code need <= size}, else false.
+     */
+    public void showQPieces(byte[] pieceMask) {
+        for (int i = 0 ; i < size ; i++) {
+            final int pieceIDs = qpieces.get(i);
+            if (pieceMask[pieceIDs & 0xFF] +
+                pieceMask[(pieceIDs >> 8) & 0xFF] +
+                pieceMask[(pieceIDs >> 16) & 0xFF] +
+                pieceMask[(pieceIDs >> 24) & 0xFF] == 4 &&
+                !existing.get(i)) {
+                existing.set(i);
+            }
+        }
+    }
+
+    /**
+     * Mark all qpieces as live or dead.
+     * @param pieceMask an array of length 256, each entry representing the piece with index as ID.
+     *                 0 means the piece should be removed, 1 means it should be kept.
+     */
+    public void recalculateQPieces(byte[] pieceMask) {
+        // TODO: Improve this by building 1 long at a time by setting rightmost and shifting left
+        long[] blocks = existing.getBacking();
+        for (int blockIndex = 0 ; blockIndex < blocks.length-1 ; blockIndex++) {
+            long block = 0L;
+            for (int i = 0 ; i < 64 ; i++) {
+                int id = (blockIndex << 6) + i;
+                final int pieceIDs = qpieces.get(id);
+                block |= (pieceMask[pieceIDs & 0xFF] +
+                          pieceMask[(pieceIDs >> 8) & 0xFF] +
+                          pieceMask[(pieceIDs >> 16) & 0xFF] +
+                          pieceMask[(pieceIDs >> 24) & 0xFF]) >> 2; // 4 -> 1
+                block = block << 1;
+            }
+            blocks[blockIndex] = block;
+        }
+        // Last block might not be full
+        long block = 0;
+        for (int i = 0 ; i < 64 ; i++) {
+            int id = ((blocks.length-1) << 6) + i;
+            if (id < size) {
+                final int pieceIDs = qpieces.get(id);
+                block |= (pieceMask[pieceIDs & 0xFF] +
+                          pieceMask[(pieceIDs >> 8) & 0xFF] +
+                          pieceMask[(pieceIDs >> 16) & 0xFF] +
+                          pieceMask[(pieceIDs >> 24) & 0xFF]) >> 2; // 4 -> 1
+            }
+            block = block << 1;
+        }
+        blocks[blocks.length-1] = block;
+
+
+/*        for (int i = 0 ; i < size ; i++) {
+            final int pieceIDs = qpieces.get(i);
+            boolean live = pieceMask[pieceIDs & 0xFF] +
+                           pieceMask[(pieceIDs >> 8) & 0xFF] +
+                           pieceMask[(pieceIDs >> 16) & 0xFF] +
+                           pieceMask[(pieceIDs >> 24) & 0xFF] == 4;
+            if (live) {
+                existing.set(i);
+            } else {
+                existing.clear(i);
+            }
+        } */
+    }
+}
