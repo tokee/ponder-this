@@ -15,8 +15,8 @@ public class Bitmap {
     int size;
     private final Map<Integer, Bitmap> shiftCache;
 
-    int cardinality = -1;
-    long changeCounter = 0;
+    protected int cardinality = -1;
+    protected long changeCounter = 0;
 
     public Bitmap(int size) {
         this(size, DEFAULT_ENABLE_SHIFT_CACHE);
@@ -44,6 +44,10 @@ public class Bitmap {
     }
     public boolean get(int index) {
         return (backing[index >>> 6] & (1L << (63-(index & 63)))) != 0;
+    }
+
+    public long getBlock(int blockIndex) {
+        return backing[blockIndex];
     }
 
     // Integer.MAX_VALUE means no more bits

@@ -16,7 +16,7 @@ public class IntersectionBitmap extends Bitmap {
     final int startIndex;   // Inclusive: startBlock << 6
     final int endIndex;     // Exclusive: endBlock << 6
 
-    long lastChangeCounter = -1;
+    long lastBaseChangeCounter = -1;
 
     public IntersectionBitmap(Bitmap bitmap) {
         this(bitmap, 0, bitmap.backing.length);
@@ -33,6 +33,16 @@ public class IntersectionBitmap extends Bitmap {
     }
 
     @Override
+    public long getBlock(int blockIndex) {
+        return blockIndex < startBlock || blockIndex >= endBlock ?
+                0L :
+                backing[blockIndex-startBlock] & base[blockIndex];
+    }
+    public long unsafeGetBlock(int blockIndex) {
+        return backing[blockIndex-startBlock] & base[blockIndex];
+    }
+
+    @Override
     public boolean get(int index) {
         if (index < startIndex || index >= endIndex) {
             return false;
@@ -44,7 +54,7 @@ public class IntersectionBitmap extends Bitmap {
      * Getter that assumes that {@code startIndex <= index} and {@code index < endIndex}.
      */
     public boolean unsafeGet(int index) {
-        return (backing[(index - startIndex) >>> 6] & base[index >>> 6] & (1L << (63 - (index & 63)))) != 0;
+        return (unsafeGetBlock(index >>> 6) & (1L << (63 - (index & 63)))) != 0;
     }
 
     @Override
@@ -108,17 +118,29 @@ public class IntersectionBitmap extends Bitmap {
     // TODO: Make a better check for cardinality invalidation
     @Override
     public int cardinality() {
-        if (cardinality != -1  && lastChangeCounter == baseBitmap.changeCounter) {
+        checkChangeCounterAndCardinalityInvalidation();
+        if (cardinality != -1) {
             return cardinality;
         }
-
-        lastChangeCounter = baseBitmap.changeCounter;
 
         cardinality = 0;
         for (int i = 0 ; i <backing.length ; i++) {
             cardinality += Long.bitCount(backing[i] & base[i+startBlock]);
         }
         return cardinality;
+    }
+
+    protected void checkChangeCounterAndCardinalityInvalidation() {
+        if (lastBaseChangeCounter != baseBitmap.getChangeCounter()) {
+            lastBaseChangeCounter = baseBitmap.getChangeCounter();
+            invalidateCardinality();
+        }
+    }
+
+    @Override
+    public long getChangeCounter() {
+        checkChangeCounterAndCardinalityInvalidation();
+        return changeCounter;
     }
 
     // Imprecise cardinality counter. Counts at least up to limit (if possible)

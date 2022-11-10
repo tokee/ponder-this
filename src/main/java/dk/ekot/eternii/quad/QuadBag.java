@@ -21,6 +21,8 @@ import dk.ekot.misc.GrowableLongs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+
 /**
  * Holds Quads, packed as ints & longs as defined in {@link QBits}.
  *
@@ -28,6 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class QuadBag {
     private static final Logger log = LoggerFactory.getLogger(QuadBag.class);
+    private final PieceMap pieceMap;
 
     /**
      * Number of free Fields that needs 1 element from this QuadSet.
@@ -41,9 +44,11 @@ public class QuadBag {
 
     private GrowableInts qpieces;
     private GrowableLongs qinners;
+    private Bitmap snapshot = null;
     private Bitmap existing;
 
-    public QuadBag() {
+    public QuadBag(PieceMap pieceMap) {
+        this.pieceMap = pieceMap;
         qpieces = new GrowableInts();
         qinners = new GrowableLongs();
         existing = new GrowableBitmap(0);
@@ -106,14 +111,67 @@ public class QuadBag {
     }
 
     /**
+     * Take a snapshot of marked/unmarked quads.
+     * @see #rollback()
+     */
+    public void snapshot() {
+        if (snapshot == null || snapshot.size() < size) {
+            snapshot = new Bitmap(size);
+        }
+        existing.copy(snapshot);
+    }
+
+    /**
+     * Restore to last snapshot.
+     * @see #snapshot()
+     */
+    public void rollback() {
+        if (snapshot == null) {
+            throw new IllegalStateException("Snapshot has not been performed");
+        }
+        snapshot.copy(existing);
+    }
+
+    public void recalculateQPieces() {
+        recalculateQPieces(pieceMap.pieceIDByteMap, 0, calcBlock(qinners.size()));
+    }
+
+    public void recalculateQPiecesParallel() {
+        final int segmentBlocks = 512;
+        int endBlock = calcBlock(qinners.size());
+        int segments = endBlock/segmentBlocks;
+        if (segments*segmentBlocks < endBlock) {
+            ++segments;
+        }
+        int[] startBlocks = new int[segments+1];
+        for (int i = 0 ; i < segments ; i++) {
+            startBlocks[i] = i*segmentBlocks;
+        }
+        final int lastStartBlock = startBlocks[segments-1];
+        Arrays.stream(startBlocks).parallel().forEach(startBlock -> {
+            int localEndBlock = startBlock == lastStartBlock ? endBlock+1 : startBlock+segmentBlocks;
+            recalculateQPieces(pieceMap.pieceIDByteMap, startBlock, localEndBlock);
+        });
+    }
+
+    private int calcBlock(int pos) {
+        int blocks = pos >>> 6;
+        if (blocks << 6 < pos) {
+            return blocks+1;
+        }
+        return blocks;
+    }
+
+    /**
      * Mark all qpieces as live or dead.
      * @param pieceMask an array of length 256, each entry representing the piece with index as ID.
      *                 0 means the piece should be removed, 1 means it should be kept.
+     * @param startBlock first block (of 64 pieceID bits), inclusive.
+     * @param endBlock last block (of 64 pieceID bits), exclusive.
      */
-    public void recalculateQPieces(byte[] pieceMask) {
-        // TODO: Improve this by building 1 long at a time by setting rightmost and shifting left
+    private void recalculateQPieces(byte[] pieceMask, int startBlock, int endBlock) {
         long[] blocks = existing.getBacking();
-        for (int blockIndex = 0 ; blockIndex < blocks.length-1 ; blockIndex++) {
+        for (int blockIndex = startBlock ; blockIndex < endBlock ; blockIndex++) {
             long block = 0L;
             for (int i = 0 ; i < 64 ; i++) {
                 int id = (blockIndex << 6) + i;
@@ -126,10 +184,10 @@ public class QuadBag {
             }
             blocks[blockIndex] = block;
         }
-        // Last block might not be full
+/*        // Last block might not be full
         long block = 0;
         for (int i = 0 ; i < 64 ; i++) {
-            int id = ((blocks.length-1) << 6) + i;
+            int id = ((endBlock-1) << 6) + i;
             if (id < size) {
                 final int pieceIDs = qpieces.get(id);
                 block |= (pieceMask[pieceIDs & 0xFF] +
@@ -139,9 +197,9 @@ public class QuadBag {
             }
             block = block << 1;
         }
-        blocks[blocks.length-1] = block;
+        blocks[endBlock-1] = block;
 
-
+  */
 /*        for (int i = 0 ; i < size ; i++) {
             final int pieceIDs = qpieces.get(i);
             boolean live = pieceMask[pieceIDs & 0xFF] +

@@ -40,9 +40,9 @@ public class GrowableBitmap extends Bitmap {
     }
 
     private void expandIfNeeded(int index) {
-        if (index > size()) {
-            int newSize = Math.max(index, size() * 2);
-            long[] newBacking = new long[newSize];
+        if (index >= size()) {
+            int newSize = Math.max(index+1, size() * 2);
+            long[] newBacking = new long[(newSize >>> 6) +1];
             System.arraycopy(backing, 0, newBacking, 0, backing.length);
             backing = newBacking;
             size = newSize;

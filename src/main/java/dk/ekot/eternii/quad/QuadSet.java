@@ -14,62 +14,53 @@
  */
 package dk.ekot.eternii.quad;
 
-import dk.ekot.misc.Bitmap;
-import dk.ekot.misc.IntersectionBitmap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
-/**
- * Holds a shadowing bitmap representing quads.
- *
- * Quads are never removed but instead masked.
- */
-public class QuadSet {
-    private static final Logger log = LoggerFactory.getLogger(QuadSet.class);
+public interface QuadSet {
+    
+    AtomicInteger need = new AtomicInteger(0);
+    
+    /**
+     * @return IDs for the remaining Quads.
+     */
+    Stream<Integer> getQuadIDs();
 
     /**
-     * Number of free Fields that needs 1 element from this QuadSet.
+     * Getting the size might mean a recalculation of the mask.
+     * @return the number of remaining Quads.
      */
-    private int need = 0;
+    int available();
 
     /**
-     * Number of Quads in this set, live as well as dead.
+     * Add a Quad ID to the set.
+     * @param quadID the Quad ID to add th the set.
      */
-    private int allSize = 0;
-
-    private Bitmap subset;
-
-    public QuadSet(Bitmap base, int startBlock, int endBlock) {
-        subset = new IntersectionBitmap(base, startBlock, endBlock);
-        System.arraycopy(base.getBacking(), startBlock, subset.getBacking(), 0, subset.getBacking().length);
-    }
-
-    public boolean isNeedSatisfied() {
-        return need <= subset.cardinality();
-    }
-
-    public int thisOrNext(int index) {
-        return subset.thisOrNext(index);
-    }
+    void addQuadID(int quadID);
 
     /**
-     * @return number of free Fields that needs 1 element from this QuadSet.
+     * Increment need.
+     * @return new need.
      */
-    public int getNeed() {
-        return need;
+    default int incNeed() {
+        return need.incrementAndGet();
+    }
+    
+    /**
+     * Decrement need.
+     * @return new need.
+     */
+    default int decNeed() {
+        return need.decrementAndGet();
     }
 
     /**
-     * @param need number of free Fields that needs 1 element from this QuadSet
+     * needsSatisfied is not a guarantee as some quads might share pieces.
+     * Checking involves calling {@link #available()} which might mean a recalculation of the mask.
+     * @return true if needs are less than size.
      */
-    public void setNeed(int need) {
-        this.need = need;
+    default boolean needsSatisfied() {
+        return need.get() <= available();
     }
-
-    /**
-     * @return number of Quads in this set.
-     */
-    public int getAvailable() {
-        return subset.cardinality();
-    }
+    
 }
