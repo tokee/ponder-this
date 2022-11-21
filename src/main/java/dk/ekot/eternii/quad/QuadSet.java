@@ -14,91 +14,53 @@
  */
 package dk.ekot.eternii.quad;
 
-import dk.ekot.misc.Bitmap;
-import dk.ekot.misc.GrowableInts;
-import dk.ekot.misc.GrowableLongArray;
-import dk.ekot.misc.GrowableLongs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
-/**
- * Holds Quads, packed as longs as defined in {@link QBits}.
- */
-public class QuadSet {
-    private static final Logger log = LoggerFactory.getLogger(QuadSet.class);
+public interface QuadSet {
+    
+    AtomicInteger need = new AtomicInteger(0);
+    
+    /**
+     * @return IDs for the remaining Quads.
+     */
+    Stream<Integer> getQuadIDs();
 
     /**
-     * Number of free Fields that needs 1 element from this QuadSet.
+     * Getting the size might mean a recalculation of the mask.
+     * @return the number of remaining Quads.
      */
-    private int need = 0;
+    int available();
 
     /**
-     * Number of Quads in this set.
+     * Add a Quad ID to the set.
+     * @param quadID the Quad ID to add th the set.
      */
-    private int size = 0;
+    void addQuadID(int quadID);
 
-    private GrowableInts qpieces;
-    private GrowableLongs qinners;
-    private Bitmap existing;
-
-    public QuadSet(int maxQuads) {  // TODO: Make auto-extending Bitmap
-        qpieces = new GrowableInts(maxQuads);
-        qinners = new GrowableLongs(maxQuads);
-        existing = new Bitmap(maxQuads);
+    /**
+     * Increment need.
+     * @return new need.
+     */
+    default int incNeed() {
+        return need.incrementAndGet();
+    }
+    
+    /**
+     * Decrement need.
+     * @return new need.
+     */
+    default int decNeed() {
+        return need.decrementAndGet();
     }
 
     /**
-     * Trim the holding structures down to size, without any room for further quads.
+     * needsSatisfied is not a guarantee as some quads might share pieces.
+     * Checking involves calling {@link #available()} which might mean a recalculation of the mask.
+     * @return true if needs are less than size.
      */
-    public void trim() {
-        // TODO: Implement this
-        log.warn("trim not implemented yet!");
+    default boolean needsSatisfied() {
+        return need.get() <= available();
     }
-
-    /**
-     * Add a Quad. No checking for duplicates!
-     * @param qinner af defined in {@link QBits}.
-     */
-    public void addQuad(long qinner) {
-        qinners.add(qinner);
-    }
-
-    /**
-     * @return a deep copy of this QuadSet.
-     */
-    public QuadSet deepCopy() {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    /**
-     * Remove all Quads which contains the given piece.
-     * @param pieceID an ID from 0 to 255, inclusive.
-     * @return true if {@code need} <= size, else false.
-     */
-    public boolean removePiece(int pieceID) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    /**
-     * Remove all Quads which contains any of the given pieces.
-     * @param pieceIDs bitmap of size 256, where each set bit signals a pieceID.
-     * @return true if {@code need} <= size, else false.
-     */
-    public boolean removePieces(long[] pieceIDs) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    /**
-     * @return number of free Fields that needs 1 element from this QuadSet.
-     */
-    public int getNeed() {
-        return need;
-    }
-
-    /**
-     * @return number of Quads in this set.
-     */
-    public int getSize() {
-        return size;
-    }
+    
 }

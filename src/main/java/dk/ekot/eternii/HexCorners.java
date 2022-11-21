@@ -14,13 +14,11 @@
  */
 package dk.ekot.eternii;
 
-import com.google.common.collect.Comparators;
 import dk.ekot.misc.Bitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -34,7 +32,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -188,7 +185,7 @@ public class HexCorners {
         long[][] blocks = new long[blockCount][];
         Bitmap bitmap = new Bitmap(256+64); // All possible pieces (not NULL) + book keeping long
         for (int b = 0 ; b < blockCount ; b++) {
-            bitmap.clear();
+            bitmap.clearAll();
             for (int p = 0 ; p < blockSize ; p++) {
                 bitmap.set(EBits.getPiece((long) pieces[b * blockSize + p] << EBits.PIECE_EDGES_SHIFT));
             }

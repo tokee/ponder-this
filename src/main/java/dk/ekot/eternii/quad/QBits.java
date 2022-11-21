@@ -23,10 +23,7 @@ import static dk.ekot.eternii.EPieces.QNULL_P;
 /**
  * Handles quads (2x2 pieces)
  * Each edge is made up of 2 colors, each of those taking 5 bits (24 possible)
- * There are ~800K unique quads = 20 bits
- *
- * Not enough room in a single long, so we divide in inner (piece, rotation, piece edges colors)
- * and outer (defined edges, edge colors)
+ * There are ~800K unique quads
  *
  * qpieces (int)
  * {@code
@@ -39,12 +36,15 @@ import static dk.ekot.eternii.EPieces.QNULL_P;
  * qinner (long), notice that there are no rotation of quads as all rotations are stored as
  * individual quads:
  * {@code
- * <4 unused>
- * <20 qpieceID>
- * <2*5 color> piece north edge
- * <2*5 color> piece east edge
- * <2*5 color> piece south edge
- * <2*5 color> piece west edge
+ * <16 unused>
+ * <2 rotation> piece northwest rotation
+ * <2 rotation> piece northeast rotation
+ * <2 rotation> piece southeast rotation
+ * <2 rotation> piece southwest rotation
+ * <2*5 color> qpiece north edge
+ * <2*5 color> qpiece east edge
+ * <2*5 color> qpiece south edge
+ * <2*5 color> qpiece west edge
  * }
  * 
  * qouter (long):

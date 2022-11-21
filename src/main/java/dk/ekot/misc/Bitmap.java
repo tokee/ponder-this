@@ -11,11 +11,12 @@ import java.util.Map;
 public class Bitmap {
     public static final boolean DEFAULT_ENABLE_SHIFT_CACHE = false;
 
-    private final long[] backing;
-    private final int size;
+    long[] backing;
+    int size;
     private final Map<Integer, Bitmap> shiftCache;
 
-    private int cardinality = -1;
+    protected int cardinality = -1;
+    protected long changeCounter = 0;
 
     public Bitmap(int size) {
         this(size, DEFAULT_ENABLE_SHIFT_CACHE);
@@ -35,10 +36,18 @@ public class Bitmap {
     }
     public void set(int index) {
         backing[index >>> 6] |= 1L << (63-(index & 63));
-        invalidate();
+        invalidateCardinality();
+    }
+    public void clear(int index) {
+        backing[index >>> 6] &= ~(1L << (63-(index & 63)));
+        invalidateCardinality();
     }
     public boolean get(int index) {
         return (backing[index >>> 6] & (1L << (63-(index & 63)))) != 0;
+    }
+
+    public long getBlock(int blockIndex) {
+        return backing[blockIndex];
     }
 
     // Integer.MAX_VALUE means no more bits
@@ -85,6 +94,14 @@ public class Bitmap {
         return cardinality;
     }
 
+    /**
+     * Each time the bitset changes, this counter is incremented.
+     * @return number of times the bitset has changed.
+     */
+    public long getChangeCounter() {
+        return changeCounter;
+    }
+
     // Imprecise cardinality counter. Counts at least up to limit (if possible)
     @SuppressWarnings("ForLoopReplaceableByForEach")
     public int cardinalityStopAt(int limit) {
@@ -114,7 +131,7 @@ public class Bitmap {
         for (int i = 0 ; i < map1.backing.length ; i++) {
             reuse.backing[i] = map1.backing[i] | map2.backing[i];
         }
-        reuse.invalidate();
+        reuse.invalidateCardinality();
         return reuse;
     }
 
@@ -122,7 +139,7 @@ public class Bitmap {
         if (reuse == null) {
             reuse = new Bitmap(map1.size);
         }
-        reuse.invalidate();
+        reuse.invalidateCardinality();
         if (updateCardinality) {
             reuse.cardinality = 0;
             for (int i = 0; i < map1.backing.length; i++) {
@@ -143,7 +160,7 @@ public class Bitmap {
         for (int i = 0 ; i < map1.backing.length ; i++) {
             reuse.backing[i] = map1.backing[i] ^ map2.backing[i];
         }
-        reuse.invalidate();
+        reuse.invalidateCardinality();
         return reuse;
     }
 
@@ -151,7 +168,7 @@ public class Bitmap {
         for (int i = 0 ; i < backing.length ; i++) {
             backing[i] = ~backing[i];
         }
-        invalidate();
+        invalidateCardinality();
     }
 
     public void shift(int offset) {
@@ -167,7 +184,7 @@ public class Bitmap {
                 return;
             }
             System.arraycopy(backing, 0, destination.backing, 0, backing.length);
-            destination.invalidate();
+            destination.invalidateCardinality();
         }
         if (offset < 0) {
             offset = -offset;
@@ -219,11 +236,12 @@ public class Bitmap {
         }
     }
 
-    private void invalidate() {
+    public void invalidateCardinality() {
         cardinality = -1;
         if (shiftCache != null) {
             shiftCache.clear();
         }
+        changeCounter++;
     }
 
     public boolean equalBits(Bitmap other) {
@@ -271,9 +289,9 @@ public class Bitmap {
         return intersecting;
     }
 
-    public void clear() {
+    public void clearAll() {
         Arrays.fill(backing, 0L);
-        invalidate();
+        invalidateCardinality();
     }
 
     public long[] getBackingCopy() {

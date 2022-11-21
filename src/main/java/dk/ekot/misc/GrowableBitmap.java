@@ -1,10 +1,6 @@
 package dk.ekot.misc;
 
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Extension of Bitmap that automatically expands if {@link #set(int)} if called on a bit that
  * is outside of the bitmap.
@@ -27,9 +23,30 @@ public class GrowableBitmap extends Bitmap {
 
     @Override
     public void set(int index) {
-        if (index > size()) {
-            int newSize = Math.max(index, size()*2);
+        expandIfNeeded(index);
+        super.set(index);
+    }
+
+    @Override
+    public boolean get(int index) {
+        expandIfNeeded(index);
+        return super.get(index);
+    }
+
+    @Override
+    public void clear(int index) {
+        expandIfNeeded(index);
+        super.clear(index);
+    }
+
+    private void expandIfNeeded(int index) {
+        if (index >= size()) {
+            int newSize = Math.max(index+1, size() * 2);
+            long[] newBacking = new long[(newSize >>> 6) +1];
+            System.arraycopy(backing, 0, newBacking, 0, backing.length);
+            backing = newBacking;
+            size = newSize;
+            invalidateCardinality();
         }
-        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
