@@ -99,7 +99,7 @@ public class RomanNumerals {
         System.out.println(result);
     }
 
-    public static int romanToDecimal(String rom) {
+    public static int romanToDecimalOriginal(String rom) {
         char[] map = "?£ȳ????@??qЧ????????D?I".toCharArray();
         char[] s = (rom+"E").toCharArray();
         int dec = 0;
@@ -109,12 +109,42 @@ public class RomanNumerals {
         return dec;
     }
 
-    public static int romanToDecimalObfuscated(String rom) {
+    public static int romanToDecimalLong(String rom) {
         char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
         char[] s = (rom+"E").toCharArray();
         int dec = 0;
         for (int i = 0 ; i < s.length-1 ;) {
             dec += (map[s[i]-0x42] < map[s[i+1]-0x42] ? -1 : 1) * (map[s[i++]-0x42]-'?');
+        }
+        return dec;
+    }
+
+    public static int romanToDecimal(String rom) {
+        char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
+        char[] s = (rom+"E").toCharArray();
+        int $, dec = 0;
+        for (int i = 0 ; i < s.length-1 ;) {
+            dec += ($=map[s[i++]-0x42]) < map[s[i]-'B'] ? -$+'?' : $-'?';
+        }
+        return dec;
+    }
+
+    public static int romanToDecimalC(String rom) {
+        char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
+        char[] s = (rom+"E").toCharArray();
+        int $, dec = 0;
+        for (int i = 0 ; i < s.length-1 ;) {
+            dec += (($=map[s[i++]-0x42]) < map[s[i]-'B'] ? -1 : 1) * ($-'?');
+        }
+        return dec;
+    }
+
+    public static int romanToDecimalB(String rom) {
+        char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
+        char[] s = (rom+"E").toCharArray();
+        int dec = 0;
+        for (int i = 0 ; i < s.length-1 ;) {
+            dec += (map[s[i++]-0x42]-'?') * (map[s[i--]-66] > map[s[i++]-'B'] ? -1 : 1);
         }
         return dec;
     }
