@@ -39,7 +39,8 @@ public class RomanNumerals {
 //        generate4a();
 //        String in = args[0] + " ";
         for (String test: new String[]{
-                "CMMIV 1904", "M 1000", "IV 4", "XIV 14", "XVIII 18", "DCCCXC 890"
+                "CMMIV 1904", "M 1000", "IV 4", "XIV 14", "XVIII 18", "DCCCXC 890", "XXI 21", "MMC 2100", "CM 900",
+                "XXIV 24", "XL 40", "L 50", "XC 90"
         }) {
             String rom = test.split(" ")[0];
             int dec = Integer.parseInt(test.split(" ")[1]);
@@ -49,6 +50,11 @@ public class RomanNumerals {
                 System.out.println("OK: " + rom + ": " + romanToDecimal(rom));
             }
         }
+
+/*        String romans = "IVXLCDM";
+        for (char c: romans.toCharArray()) {
+            System.out.println(c + " -> (c-0x42) " + (c-0x42) + " -> (c%'B') " + (c%'B'));
+        }*/
 //        dumpRomans();
     }
 
@@ -121,10 +127,10 @@ public class RomanNumerals {
 
     public static int romanToDecimal(String rom) {
         char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
-        char[] s = (rom+"E").toCharArray();
+        char[] r = (rom+"E").toCharArray();
         int $, dec = 0;
-        for (int i = 0 ; i < s.length-1 ;) {
-            dec += ($=map[s[i++]-0x42]) < map[s[i]-'B'] ? -$+'?' : $-'?';
+        for (int i = 0 ; i < rom.length() ;) {
+            dec += ($=map[r[i++]-0x42]) < map[r[i]%'B'] ? '?'-$ : $-'?';
         }
         return dec;
     }
