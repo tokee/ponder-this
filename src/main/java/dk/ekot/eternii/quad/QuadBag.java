@@ -72,6 +72,10 @@ public class QuadBag {
         existing.set(size++);
     }
 
+    public int size() {
+        return size;
+    }
+
     /**
      * Remove all Quads which contains any of the marked pieces.
      * @param pieceMask an array of length 256, each entry representing the piece with index as ID.

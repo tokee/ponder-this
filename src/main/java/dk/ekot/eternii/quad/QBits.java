@@ -148,6 +148,17 @@ public class QBits {
 
     /* Basic setters & getters below */
 
+    public static int createPiece(int nw, int ne, int se, int sw) {
+        return (nw << 24) | (ne << 16) | (se << 8) | sw;
+    }
+    public static int createInner(int nwRot, int neRot, int seRot, int swRot,
+                                  int nwLeftCol, int nwTopCol,
+                                  int neTopCol, int neRightCol,
+                                  int seRightCol, int seBottomCol,
+                                  int swBottomCol, int seLeftCol) {
+        return 0; // TODO: Implement this
+    }
+
     public static long setPiece(long inner, long piece) {
         return ((piece << PIECE_SHIFT) & PIECE_MASK) | (inner & ~PIECE_MASK);
     }
