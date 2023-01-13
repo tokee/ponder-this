@@ -35,9 +35,14 @@ public class QuadCreator {
 
     public static QuadBag createQuads() {
         QuadBag qb = new QuadBag(new PieceMap());
-        createInners(qb);  //   912,330
+        //createInners(qb);  //   912,330
         //createEdges(qb);   //    69,531
         //createCorners(qb); //     1,291
+        //createClueNW(qb); //      5,414
+        //createClueNE(qb); //      4,847
+        //createClueSW(qb); //      4,945
+        //createClueSE(qb); //      5,049
+        createClueC(qb); //      4,633
         return qb;
     }
 
@@ -111,6 +116,139 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> piece > nw.get(),
 
                          epieces, quadBag);
+    }
+
+    public static void createClueNW(QuadBag quadBag) {
+        final EPieces epieces = EPieces.getEternii();
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
+        int[] clue = new int[1];
+        int[] clueR = new int[1];
+        epieces.processEterniiClues((x, y, p, r) -> {
+            if (x == 2 && y == 2) {
+                clue[0] = p;
+                clueR[0] = r;
+            }
+        });
+        int[] free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+        log.info("free={}", free.length);
+        // Do the hack with nw to ensure no quad-rotations
+        findPermutations(clue, clueR, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+
+                         epieces, quadBag);
+    }
+
+    public static void createClueNE(QuadBag quadBag) {
+        final EPieces epieces = EPieces.getEternii();
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
+        int[] clue = new int[1];
+        int[] clueR = new int[1];
+        epieces.processEterniiClues((x, y, p, r) -> {
+            if (x == 13 && y == 2) {
+                clue[0] = p;
+                clueR[0] = r;
+            }
+        });
+        int[] free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+        log.info("free={}", free.length);
+        // Do the hack with nw to ensure no quad-rotations
+        findPermutations(free, ROT_ALL, (piece, rot) -> true,
+                         clue, clueR, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+
+                         epieces, quadBag);
+    }
+
+    public static void createClueSW(QuadBag quadBag) {
+        final EPieces epieces = EPieces.getEternii();
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
+        int[] clue = new int[1];
+        int[] clueR = new int[1];
+        epieces.processEterniiClues((x, y, p, r) -> {
+            if (x == 2 && y == 13) {
+                clue[0] = p;
+                clueR[0] = r;
+            }
+        });
+        int[] free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+        log.info("free={}", free.length);
+        // Do the hack with nw to ensure no quad-rotations
+        findPermutations(
+                free, ROT_ALL, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+                clue, clueR, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+
+                epieces, quadBag);
+    }
+
+    public static void createClueSE(QuadBag quadBag) {
+        final EPieces epieces = EPieces.getEternii();
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
+        int[] clue = new int[1];
+        int[] clueR = new int[1];
+        epieces.processEterniiClues((x, y, p, r) -> {
+            if (x == 13 && y == 13) {
+                clue[0] = p;
+                clueR[0] = r;
+            }
+        });
+        int[] free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+        log.info("free={}", free.length);
+        // Do the hack with nw to ensure no quad-rotations
+        findPermutations(
+                free, ROT_ALL, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+                clue, clueR, (piece, rot) -> true,
+
+                epieces, quadBag);
+    }
+
+    public static void createClueC(QuadBag quadBag) {
+        final EPieces epieces = EPieces.getEternii();
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
+        int[] clue = new int[1];
+        int[] clueR = new int[1];
+        epieces.processEterniiClues((x, y, p, r) -> {
+            if (x == 7 && y == 8) {
+                clue[0] = p;
+                clueR[0] = r;
+            }
+        });
+        int[] free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+        log.info("free={}", free.length);
+        // Do the hack with nw to ensure no quad-rotations
+        findPermutations(
+                free, ROT_ALL, (piece, rot) -> true,
+                clue, clueR, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+
+                epieces, quadBag);
     }
 
     /*
