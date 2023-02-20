@@ -50,8 +50,8 @@ public class DomainStatJSON {
     public static void main(String[] args) {
         if (args.length == 0) {
             args = new String[] {
-                    "/home/te/projects/ponder-this/total_audio-result.csv",
-                    "total_css-result.csv"
+                    "/home/te/projects/cdx-summarize-warc-indexer/total_image-result.csv",
+                    "/home/te/projects/cdx-summarize-warc-indexer/total_json-result.csv"
             };
         }
         if (args.length == 0) {
@@ -115,12 +115,12 @@ public class DomainStatJSON {
             lastYear = mainEntry.year;
 
             String counts = sources.stream().
-                    map(DomainBag::peek).
+                    map(DomainBag::safePeek).
                     // "n_audio":0 if the year does not match, else
                             map(entry -> String.format(Locale.ROOT, "\"n_%s\":%d", entry.mime, entry.year.equals(mainEntry.year) ? entry.count : 0)).
                     collect(Collectors.joining(","));
             String bytes = sources.stream().
-                    map(DomainBag::peek).
+                    map(DomainBag::safePeek).
                     // "n_audio":0 if the year does not match, else
                             map(entry -> String.format(Locale.ROOT, "\"s_%s\":%d", entry.mime, entry.year.equals(mainEntry.year) ? entry.bytes : 0)).
                     collect(Collectors.joining(","));
@@ -147,6 +147,14 @@ public class DomainStatJSON {
                 thenComparingLong(Entry::getCount).
                 thenComparingLong(Entry::getBytes);
 
+        // Empty entry
+        public Entry(String mime) {
+            this.mime = mime;
+            domain = "";
+            year = "";
+            count = 0;
+            bytes = 0;
+        }
         public Entry(String mime, String csvEntry) {
             this.mime = mime;
             Matcher m = ENTRY_PATTERN.matcher(csvEntry);
@@ -199,6 +207,7 @@ public class DomainStatJSON {
         private final Iterator<String> lines;
         private final String mime; // Okay, not mime, but heavilyNormalisedFileType is a bit long
         private Entry top;
+        private final Entry EMPTY;
 
         public DomainBag(File source)  {
             try {
@@ -210,6 +219,7 @@ public class DomainStatJSON {
                             MIME_PATTERN.pattern() + "'");
                 }
                 mime = m.group(1);
+                EMPTY = new Entry(mime);
                 lines = Files.lines(source.toPath(), StandardCharsets.UTF_8).iterator();
             } catch (IOException e) {
                 throw new RuntimeException("Unable to read strings from '" + source + "'", e);
@@ -241,6 +251,18 @@ public class DomainStatJSON {
             return top;
         }
 
+        /**
+         * Reads the next element from the list and returns it without changing the list.
+         * If there are no more elements, {@link #EMPTY} is returned.
+         * @return the next element in the ordered list.
+         */
+        public Entry safePeek() {
+            if (isEmpty()) {
+                return EMPTY;
+            }
+            return top;
+        }
+
         public String getMime() {
             return mime;
         }
@@ -250,6 +272,13 @@ public class DomainStatJSON {
          */
         public boolean isEmpty() {
             return top == null;
+        }
+
+        /**
+         * @return true is there are at least one more element.
+         */
+        public boolean hasContent() {
+            return !isEmpty();
         }
 
         @Override
