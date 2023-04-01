@@ -90,10 +90,10 @@ public class Bloater {
              FileOutputStream fos = new FileOutputStream(output) ;
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
             int b;
-            while ((b = fis.read()) != -1) {
-                fos.write(r.nextInt() ^ b); // Data byte
+            while ((b = bis.read()) != -1) {
+                bos.write(r.nextInt() ^ b); // Data byte
                 for (int i = 1 ; i < factor ; i++) {
-                    fos.write(r.nextInt()); // Filler bytes
+                    bos.write(r.nextInt()); // Filler bytes
                 }
             }
         }
@@ -115,11 +115,11 @@ public class Bloater {
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
             int b;
-            while ((b = fis.read()) != -1) {
-                fos.write(r.nextInt() ^ b); // Data byte
+            while ((b = bis.read()) != -1) {
+                bos.write(r.nextInt() ^ b); // Data byte
                 long skipThis = factor-1;
                 while (skipThis > 0) {
-                    skipThis -= fis.skip(skipThis); // Skip filler bytes
+                    skipThis -= bis.skip(skipThis); // Skip filler bytes
                 }
                 // Need to keep the deterministic pseudo randoms aligned
                 for (int i = 1 ; i < factor ; i++) {
