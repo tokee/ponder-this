@@ -199,4 +199,29 @@ public class QBits {
         return form + bin;
     }
 
+    public static int getPieceNW(int qpiece) {
+        return qpiece >> 24;
+    }
+    public static int getPieceNE(int qpiece) {
+        return (qpiece >> 16) & 0b11111111;
+    }
+    public static int getPieceSE(int qpiece) {
+        return (qpiece >> 8) & 0b11111111;
+    }
+    public static int getPieceSW(int qpiece) {
+        return qpiece & 0b11111111;
+    }
+
+    public static int getRotNW(long qedges) {
+        return (int) ((qedges >> 46) & 0b11L);
+    }
+    public static int getRotNE(long qedges) {
+        return (int) ((qedges >> 44) & 0b11L);
+    }
+    public static int getRotSE(long qedges) {
+        return (int) ((qedges >> 42) & 0b11L);
+    }
+    public static int getRotSW(long qedges) {
+        return (int) ((qedges >> 40) & 0b11L);
+    }
 }

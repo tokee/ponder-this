@@ -241,7 +241,12 @@ public class QuadBag {
         }
         GrowableBitmap blankExisting = new GrowableBitmap(existing.size());
         return new QuadBag(pieceMap, qpieces, qedges, blankExisting);
+    }
 
-
+    public int getQPiece(int index) {
+        return qpieces.get(index);
+    }
+    public long getQEdges(int index) {
+        return qedges.get(index);
     }
 }

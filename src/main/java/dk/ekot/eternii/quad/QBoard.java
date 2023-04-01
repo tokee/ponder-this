@@ -14,6 +14,8 @@
  */
 package dk.ekot.eternii.quad;
 
+import dk.ekot.eternii.EBoard;
+import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +26,9 @@ import org.slf4j.LoggerFactory;
  */
 public class QBoard {
     private static final Logger log = LoggerFactory.getLogger(QBoard.class);
+
+    public final EPieces epieces;
+    public final EBoard eboard;
 
     private final int WIDTH = 8;
     private final int HEIGHT = 8;
@@ -36,5 +41,26 @@ public class QBoard {
     public QBoard() {
         BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceMap)).trim();
         BAG_CORNER_NE = BAG_CORNER_NW.rotClockwise();
+
+        epieces = EPieces.getEternii();
+        eboard = new EBoard(epieces, 16, 16);
+        
+    }
+
+    public EBoard getEboard() {
+        return eboard;
+    }
+
+    public void testMove() {
+        placePiece(BAG_CORNER_NW, 0, 1, 1);
+    }
+
+    private void placePiece(QuadBag bag, int index, int x, int y) {
+        int qpiece = bag.getQPiece(index);
+        long qedges = bag.getQEdges(index);
+        eboard.placeUntrackedPiece(x << 1, y << 1, QBits.getPieceNW(qpiece), QBits.getRotNW(qedges));
+        eboard.placeUntrackedPiece((x << 1)+1, y << 1, QBits.getPieceNE(qpiece), QBits.getRotNE(qedges));
+        eboard.placeUntrackedPiece(x << 1, (y << 1)+1, QBits.getPieceSE(qpiece), QBits.getRotSE(qedges));
+        eboard.placeUntrackedPiece((x << 1)+1, (y << 1)+1, QBits.getPieceSW(qpiece), QBits.getRotSW(qedges));
     }
 }
