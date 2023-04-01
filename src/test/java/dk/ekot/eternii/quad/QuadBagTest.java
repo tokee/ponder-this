@@ -23,7 +23,7 @@ public class QuadBagTest extends TestCase {
 
     public void testPerformance() {
         final int quads = 800000;
-        final int runs = 10;
+        final int runs = 100;
 
         final Random r = new Random(87);
         PieceMap pm = new PieceMap();

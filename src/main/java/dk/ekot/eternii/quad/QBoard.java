@@ -1,0 +1,40 @@
+/*
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+package dk.ekot.eternii.quad;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Represents a board of 8x8 Quads.
+ *
+ * The boards guarantees a consistent internal state.
+ */
+public class QBoard {
+    private static final Logger log = LoggerFactory.getLogger(QBoard.class);
+
+    private final int WIDTH = 8;
+    private final int HEIGHT = 8;
+
+    private final PieceMap pieceMap = new PieceMap(); // 1 = available for use, 0 = positioned on the board
+
+    private final QuadBag BAG_CORNER_NW;
+    private final QuadBag BAG_CORNER_NE;
+
+    public QBoard() {
+        BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceMap)).trim();
+        BAG_CORNER_NE = BAG_CORNER_NW.rotClockwise();
+    }
+}

@@ -43,32 +43,40 @@ public class QuadBag {
     private int size = 0;
 
     private GrowableInts qpieces;
-    private GrowableLongs qinners;
+    private GrowableLongs qedges;
     private Bitmap snapshot = null;
     private Bitmap existing;
 
     public QuadBag(PieceMap pieceMap) {
         this.pieceMap = pieceMap;
         qpieces = new GrowableInts();
-        qinners = new GrowableLongs();
+        qedges = new GrowableLongs();
         existing = new GrowableBitmap(0);
+    }
+
+    public QuadBag(PieceMap pieceMap, GrowableInts qpieces, GrowableLongs qedges, GrowableBitmap existing) {
+        this.pieceMap = pieceMap;
+        this.qpieces = qpieces;
+        this.qedges = qedges;
+        this.existing = existing;
     }
 
     /**
      * Trim the holding structures down to size, without any room for further quads.
      */
-    public void trim() {
+    public QuadBag trim() {
         // TODO: Implement this
         log.warn("trim not implemented yet!");
+        return this;
     }
 
     /**
      * Add a Quad. No checking for duplicates!
-     * @param qinner af defined in {@link QBits}.
+     * @param qedges as defined in {@link QBits}.
      */
-    public void addQuad(int qpiece, long qinner) {
+    public void addQuad(int qpiece, long qedges) {
         qpieces.add(qpiece);
-        qinners.add(qinner);
+        this.qedges.add(qedges);
         existing.set(size++);
     }
 
@@ -137,12 +145,12 @@ public class QuadBag {
     }
 
     public void recalculateQPieces() {
-        recalculateQPieces(pieceMap.pieceIDByteMap, 0, calcBlock(qinners.size()));
+        recalculateQPieces(pieceMap.pieceIDByteMap, 0, calcBlock(qedges.size()));
     }
 
     public void recalculateQPiecesParallel() {
         final int segmentBlocks = 512;
-        int endBlock = calcBlock(qinners.size());
+        int endBlock = calcBlock(qedges.size());
         int segments = endBlock/segmentBlocks;
         if (segments*segmentBlocks < endBlock) {
             ++segments;
@@ -180,6 +188,7 @@ public class QuadBag {
             for (int i = 0 ; i < 64 ; i++) {
                 int id = (blockIndex << 6) + i;
                 final int pieceIDs = qpieces.get(id);
+                // TODO: Sanity check this hack. Why should it sum to exactly 4?
                 block |= (pieceMask[pieceIDs & 0xFF] +
                           pieceMask[(pieceIDs >> 8) & 0xFF] +
                           pieceMask[(pieceIDs >> 16) & 0xFF] +
@@ -216,5 +225,23 @@ public class QuadBag {
                 existing.clear(i);
             }
         } */
+    }
+
+    /**
+     * Creates a new QuadBag from this by rotating all pieces 90 degrees clockwise.
+     */
+    public QuadBag rotClockwise() {
+        GrowableInts rotQpieces = qpieces.copy();
+        for (int i = 0 ; i < rotQpieces.size() ; i++) {
+            rotQpieces.rawInts()[i] = QBits.rotQPieceClockwise(rotQpieces.rawInts()[i]);
+        }
+        GrowableLongs rotQEdges = qedges.copy();
+        for (int i = 0 ; i < rotQEdges.size() ; i++) {
+            rotQEdges.rawLongs()[i] = QBits.rotQEdgesClockwise(rotQEdges.rawLongs()[i]);
+        }
+        GrowableBitmap blankExisting = new GrowableBitmap(existing.size());
+        return new QuadBag(pieceMap, qpieces, qedges, blankExisting);
+
+
     }
 }

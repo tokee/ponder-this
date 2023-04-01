@@ -297,6 +297,9 @@ public class EPieces {
         return type[piece];
     }
 
+    /**
+     * @return the color for the left edge of the piece at the given rotation.
+     */
     public int getLeft(int piece, int rotation) {
         switch (rotation) {
             case 0: return w[piece];
@@ -306,6 +309,10 @@ public class EPieces {
             default: throw new IllegalArgumentException("Invalid rotation " + rotation);
         }
     }
+
+    /**
+     * @return the color for the top edge of the piece at the given rotation.
+     */
     public int getTop(int piece, int rotation) {
         switch (rotation) {
             case 0: return n[piece];
@@ -315,6 +322,9 @@ public class EPieces {
             default: throw new IllegalArgumentException("Invalid rotation " + rotation);
         }
     }
+    /**
+     * @return the color for the right edge of the piece at the given rotation.
+     */
     public int getRight(int piece, int rotation) {
         switch (rotation) {
             case 0: return e[piece];
@@ -324,6 +334,9 @@ public class EPieces {
             default: throw new IllegalArgumentException("Invalid rotation " + rotation);
         }
     }
+    /**
+     * @return the color for the bottom edge of the piece at the given rotation.
+     */
     public int getBottom(int piece, int rotation) {
         switch (rotation) {
             case 0: return s[piece];

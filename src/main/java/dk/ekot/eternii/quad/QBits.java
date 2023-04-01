@@ -14,6 +14,7 @@
  */
 package dk.ekot.eternii.quad;
 
+import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,99 +23,75 @@ import static dk.ekot.eternii.EPieces.QNULL_P;
 
 /**
  * Handles quads (2x2 pieces)
- * Each edge is made up of 2 colors, each of those taking 5 bits (24 possible)
- * There are ~800K unique quads
+ * There are 256 pieces, each with 4 edges.
+ * Each qedge is made up of 2 colors from the piece edges, each of those taking 5 bits (24 possible)
+ * There are ~800K unique quads, ~4 times as many with rotations.
  *
- * qpieces (int)
+ * qpieces (int) are represented as compact as possible for quick iteration.
  * {@code
- * <8 pieceID> upper left
- * <8 pieceID> upper right
- * <8 pieceID> lower right
- * <8 pieceID> lower left
+ * <8 pieceID> piece NW
+ * <8 pieceID> piece NE
+ * <8 pieceID> piece SE
+ * <8 pieceID> piece SW
  * }
  *
- * qinner (long), notice that there are no rotation of quads as all rotations are stored as
- * individual quads:
+ * qedges (int),<br/>
+ * Colors are presented clockwise, viewed from the center of the quad.<br/>
+ * Colors does not follow pieces: col N 1 is the north color of piece NW, but col N 2 is the north color of piece NE.<br/>
+ * Notice that for two quad edges to align, the 2 colors on their edges must be compared using cross over.<br/>
+ * Notice that there are no rotation of quads as all rotations are stored as individual quads.<br/>
+ * General rotation: 0=north, 1=east, 2=south, 3=west.
  * {@code
  * <16 unused>
- * <2 rotation> piece northwest rotation
- * <2 rotation> piece northeast rotation
- * <2 rotation> piece southeast rotation
- * <2 rotation> piece southwest rotation
- * <2*5 color> qpiece north edge
- * <2*5 color> qpiece east edge
- * <2*5 color> qpiece south edge
- * <2*5 color> qpiece west edge
+ * <2 rotation> rot NW
+ * <2 rotation> rot NE
+ * <2 rotation> rot SE
+ * <2 rotation> rot SW
+ * <5 color> col N 1
+ * <5 color> col N 2
+ * <5 color> col E 1
+ * <5 color> col E 2
+ * <5 color> col S 1
+ * <5 color> col S 2
+ * <5 color> col W 1
+ * <5 color> col W 2
  * }
- * 
- * qouter (long):
- * {@code
- * <20 unused>
- * <4 edges> 0b1000=north, 0b0100=east, 0b0010=south, 0b0001=west
- * <2*5 color> outer north edge
- * <2*5 color> outer east edge
- * <2*5 color> outer south edge
- * <2*5 color> outer west edge
- * }
- *
  */
 public class QBits {
-    private static final Logger log = LoggerFactory.getLogger(QBits.class);
 
-    public static final int EDGE_SHIFT = 10;
-    public static final long EDGE_MASK = ~(-1L<<EDGE_SHIFT);
-    public static final long EDGE2_MASK = ~(-1L<<(2*EDGE_SHIFT));
-    public static final long EDGE3_MASK = ~(-1L<<(3*EDGE_SHIFT));
-    public static final long EDGE4_MASK = ~(-1L<<(4*EDGE_SHIFT));
+    public static final EPieces ETERNII = EPieces.getEternii();
 
-    public static final int PIECE_SHIFT = (4*EDGE_SHIFT)+2;
-    public static final long PIECE_MASK = (~(-1L<<20)) << PIECE_SHIFT;
+    public static final long PIECE_MASK = 0b11111111L; // 8 bit
 
-    public static final int ROTATION_SHIFT = (4*EDGE_SHIFT);
-    public static final long ROTATION_MASK = (~(-1L<<2)) << ROTATION_SHIFT;
+    public static final long PIECE_NW_SHIFT = 24;
+    public static final long PIECE_NW_MASK = PIECE_MASK << PIECE_NW_SHIFT;
+    public static final long PIECE_NE_SHIFT = 16;
+    public static final long PIECE_NE_MASK = PIECE_MASK << PIECE_NE_SHIFT;
+    public static final long PIECE_SE_SHIFT = 8;
+    public static final long PIECE_SE_MASK = PIECE_MASK << PIECE_SE_SHIFT;
+    public static final long PIECE_SW_SHIFT = 0;
+    public static final long PIECE_SW_MASK = PIECE_MASK << PIECE_SW_SHIFT;
 
-    // Outer edges
-    public static final int EDGES_DEFINED_SHIFT = EDGE_SHIFT*4;
-    public static final long EDGES_DEFINED_MASK = (~(-1L << 4)) << EDGES_DEFINED_SHIFT;
+    public static final long ROT_MASK = 0b11L; // 2 bit
 
-    public static final int NORTH_EDGE_SHIFT = EDGE_SHIFT*3;
-    public static final long NORTH_EDGE_MASK = EDGE_MASK << NORTH_EDGE_SHIFT;
-    public static final int EAST_EDGE_SHIFT =  EDGE_SHIFT*2;
-    public static final long EAST_EDGE_MASK =  EDGE_MASK  << EAST_EDGE_SHIFT;
-    public static final int SOUTH_EDGE_SHIFT = EDGE_SHIFT;
-    public static final long SOUTH_EDGE_MASK = EDGE_MASK << SOUTH_EDGE_SHIFT;
-    public static final int WEST_EDGE_SHIFT =  0;
-    public static final long WEST_EDGE_MASK =  EDGE_MASK;
+    public static final long ROT_NW_SHIFT = 46;
+    public static final long ROT_NW_MASK = ROT_MASK << ROT_NW_SHIFT;
+    public static final long ROT_NE_SHIFT = 44;
+    public static final long ROT_NE_MASK = ROT_MASK << ROT_NE_SHIFT;
+    public static final long ROT_SE_SHIFT = 42;
+    public static final long ROT_SE_MASK = ROT_MASK << ROT_SE_SHIFT;
+    public static final long ROT_SW_SHIFT = 40;
+    public static final long ROT_SW_MASK = ROT_MASK << ROT_SW_SHIFT;
 
-    public static final long BLANK_INNER;
-    public static final long BLANK_OUTER;
-
-    static {
-        long inner = setPiece(0L, QNULL_P);
-        inner = setRotation(inner, 0);
-        inner = setNorthEdge(inner, QNULL_E);
-        inner = setEastEdge(inner, QNULL_E);
-        inner = setSouthEdge(inner, QNULL_E);
-        inner = setWestEdge(inner, QNULL_E);
-        BLANK_INNER = inner;
-    }
-    static {
-        long state = 0L;
-        state = setDefinedEdges(state, 0b0000);
-        state = setNorthEdge(state, QNULL_E);
-        state = setEastEdge(state, QNULL_E);
-        state = setSouthEdge(state, QNULL_E);
-        state = setWestEdge(state, QNULL_E);
-        BLANK_OUTER = state;
-    }
+    public static final long COL_MASK = 0b11111L; // 5 bit
 
     /**
      * @return hash based on which outer edges are set.
      */
-    public static int getOuterHash(long state) {
+/*    public static int getOuterHash(int state) {
         return getHash(getDefinedEdges(state), state);
     }
-    public static int getHash(int defined, long edges) {
+    public static int getHash(int defined, int edges) {
         switch (defined) {
             case 0b0000: return 0;
 
@@ -125,151 +102,93 @@ public class QBits {
             case 0b0001: return getWestEdge(edges);
 
             // Real hash as max = 1,048,575
-            case 0b1100: return Long.hashCode((edges >> (2 * EDGE_SHIFT)) & EDGE2_MASK);
-            case 0b0110: return Long.hashCode((edges >> EDGE_SHIFT) & EDGE2_MASK);
-            case 0b0011: return Long.hashCode(edges & EDGE2_MASK);
-            case 0b1001: return Long.hashCode(((long) getWestEdge(edges) << EDGE_SHIFT) | getNorthEdge(edges));
+            case 0b1100: return int.hashCode((edges >> (2 * EDGE_SHIFT)) & EDGE2_MASK);
+            case 0b0110: return int.hashCode((edges >> EDGE_SHIFT) & EDGE2_MASK);
+            case 0b0011: return int.hashCode(edges & EDGE2_MASK);
+            case 0b1001: return int.hashCode(((int) getWestEdge(edges) << EDGE_SHIFT) | getNorthEdge(edges));
 
             // Not a real hash as max = 1,048,575 (2^20-1)
             case 0b1010: return (getNorthEdge(edges) << EDGE_SHIFT) | getSouthEdge(edges);
             case 0b0101: return (getEastEdge(edges) << EDGE_SHIFT) | getWestEdge(edges);
 
             // Real hash as max = 1,073,741,823 (2^30-1)
-            case 0b1110: return Long.hashCode((edges >> EDGE_SHIFT) & EDGE3_MASK);
-            case 0b0111: return Long.hashCode(edges & EDGE3_MASK);
-            case 0b1011: return Long.hashCode(((long) getSouthEdge(edges) << (2 * EDGE_SHIFT)) | ((long) getWestEdge(edges) << EDGE_SHIFT) | getNorthEdge(edges));
-            case 0b1101: return Long.hashCode(((long) getWestEdge(edges) << (2 * EDGE_SHIFT)) | ((long) getNorthEdge(edges) << EDGE_SHIFT) | getEastEdge(edges));
+            case 0b1110: return int.hashCode((edges >> EDGE_SHIFT) & EDGE3_MASK);
+            case 0b0111: return int.hashCode(edges & EDGE3_MASK);
+            case 0b1011: return int.hashCode(((int) getSouthEdge(edges) << (2 * EDGE_SHIFT)) | ((int) getWestEdge(edges) << EDGE_SHIFT) | getNorthEdge(edges));
+            case 0b1101: return int.hashCode(((int) getWestEdge(edges) << (2 * EDGE_SHIFT)) | ((int) getNorthEdge(edges) << EDGE_SHIFT) | getEastEdge(edges));
 
             // Real hash as max = 1,099,511,627,775 (2^40-1)
-            case 0b1111: return Long.hashCode(edges & EDGE4_MASK);
+            case 0b1111: return int.hashCode(edges & EDGE4_MASK);
             default: throw new IllegalArgumentException("The edges should never be above 0b1111 (15) but was " + edges);
         }
     }
+  */
 
-    /* Basic setters & getters below */
-
-    public static int createPiece(int nw, int ne, int se, int sw) {
-        return (nw << 24) | (ne << 16) | (se << 8) | sw;
+    public static int createQPiece(int nwP, int neP, int seP, int swP) {
+        return (nwP << 24) | (neP << 16) | (seP | 8) | swP;
     }
-    public static int createInner(int nwRot, int neRot, int seRot, int swRot,
-                                  int nwLeftCol, int nwTopCol,
-                                  int neTopCol, int neRightCol,
-                                  int seRightCol, int seBottomCol,
-                                  int swBottomCol, int seLeftCol) {
-        return 0; // TODO: Implement this
-    }
-
-    public static long setPiece(long inner, long piece) {
-        return ((piece << PIECE_SHIFT) & PIECE_MASK) | (inner & ~PIECE_MASK);
-    }
-    public static int getPiece(long inner) {
-        return (int) ((inner & PIECE_MASK) >> PIECE_SHIFT);
-    }
-    public static boolean hasPiece(long inner) {
-        return getPiece(inner) != QNULL_P;
+    public static long createQEdges(int nwRot, int neRot, int seRot, int swRot,
+                                    int nwP, int neP, int seP, int swP) {
+        return (((long)nwRot) << 46) | (((long)neRot) << 44) | (((long)seRot) << 42) | (((long)swRot) << 40) |
+               (((long)ETERNII.getTop(   nwP, nwRot)) << 35) |
+               (((long)ETERNII.getTop(   neP, neRot)) << 30) |
+               (((long)ETERNII.getRight( neP, neRot)) << 25) |
+               (((long)ETERNII.getRight( seP, seRot)) << 20) |
+               (((long)ETERNII.getBottom(seP, seRot)) << 15) |
+               (((long)ETERNII.getBottom(swP, swRot)) << 10) |
+               (((long)ETERNII.getLeft(  swP, swRot)) <<  5) |
+                ((long)ETERNII.getLeft(  nwP, nwRot));
     }
 
-    public static long setRotation(long inner, long rotation) {
-        return ((rotation << ROTATION_SHIFT) & ROTATION_MASK) | (inner & ~ROTATION_MASK);
-    }
-    public static int getRotation(long inner) {
-        return (int) ((inner & ROTATION_MASK) >> ROTATION_SHIFT);
-    }
-
-    public static long setNorthEdge(long state, long edge) {
-        return ((edge << NORTH_EDGE_SHIFT) & NORTH_EDGE_MASK) | (state & ~NORTH_EDGE_MASK);
-    }
-    public static int getNorthEdge(long state) {
-        return (int) ((state & NORTH_EDGE_MASK) >> NORTH_EDGE_SHIFT);
-    }
-    public static long setEastEdge(long state, long edge) {
-        return ((edge << EAST_EDGE_SHIFT) & EAST_EDGE_MASK) | (state & ~EAST_EDGE_MASK);
-    }
-    public static int getEastEdge(long state) {
-        return (int) ((state & EAST_EDGE_MASK) >> EAST_EDGE_SHIFT);
-    }
-    public static long setSouthEdge(long state, long edge) {
-        return ((edge << SOUTH_EDGE_SHIFT) & SOUTH_EDGE_MASK) | (state & ~SOUTH_EDGE_MASK);
-    }
-    public static int getSouthEdge(long state) {
-        return (int) ((state & SOUTH_EDGE_MASK) >> SOUTH_EDGE_SHIFT);
-    }
-    public static long setWestEdge(long state, long edge) {
-        return ((edge << WEST_EDGE_SHIFT) & WEST_EDGE_MASK) | (state & ~WEST_EDGE_MASK);
-    }
-    public static int getWestEdge(long state) {
-        return (int) ((state & WEST_EDGE_MASK) >> WEST_EDGE_SHIFT);
+    public static String toStringQPiece(int state) {
+        return toString(state, new int[]{8, 8, 8, 8});
     }
 
     /**
-     * @param edges all 4 piece edges (all are defined), where the input edges are positioned to the right.
+     * Rotate a qpiece clockwise.
      */
-    public static long setAllPieceEdges(long inner, long edges) {
-        return (edges & EDGE4_MASK) | (inner & ~EDGE4_MASK);
+    public static int rotQPieceClockwise(int qpiece) {
+        return  (qpiece >> 8) |         // piece NW + NE + SE
+               ((qpiece & 0xFF) << 24); // piece SW
     }
-    public static long getAllEdges(long state) {
-        return state & EDGE4_MASK;
+    public static int rotQPieceCounterClockwise(int qpiece) {
+        return  (qpiece << 8) |         // piece NW + SE + SW
+               ((qpiece >> 24) & 0xFF); // piece NW
     }
-    /**
-     * Also updates definedEdges bits.
-     * @param edges 4 outer edges (might be QNULL_E)
-     */
-    public static long setAllOuterEdges(long outer, long edges) {
-        outer = (edges & EDGE4_MASK) | (outer & ~EDGE4_MASK);
-        return setDefinedEdges(outer, deriveDefinedEdges(edges));
+    public static long rotQEdgesClockwise(long qedges) {
+        return
+               // Extract= ((qedges >> 46) & 0b11L)
+               // Rotate = (oldrot+1) & 0b11L
+               // Assign = newrot << 44
+                (((((qedges >> 46) & 0b11L)+1) & 0b11L) << 44) | // rot NW -> NE
+                (((((qedges >> 44) & 0b11L)+1) & 0b11L) << 42) | // rot NE -> SE
+                (((((qedges >> 42) & 0b11L)+1) & 0b11L) << 40) | // rot SE -> SW
+                (((((qedges >> 40) & 0b11L)+1) & 0b11L) << 46) | // rot SW -> NW
+                  (((qedges >> 10) & 0b11111_11111__11111_11111__11111_11111L)) | // col NW + NE + SE
+                   ((qedges & 0b11111_11111L) << 30); // col SW
+    }
+    public static long rotQEdgesCounterClockwise(long qedges) {
+        return
+               // Extract= ((qedges >> 46) & 0b11L)
+               // Rotate = (oldrot+1) & 0b11L
+               // Assign = newrot << 44
+                (((((qedges >> 44) & 0b11L)+1) & 0b11L) << 46) | // rot NE -> NW
+                (((((qedges >> 42) & 0b11L)+1) & 0b11L) << 44) | // rot SE -> NE
+                (((((qedges >> 40) & 0b11L)+1) & 0b11L) << 42) | // rot SW -> SW
+                (((((qedges >> 46) & 0b11L)+1) & 0b11L) << 40) | // rot NW -> SW
+                  (((qedges << 10) & 0b11111_11111__11111_11111__11111_11111_00000_00000L)) | // col NE + SE + SW
+                   ((qedges >> 30) & 0b11111_11111L); // col NW
     }
 
-    /**
-     * Outer edges that are set.
-     */
-    public static long setDefinedEdges(long outer, long definedEdges) {
-        return ((definedEdges << EDGES_DEFINED_SHIFT) & EDGES_DEFINED_MASK) | (outer & ~EDGES_DEFINED_MASK);
+    private static String toString(int state, int[] split) {
+        return toString(state, 32, split);
     }
-    public static int getDefinedEdges(long outer) {
-        return (int) ((outer & EDGES_DEFINED_MASK) >> EDGES_DEFINED_SHIFT);
-    }
-    public static int countDefinedEdges(long outer) {
-        return Long.bitCount(outer & EDGES_DEFINED_MASK);
-    }
-    public static long updateDefinedEdges(long outer) {
-        return setDefinedEdges(outer, deriveDefinedEdges(outer));
-    }
-    /**
-     * @return bitmap of set edges: North, East, South, Vest
-     */
-    public static int deriveDefinedEdges(long edges) {
-        return (getNorthEdge(edges) != QNULL_E  ? 0b1000 : 0) |
-               (getEastEdge(edges)  != QNULL_E  ? 0b0100 : 0) |
-               (getSouthEdge(edges) != QNULL_E  ? 0b0010 : 0) |
-               (getWestEdge(edges)  != QNULL_E  ? 0b0001 : 0);
-    }
-
-    /**
-     * Shift the {@code 4*<2*5 bits>} edges one edge to the right, moving the rightmost edge in front.
-     * All other bits are kept in place.
-     * @param edges
-     * @return
-     */
-    public static long shiftEdgesRight(long edges) {
-        long onlyEdges = edges & EDGE4_MASK;
-        long nonEdges = edges & ~EDGE4_MASK;
-
-        long shifted = onlyEdges >> EDGE_SHIFT;
-        long rightmost = (onlyEdges & EDGE_MASK) << (3*EDGE_SHIFT);
-        long finalEdges = shifted | rightmost;
-        return nonEdges | finalEdges;
-    }
-
-    public static String toStringInner(long state) {
-        return toString(state, new int[]{2, 20, 2, 10, 10, 10, 10});
-    }
-    public static String toStringouter(long state) {
-        return toString(state, new int[]{20, 4, 10, 10, 10, 10});
-    }
-
     private static String toString(long state, int[] split) {
+        return toString(state, 64, split);
+    }
+    private static String toString(long state, int significantBits, int[] split) {
         String bin = Long.toBinaryString(state);
-        while (bin.length() < 64) {
+        while (bin.length() < significantBits) {
             bin = "0" + bin;
         }
         String form = "";

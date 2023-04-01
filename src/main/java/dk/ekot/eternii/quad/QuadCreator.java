@@ -18,7 +18,6 @@ import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
@@ -48,7 +47,7 @@ public class QuadCreator {
 
     public static final int[] ROT_ALL = new int[]{0, 1, 2, 3};
 
-    public static void createCorners(QuadBag quadBag) {
+    public static QuadBag createCorner(QuadBag quadBag) {
         final EPieces epieces = EPieces.getEternii();
         Set<Integer> bag = epieces.getBag();
         epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
@@ -76,6 +75,7 @@ public class QuadCreator {
                          edge, ROT_ALL, (piece, rot) -> epieces.getLeft(piece, rot) == EPieces.EDGE_EDGE,
 
                          epieces, quadBag);
+        return quadBag;
     }
 
     public static void createEdges(QuadBag quadBag) {
@@ -310,10 +310,9 @@ public class QuadCreator {
 //                                                                           ", perm=" + (nwi+1)*(nei+1)*(sei+1)*(swi+1));
                                         // All match!
                                         quadBag.addQuad(
-                                                QBits.createPiece(nw, ne, se, sw),
-                                                // TODO: Provide colors
-                                                QBits.createInner(0, ner, ser, swr,
-                                                                  0, 0, 0, 0, 0, 0, 0, 0));
+                                                QBits.createQPiece(nw, ne, se, sw),
+                                                QBits.createQEdges(nwr, ner, ser, swr,
+                                                                   nw, ne, se, sw));
                                     }
                                 }
                             }

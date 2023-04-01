@@ -14,9 +14,6 @@
  */
 package dk.ekot.misc;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  *
  */
@@ -52,9 +49,21 @@ public class GrowableInts {
     /**
      * @return truncated version.
      */
-    public int[] getInts() {
+    public int[] copyInts() {
         int[] result = new int[pos];
         System.arraycopy(ints, 0, result, 0, pos);
         return result;
+    }
+    public int[] rawInts() {
+        return ints;
+    }
+
+    /**
+     * @return a deep copy of this GrowableInts with the internal structure trimmed down to {@link #size()}.
+     */
+    public GrowableInts copy() {
+        GrowableInts copy = new GrowableInts(pos);
+        System.arraycopy(ints, 0, copy.ints, 0, pos);
+        return copy;
     }
 }

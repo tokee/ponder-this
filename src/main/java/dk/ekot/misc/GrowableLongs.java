@@ -49,9 +49,22 @@ public class GrowableLongs {
     /**
      * @return truncated version.
      */
-    public int[] getLongs() {
-        int[] result = new int[pos];
+    public long[] copyLongs() {
+        long[] result = new long[pos];
         System.arraycopy(longs, 0, result, 0, pos);
         return result;
+    }
+
+    public long[] rawLongs() {
+        return longs;
+    }
+
+    /**
+     * @return a deep copy of this Growablelongs with the internal structure trimmed down to {@link #size()}.
+     */
+    public GrowableLongs copy() {
+        GrowableLongs copy = new GrowableLongs(pos);
+        System.arraycopy(longs, 0, copy.longs, 0, pos);
+        return copy;
     }
 }
