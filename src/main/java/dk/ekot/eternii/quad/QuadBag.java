@@ -244,7 +244,7 @@ public class QuadBag {
             rotQEdges.rawLongs()[i] = QBits.rotQEdgesClockwise(rotQEdges.rawLongs()[i]);
         }
         GrowableBitmap blankExisting = new GrowableBitmap(existing.size());
-        return new QuadBag(pieceMap, qpieces, qedges, blankExisting);
+        return new QuadBag(pieceMap, rotQpieces, rotQEdges, blankExisting);
     }
 
     public int getQPiece(int index) {

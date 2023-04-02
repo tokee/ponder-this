@@ -79,7 +79,7 @@ public class QuadCreator {
         return quadBag;
     }
 
-    public static void createEdges(QuadBag quadBag) {
+    public static QuadBag createEdges(QuadBag quadBag) {
         final EPieces epieces = EPieces.getEternii();
         Set<Integer> bag = epieces.getBag();
         epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
@@ -98,6 +98,7 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
+        return quadBag;
     }
 
     public static void createInners(QuadBag quadBag) {

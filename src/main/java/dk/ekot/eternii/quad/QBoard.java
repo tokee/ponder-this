@@ -37,10 +37,25 @@ public class QBoard {
 
     private final QuadBag BAG_CORNER_NW;
     private final QuadBag BAG_CORNER_NE;
+    private final QuadBag BAG_CORNER_SE;
+    private final QuadBag BAG_CORNER_SW;
+
+    private final QuadBag BAG_BORDER_N;
+    private final QuadBag BAG_BORDER_E;
+    private final QuadBag BAG_BORDER_S;
+    private final QuadBag BAG_BORDER_W;
 
     public QBoard() {
+        // TODO: Share piece masker bitmap and processing between corners (and edges)
         BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceMap)).trim();
         BAG_CORNER_NE = BAG_CORNER_NW.rotClockwise();
+        BAG_CORNER_SE = BAG_CORNER_NE.rotClockwise();
+        BAG_CORNER_SW = BAG_CORNER_SE.rotClockwise();
+
+        BAG_BORDER_N = QuadCreator.createEdges(new QuadBag(pieceMap)).trim();
+        BAG_BORDER_E = BAG_BORDER_N.rotClockwise();
+        BAG_BORDER_S = BAG_BORDER_E.rotClockwise();
+        BAG_BORDER_W = BAG_BORDER_S.rotClockwise();
 
         epieces = EPieces.getEternii();
         eboard = new EBoard(epieces, 16, 16);
@@ -53,14 +68,18 @@ public class QBoard {
 
     public void testMove() {
         placePiece(BAG_CORNER_NW, 0, 0, 0);
-        placePiece(BAG_CORNER_NW, 1, 2, 0);
-        placePiece(BAG_CORNER_NW, 2, 4, 0);
-        placePiece(BAG_CORNER_NW, 3, 6, 0);
+        placePiece(BAG_CORNER_NE, 1, 7, 0);
+        placePiece(BAG_CORNER_SE, 2, 7, 7);
+        placePiece(BAG_CORNER_SW, 3, 0, 7);
 
-        placePiece(BAG_CORNER_NW, 4, 1, 1);
-        placePiece(BAG_CORNER_NW, 5, 3, 1);
-        placePiece(BAG_CORNER_NW, 6, 5, 1);
-        placePiece(BAG_CORNER_NW, 7, 7, 1);
+        placePiece(BAG_BORDER_N, 0, 3, 0);
+        placePiece(BAG_BORDER_N, 1, 5, 0);
+        placePiece(BAG_BORDER_E, 3, 7, 3);
+        placePiece(BAG_BORDER_E, 4, 7, 5);
+        placePiece(BAG_BORDER_S, 5, 5, 7);
+        placePiece(BAG_BORDER_S, 6, 3, 7);
+        placePiece(BAG_BORDER_W, 7, 0, 5);
+        placePiece(BAG_BORDER_W, 8, 0, 3);
     }
 
     private void placePiece(QuadBag bag, int index, int x, int y) {
