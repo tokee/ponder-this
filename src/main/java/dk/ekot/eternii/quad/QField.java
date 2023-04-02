@@ -15,14 +15,24 @@
 package dk.ekot.eternii.quad;
 
 /**
- * A field on a QBoard.
+ * A field on a QBoard. It is static and always uses the same Quadbag.
  */
 class QField {
+    private final QuadBag quadBag;
+    private final int x;
+    private final int y;
+
     private boolean free = true;
     private QuadSet set = null;
     // If free == false below
     private int qpiece = 0;
     private long qedges = 0;
+
+    public QField(QuadBag quadBag, int x, int y) {
+        this.quadBag = quadBag;
+        this.x = x;
+        this.y = y;
+    }
 
     /**
      * Setting Quad automatically
@@ -67,5 +77,9 @@ class QField {
     public boolean isOK() {
         // TODO: Ensure that needsSatisfied is auto-checking for changes
         return !free || (set != null && set.needsSatisfied());
+    }
+
+    public QuadBag getBag() {
+        return quadBag;
     }
 }

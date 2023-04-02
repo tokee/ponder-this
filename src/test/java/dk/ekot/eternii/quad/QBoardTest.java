@@ -23,7 +23,7 @@ public class QBoardTest extends TestCase {
         QBoard board = new QBoard();
         BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
 
-        board.testMove();
+        board.testMoveAll();
 
         try {
             Thread.sleep(1000000000L);
