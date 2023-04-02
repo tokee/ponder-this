@@ -33,11 +33,6 @@ public class QuadBag {
     private final PieceMap pieceMap;
 
     /**
-     * Number of free Fields that needs 1 element from this QuadSet.
-     */
-    private int need = 0;
-
-    /**
      * Number of Quads in this set.
      */
     private int size = 0;
@@ -66,7 +61,7 @@ public class QuadBag {
      */
     public QuadBag trim() {
         // TODO: Implement this
-        log.warn("trim not implemented yet!");
+//        log.warn("trim not implemented yet!");
         return this;
     }
 

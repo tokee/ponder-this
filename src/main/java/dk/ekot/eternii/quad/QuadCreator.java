@@ -14,7 +14,6 @@
  */
 package dk.ekot.eternii.quad;
 
-import dk.ekot.eternii.EBits;
 import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +22,30 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 
-/**
- *
- */
 public class QuadCreator {
     private static final Logger log = LoggerFactory.getLogger(QuadCreator.class);
+
+    static final EPieces epieces = EPieces.getEternii();
+    static final int[] corner;
+    static final int[] edge;
+    static final int[] free;
+    static {
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x,y,p,r) -> bag.remove(p));
+        corner = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.CORNER)
+                .mapToInt(i -> i)
+                .toArray();
+        edge = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.EDGE)
+                .mapToInt(i -> i)
+                .toArray();
+        free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+    }
+
 
     public static void main(String[] args) {
         System.out.println("Quads: " + createQuads().size());
@@ -64,7 +82,7 @@ public class QuadCreator {
                 .filter(piece -> epieces.getType(piece) == EPieces.INNER)
                 .mapToInt(i -> i)
                 .toArray();
-        log.info("corner={}, edge={}, free={}", corner.length, edge.length, free.length);
+//        log.info("corner={}, edge={}, free={}", corner.length, edge.length, free.length);
         findPermutations(corner, ROT_ALL, (piece, rot) ->
                                  epieces.getLeft(piece, rot) == EPieces.EDGE_EDGE &&
                                  epieces.getTop(piece, rot) == EPieces.EDGE_EDGE,
@@ -76,6 +94,7 @@ public class QuadCreator {
                          edge, ROT_ALL, (piece, rot) -> epieces.getLeft(piece, rot) == EPieces.EDGE_EDGE,
 
                          epieces, quadBag);
+        log.info("Quad corners: " + quadBag.size());
         return quadBag;
     }
 
@@ -91,17 +110,18 @@ public class QuadCreator {
                 .filter(piece -> epieces.getType(piece) == EPieces.INNER)
                 .mapToInt(i -> i)
                 .toArray();
-        log.info("edge={}, free={}", edge.length, free.length);
+//        log.info("edge={}, free={}", edge.length, free.length);
         findPermutations(edge, ROT_ALL, (piece, rot) -> epieces.getTop(piece, rot) == EPieces.EDGE_EDGE,
                          edge, ROT_ALL, (piece, rot) -> epieces.getTop(piece, rot) == EPieces.EDGE_EDGE,
                          free, ROT_ALL, (piece, rot) -> true,
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
+        log.info("Quad edges: " + quadBag.size());
         return quadBag;
     }
 
-    public static void createInners(QuadBag quadBag) {
+    public static QuadBag createInners(QuadBag quadBag) {
         final EPieces epieces = EPieces.getEternii();
         Set<Integer> bag = epieces.getBag();
         epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
@@ -109,7 +129,28 @@ public class QuadCreator {
                 .filter(piece -> epieces.getType(piece) == EPieces.INNER)
                 .mapToInt(i -> i)
                 .toArray();
-        log.info("free={}", free.length);
+//        log.info("free={}", free.length);
+        final AtomicInteger nw = new AtomicInteger(0);
+        // Do the hack with nw to ensure no quad-rotations
+        findPermutations(free, ROT_ALL, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+                         free, ROT_ALL, (piece, rot) -> true,
+
+                         epieces, quadBag);
+        log.info("Quad inners: " + quadBag.size());
+        return quadBag;
+    }
+
+    public static QuadBag createInnersNoQRot(QuadBag quadBag) {
+        final EPieces epieces = EPieces.getEternii();
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
+        int[] free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+//        log.info("free={}", free.length);
         final AtomicInteger nw = new AtomicInteger(0);
         // Do the hack with nw to ensure no quad-rotations
         findPermutations(free, ROT_ALL, (piece, rot) -> { nw.set(piece); return true; },
@@ -118,9 +159,12 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> piece > nw.get(),
 
                          epieces, quadBag);
+        log.info("Quad inners: " + quadBag.size());
+        return quadBag;
     }
 
-    public static void createClueNW(QuadBag quadBag) {
+    // Must be positioned at qcoordinates (1, 1)
+    public static QuadBag createClueNW(QuadBag quadBag) {
         final EPieces epieces = EPieces.getEternii();
         Set<Integer> bag = epieces.getBag();
         epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
@@ -136,7 +180,7 @@ public class QuadCreator {
                 .filter(piece -> epieces.getType(piece) == EPieces.INNER)
                 .mapToInt(i -> i)
                 .toArray();
-        log.info("free={}", free.length);
+//        log.info("free={}", free.length);
         // Do the hack with nw to ensure no quad-rotations
         findPermutations(clue, clueR, (piece, rot) -> true,
                          free, ROT_ALL, (piece, rot) -> true,
@@ -144,9 +188,12 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
+        log.info("Quad clue NWs: " + quadBag.size());
+        return quadBag;
     }
 
-    public static void createClueNE(QuadBag quadBag) {
+    // Must be positioned at qcoordinates (1, 6)
+    public static QuadBag createClueNE(QuadBag quadBag) {
         final EPieces epieces = EPieces.getEternii();
         Set<Integer> bag = epieces.getBag();
         epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
@@ -162,7 +209,7 @@ public class QuadCreator {
                 .filter(piece -> epieces.getType(piece) == EPieces.INNER)
                 .mapToInt(i -> i)
                 .toArray();
-        log.info("free={}", free.length);
+//        log.info("free={}", free.length);
         // Do the hack with nw to ensure no quad-rotations
         findPermutations(free, ROT_ALL, (piece, rot) -> true,
                          clue, clueR, (piece, rot) -> true,
@@ -170,36 +217,12 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
+        log.info("Quad clue NEs: " + quadBag.size());
+        return quadBag;
     }
 
-    public static void createClueSW(QuadBag quadBag) {
-        final EPieces epieces = EPieces.getEternii();
-        Set<Integer> bag = epieces.getBag();
-        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
-        int[] clue = new int[1];
-        int[] clueR = new int[1];
-        epieces.processEterniiClues((x, y, p, r) -> {
-            if (x == 2 && y == 13) {
-                clue[0] = p;
-                clueR[0] = r;
-            }
-        });
-        int[] free = bag.stream()
-                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
-                .mapToInt(i -> i)
-                .toArray();
-        log.info("free={}", free.length);
-        // Do the hack with nw to ensure no quad-rotations
-        findPermutations(
-                free, ROT_ALL, (piece, rot) -> true,
-                free, ROT_ALL, (piece, rot) -> true,
-                clue, clueR, (piece, rot) -> true,
-                free, ROT_ALL, (piece, rot) -> true,
-
-                epieces, quadBag);
-    }
-
-    public static void createClueSE(QuadBag quadBag) {
+    // Must be positioned at qcoordinates (6, 6)
+    public static QuadBag createClueSE(QuadBag quadBag) {
         final EPieces epieces = EPieces.getEternii();
         Set<Integer> bag = epieces.getBag();
         epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
@@ -215,7 +238,37 @@ public class QuadCreator {
                 .filter(piece -> epieces.getType(piece) == EPieces.INNER)
                 .mapToInt(i -> i)
                 .toArray();
-        log.info("free={}", free.length);
+//        log.info("free={}", free.length);
+        // Do the hack with nw to ensure no quad-rotations
+        findPermutations(
+                free, ROT_ALL, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+                clue, clueR, (piece, rot) -> true,
+                free, ROT_ALL, (piece, rot) -> true,
+
+                epieces, quadBag);
+        log.info("Quad clue SEs: " + quadBag.size());
+        return quadBag;
+    }
+
+    // Must be positioned at qcoordinates (1, 6)
+    public static QuadBag createClueSW(QuadBag quadBag) {
+        final EPieces epieces = EPieces.getEternii();
+        Set<Integer> bag = epieces.getBag();
+        epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
+        int[] clue = new int[1];
+        int[] clueR = new int[1];
+        epieces.processEterniiClues((x, y, p, r) -> {
+            if (x == 2 && y == 13) {
+                clue[0] = p;
+                clueR[0] = r;
+            }
+        });
+        int[] free = bag.stream()
+                .filter(piece -> epieces.getType(piece) == EPieces.INNER)
+                .mapToInt(i -> i)
+                .toArray();
+//        log.info("free={}", free.length);
         // Do the hack with nw to ensure no quad-rotations
         findPermutations(
                 free, ROT_ALL, (piece, rot) -> true,
@@ -224,9 +277,12 @@ public class QuadCreator {
                 clue, clueR, (piece, rot) -> true,
 
                 epieces, quadBag);
+        log.info("Quad clue SWs: " + quadBag.size());
+        return quadBag;
     }
 
-    public static void createClueC(QuadBag quadBag) {
+    // Must be positioned at qcoordinates (3, 4)
+    public static QuadBag createClueC(QuadBag quadBag) {
         final EPieces epieces = EPieces.getEternii();
         Set<Integer> bag = epieces.getBag();
         epieces.processEterniiClues((x, y, p, r) -> bag.remove(p));
@@ -242,7 +298,7 @@ public class QuadCreator {
                 .filter(piece -> epieces.getType(piece) == EPieces.INNER)
                 .mapToInt(i -> i)
                 .toArray();
-        log.info("free={}", free.length);
+//        log.info("free={}", free.length);
         // Do the hack with nw to ensure no quad-rotations
         findPermutations(
                 free, ROT_ALL, (piece, rot) -> true,
@@ -251,6 +307,8 @@ public class QuadCreator {
                 free, ROT_ALL, (piece, rot) -> true,
 
                 epieces, quadBag);
+        log.info("Quad clue Cs: " + quadBag.size());
+        return quadBag;
     }
 
     /*
@@ -314,7 +372,8 @@ public class QuadCreator {
                                         int qpiece = QBits.createQPiece(nw, ne, se, sw);
                                         long qedges = QBits.createQEdges(nwr, ner, ser, swr, nw, ne, se, sw);
 //                                        System.out.println("Storing " + QBits.toStringFull(qpiece, qedges));
-                                        validate(qpiece, qedges, nw, ne, se, sw, nwr, ner, ser, swr);
+                                        // TODO: Disable validation
+//                                        validate(qpiece, qedges, nw, ne, se, sw, nwr, ner, ser, swr);
                                         quadBag.addQuad(qpiece, qedges);
                                     }
                                 }

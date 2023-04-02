@@ -102,8 +102,8 @@ public class QBits {
             case 0b0001: return getWestEdge(edges);
 
             // Real hash as max = 1,048,575
-            case 0b1100: return int.hashCode((edges >> (2 * EDGE_SHIFT)) & EDGE2_MASK);
-            case 0b0110: return int.hashCode((edges >> EDGE_SHIFT) & EDGE2_MASK);
+            case 0b1100: return int.hashCode((edges >>> (2 * EDGE_SHIFT)) & EDGE2_MASK);
+            case 0b0110: return int.hashCode((edges >>> EDGE_SHIFT) & EDGE2_MASK);
             case 0b0011: return int.hashCode(edges & EDGE2_MASK);
             case 0b1001: return int.hashCode(((int) getWestEdge(edges) << EDGE_SHIFT) | getNorthEdge(edges));
 
@@ -112,7 +112,7 @@ public class QBits {
             case 0b0101: return (getEastEdge(edges) << EDGE_SHIFT) | getWestEdge(edges);
 
             // Real hash as max = 1,073,741,823 (2^30-1)
-            case 0b1110: return int.hashCode((edges >> EDGE_SHIFT) & EDGE3_MASK);
+            case 0b1110: return int.hashCode((edges >>> EDGE_SHIFT) & EDGE3_MASK);
             case 0b0111: return int.hashCode(edges & EDGE3_MASK);
             case 0b1011: return int.hashCode(((int) getSouthEdge(edges) << (2 * EDGE_SHIFT)) | ((int) getWestEdge(edges) << EDGE_SHIFT) | getNorthEdge(edges));
             case 0b1101: return int.hashCode(((int) getWestEdge(edges) << (2 * EDGE_SHIFT)) | ((int) getNorthEdge(edges) << EDGE_SHIFT) | getEastEdge(edges));
@@ -144,62 +144,62 @@ public class QBits {
      * Rotate a qpiece clockwise.
      */
     public static int rotQPieceClockwise(int qpiece) {
-        return  (qpiece >> 8) |         // piece NW + NE + SE
+        return  (qpiece >>> 8) |         // piece NW + NE + SE
                ((qpiece & 0xFF) << 24); // piece SW
     }
     public static int rotQPieceCounterClockwise(int qpiece) {
         return  (qpiece << 8) |         // piece NW + SE + SW
-               ((qpiece >> 24) & 0xFF); // piece NW
+               ((qpiece >>> 24) & 0xFF); // piece NW
     }
     public static long rotQEdgesClockwise(long qedges) {
         return
-               // Extract= ((qedges >> 46) & 0b11L)
+               // Extract= ((qedges >>> 46) & 0b11L)
                // Rotate = (oldrot+1) & 0b11L
                // Assign = newrot << 44
-                (((((qedges >> 46) & 0b11L)+1) & 0b11L) << 44) | // rot NW -> NE
-                (((((qedges >> 44) & 0b11L)+1) & 0b11L) << 42) | // rot NE -> SE
-                (((((qedges >> 42) & 0b11L)+1) & 0b11L) << 40) | // rot SE -> SW
-                (((((qedges >> 40) & 0b11L)+1) & 0b11L) << 46) | // rot SW -> NW
-                  (((qedges >> 10) & 0b11111_11111__11111_11111__11111_11111L)) | // col NW + NE + SE
+                (((((qedges >>> 46) & 0b11L)+1) & 0b11L) << 44) | // rot NW -> NE
+                (((((qedges >>> 44) & 0b11L)+1) & 0b11L) << 42) | // rot NE -> SE
+                (((((qedges >>> 42) & 0b11L)+1) & 0b11L) << 40) | // rot SE -> SW
+                (((((qedges >>> 40) & 0b11L)+1) & 0b11L) << 46) | // rot SW -> NW
+                  (((qedges >>> 10) & 0b11111_11111__11111_11111__11111_11111L)) | // col NW + NE + SE
                    ((qedges & 0b11111_11111L) << 30); // col SW
     }
     public static long rotQEdgesCounterClockwise(long qedges) {
         return
-               // Extract= ((qedges >> 46) & 0b11L)
+               // Extract= ((qedges >>> 46) & 0b11L)
                // Rotate = (oldrot+1) & 0b11L
                // Assign = newrot << 44
-                (((((qedges >> 44) & 0b11L)+1) & 0b11L) << 46) | // rot NE -> NW
-                (((((qedges >> 42) & 0b11L)+1) & 0b11L) << 44) | // rot SE -> NE
-                (((((qedges >> 40) & 0b11L)+1) & 0b11L) << 42) | // rot SW -> SW
-                (((((qedges >> 46) & 0b11L)+1) & 0b11L) << 40) | // rot NW -> SW
+                (((((qedges >>> 44) & 0b11L)+1) & 0b11L) << 46) | // rot NE -> NW
+                (((((qedges >>> 42) & 0b11L)+1) & 0b11L) << 44) | // rot SE -> NE
+                (((((qedges >>> 40) & 0b11L)+1) & 0b11L) << 42) | // rot SW -> SW
+                (((((qedges >>> 46) & 0b11L)+1) & 0b11L) << 40) | // rot NW -> SW
                   (((qedges << 10) & 0b11111_11111__11111_11111__11111_11111_00000_00000L)) | // col NE + SE + SW
-                   ((qedges >> 30) & 0b11111_11111L); // col NW
+                   ((qedges >>> 30) & 0b11111_11111L); // col NW
     }
 
     public static int getPieceNW(int qpiece) {
-        return qpiece >> 24;
+        return qpiece >>> 24;
     }
     public static int getPieceNE(int qpiece) {
-        return (qpiece >> 16) & 0b11111111;
+        return (qpiece >>> 16) & 0b11111111;
     }
     public static int getPieceSE(int qpiece) {
-        return (qpiece >> 8) & 0b11111111;
+        return (qpiece >>> 8) & 0b11111111;
     }
     public static int getPieceSW(int qpiece) {
         return qpiece & 0b11111111;
     }
 
     public static int getRotNW(long qedges) {
-        return (int) ((qedges >> 46) & 0b11L);
+        return (int) ((qedges >>> 46) & 0b11L);
     }
     public static int getRotNE(long qedges) {
-        return (int) ((qedges >> 44) & 0b11L);
+        return (int) ((qedges >>> 44) & 0b11L);
     }
     public static int getRotSE(long qedges) {
-        return (int) ((qedges >> 42) & 0b11L);
+        return (int) ((qedges >>> 42) & 0b11L);
     }
     public static int getRotSW(long qedges) {
-        return (int) ((qedges >> 40) & 0b11L);
+        return (int) ((qedges >>> 40) & 0b11L);
     }
 
     public static String toStringFull(int qpiece, long qedges) {
