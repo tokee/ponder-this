@@ -125,7 +125,7 @@ public class QBits {
   */
 
     public static int createQPiece(int nwP, int neP, int seP, int swP) {
-        return (nwP << 24) | (neP << 16) | (seP | 8) | swP;
+        return (nwP << 24) | (neP << 16) | (seP << 8) | swP;
     }
     public static long createQEdges(int nwRot, int neRot, int seRot, int swRot,
                                     int nwP, int neP, int seP, int swP) {
@@ -138,10 +138,6 @@ public class QBits {
                (((long)ETERNII.getBottom(swP, swRot)) << 10) |
                (((long)ETERNII.getLeft(  swP, swRot)) <<  5) |
                 ((long)ETERNII.getLeft(  nwP, nwRot));
-    }
-
-    public static String toStringQPiece(int state) {
-        return toString(state, new int[]{8, 8, 8, 8});
     }
 
     /**
@@ -180,25 +176,6 @@ public class QBits {
                    ((qedges >> 30) & 0b11111_11111L); // col NW
     }
 
-    private static String toString(int state, int[] split) {
-        return toString(state, 32, split);
-    }
-    private static String toString(long state, int[] split) {
-        return toString(state, 64, split);
-    }
-    private static String toString(long state, int significantBits, int[] split) {
-        String bin = Long.toBinaryString(state);
-        while (bin.length() < significantBits) {
-            bin = "0" + bin;
-        }
-        String form = "";
-        for (int len: split) {
-            form += bin.substring(0, len) + " ";
-            bin = bin.substring(len);
-        }
-        return form + bin;
-    }
-
     public static int getPieceNW(int qpiece) {
         return qpiece >> 24;
     }
@@ -224,4 +201,36 @@ public class QBits {
     public static int getRotSW(long qedges) {
         return (int) ((qedges >> 40) & 0b11L);
     }
+
+    public static String toStringFull(int qpiece, long qedges) {
+        return   "nw " + ETERNII.toDisplayString(getPieceNW(qpiece), getRotNW(qedges)) +
+               ", ne " + ETERNII.toDisplayString(getPieceNE(qpiece), getRotNE(qedges)) +
+               ", se " + ETERNII.toDisplayString(getPieceSE(qpiece), getRotSW(qedges)) +
+               ", sw " + ETERNII.toDisplayString(getPieceSW(qpiece), getRotSW(qedges));
+    }
+    public static String toStringQPiece(int qpiece) {
+        return toString(qpiece, new int[]{8, 8, 8, 8});
+    }
+    public static String toStringQEdges(long qedges) {
+        return toString(qedges, new int[]{16, 2, 2, 2, 2, 5, 5, 5, 5, 5, 5, 5, 5});
+    }
+    private static String toString(int state, int[] split) {
+        return toString(state, 32, split);
+    }
+    private static String toString(long state, int[] split) {
+        return toString(state, 64, split);
+    }
+    private static String toString(long state, int significantBits, int[] split) {
+        String bin = Long.toBinaryString(state);
+        while (bin.length() < significantBits) {
+            bin = "0" + bin;
+        }
+        String form = "";
+        for (int len: split) {
+            form += bin.substring(0, len) + " ";
+            bin = bin.substring(len);
+        }
+        return form + bin;
+    }
+
 }

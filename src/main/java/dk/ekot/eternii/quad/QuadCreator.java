@@ -14,6 +14,7 @@
  */
 package dk.ekot.eternii.quad;
 
+import dk.ekot.eternii.EBits;
 import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -307,12 +308,13 @@ public class QuadCreator {
 //                                                                           ", ne " + epieces.toDisplayString(ne, ner) +
 //                                                                           ", se " + epieces.toDisplayString(se, ser) +
 //                                                                           ", sw " + epieces.toDisplayString(sw, swr) +
-//                                                                           ", perm=" + (nwi+1)*(nei+1)*(sei+1)*(swi+1));
+//                                                                           ", perm=" + nws.length*nes.length*ses.length*sws.length);
                                         // All match!
-                                        quadBag.addQuad(
-                                                QBits.createQPiece(nw, ne, se, sw),
-                                                QBits.createQEdges(nwr, ner, ser, swr,
-                                                                   nw, ne, se, sw));
+                                        int qpiece = QBits.createQPiece(nw, ne, se, sw);
+                                        long qedges = QBits.createQEdges(nwr, ner, ser, swr, nw, ne, se, sw);
+//                                        System.out.println("Storing " + QBits.toStringFull(qpiece, qedges));
+                                        validate(qpiece, qedges, nw, ne, se, sw, nwr, ner, ser, swr);
+                                        quadBag.addQuad(qpiece, qedges);
                                     }
                                 }
                             }
@@ -320,6 +322,34 @@ public class QuadCreator {
                     }
                 }
             }
+        }
+    }
+
+    private static void validate(int qpiece, long qedges, int nw, int ne, int se, int sw, int nwr, int ner, int ser, int swr) {
+        if (QBits.getPieceNW(qpiece) != nw) {
+            throw new IllegalStateException("NW should match. Expected " + nw + ", got " + QBits.getPieceNW(qpiece));
+        }
+        if (QBits.getPieceNE(qpiece) != ne) {
+            throw new IllegalStateException("NE should match. Expected " + ne + ", got " + QBits.getPieceNE(qpiece));
+        }
+        if (QBits.getPieceSE(qpiece) != se) {
+            throw new IllegalStateException("SE should match. Expected " + se + ", got " + QBits.getPieceSE(qpiece));
+        }
+        if (QBits.getPieceSW(qpiece) != sw) {
+            throw new IllegalStateException("SW should match. Expected " + sw + ", got " + QBits.getPieceSW(qpiece));
+        }
+
+        if (QBits.getRotNW(qedges) != nwr) {
+            throw new IllegalStateException("NW rot should match. Expected " + nwr + ", got " + QBits.getRotNW(qedges));
+        }
+        if (QBits.getRotNE(qedges) != ner) {
+            throw new IllegalStateException("NE rot should match. Expected " + ner + ", got " + QBits.getRotNE(qedges));
+        }
+        if (QBits.getRotSE(qedges) != ser) {
+            throw new IllegalStateException("SE rot should match. Expected " + ser + ", got " + QBits.getRotSE(qedges));
+        }
+        if (QBits.getRotSW(qedges) != swr) {
+            throw new IllegalStateException("SW rot should match. Expected " + swr + ", got " + QBits.getRotSW(qedges));
         }
     }
 

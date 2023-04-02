@@ -78,7 +78,11 @@ public class QuadBag {
         qpieces.add(qpiece);
         this.qedges.add(qedges);
         existing.set(size++);
+//        if (c++ < 4) {
+//            System.out.println("Add " + QBits.toStringFull(qpiece, qedges));
+//        }
     }
+//    int c = 0;
 
     public int size() {
         return size;

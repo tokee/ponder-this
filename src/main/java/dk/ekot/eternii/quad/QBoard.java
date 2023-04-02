@@ -52,15 +52,25 @@ public class QBoard {
     }
 
     public void testMove() {
-        placePiece(BAG_CORNER_NW, 0, 1, 1);
+        placePiece(BAG_CORNER_NW, 0, 0, 0);
+        placePiece(BAG_CORNER_NW, 1, 2, 0);
+        placePiece(BAG_CORNER_NW, 2, 4, 0);
+        placePiece(BAG_CORNER_NW, 3, 6, 0);
+
+        placePiece(BAG_CORNER_NW, 4, 1, 1);
+        placePiece(BAG_CORNER_NW, 5, 3, 1);
+        placePiece(BAG_CORNER_NW, 6, 5, 1);
+        placePiece(BAG_CORNER_NW, 7, 7, 1);
     }
 
     private void placePiece(QuadBag bag, int index, int x, int y) {
         int qpiece = bag.getQPiece(index);
         long qedges = bag.getQEdges(index);
+//        System.out.println("Piece: " + QBits.toStringFull(qpiece, qedges));
+        //System.out.println("Edges: " + QBits.toStringQEdges(qedges));
         eboard.placeUntrackedPiece(x << 1, y << 1, QBits.getPieceNW(qpiece), QBits.getRotNW(qedges));
         eboard.placeUntrackedPiece((x << 1)+1, y << 1, QBits.getPieceNE(qpiece), QBits.getRotNE(qedges));
-        eboard.placeUntrackedPiece(x << 1, (y << 1)+1, QBits.getPieceSE(qpiece), QBits.getRotSE(qedges));
-        eboard.placeUntrackedPiece((x << 1)+1, (y << 1)+1, QBits.getPieceSW(qpiece), QBits.getRotSW(qedges));
+        eboard.placeUntrackedPiece((x << 1)+1, (y << 1)+1, QBits.getPieceSE(qpiece), QBits.getRotSE(qedges));
+        eboard.placeUntrackedPiece(x << 1, (y << 1)+1, QBits.getPieceSW(qpiece), QBits.getRotSW(qedges));
     }
 }
