@@ -65,6 +65,7 @@ public class GrowableLongs {
     public GrowableLongs copy() {
         GrowableLongs copy = new GrowableLongs(pos);
         System.arraycopy(longs, 0, copy.longs, 0, pos);
+        copy.pos = pos;
         return copy;
     }
 }

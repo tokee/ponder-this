@@ -64,6 +64,7 @@ public class GrowableInts {
     public GrowableInts copy() {
         GrowableInts copy = new GrowableInts(pos);
         System.arraycopy(ints, 0, copy.ints, 0, pos);
+        copy.pos = pos;
         return copy;
     }
 }
