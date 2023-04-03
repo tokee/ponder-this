@@ -20,22 +20,23 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
-/**
- *
- */
 public class QuadMapFactory {
     private static final Logger log = LoggerFactory.getLogger(QuadMapFactory.class);
 
     public static final int MAX_PCOL = 27;
     public static final int MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
 
-    public static QuadMap generateMap(long maxHash, int[] qpieces, long[] qedges, Function<Long, Long> hasher) {
+    public static QuadMap generateMap(
+            QuadBag quadBag, long maxHash, Function<Long, Long> hasher) {
+        dumpStats(maxHash, quadBag.getQedgesRaw(), hasher);
+        // TODO: Introduce optimized maps, consider replacing 0b1111 with 0b111 and an extra check
+        return new QuadMapHash(quadBag, hasher);
+    }
+
+    private static void dumpStats(long maxHash, long[] qedges, Function<Long, Long> hasher) {
         UniqueCounter counter;
         if (maxHash <= MAX_QCOL_EDGE1) { // Single + double side
             counter = new UniqueCounterArray(Math.toIntExact(maxHash + 1));
@@ -48,8 +49,6 @@ public class QuadMapFactory {
                 forEach(counter);
         log.info("QuadFactory got stated maxHash={}, #quads=" + qedges.length + ", found {}",
                  maxHash, counter.stats());
-        // TODO: Implement this
-        return null;
     }
 
     private interface UniqueCounter extends Consumer<Long> {

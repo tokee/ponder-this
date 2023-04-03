@@ -15,7 +15,6 @@
 package dk.ekot.eternii.quad;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -51,15 +50,15 @@ public interface QuadMap {
      * Getting the size might mean a recalculation of the mask.
      * @return the number of remaining Quads.
      */
-    int available();
+    int availableQuads();
 
     /**
      * needsSatisfied is not a guarantee as some quads might share pieces.
-     * Checking involves calling {@link #available()} which might mean a recalculation of the mask.
+     * Checking involves calling {@link #availableQuads()} which might mean a recalculation of the mask.
      * @return true if needs are less than size.
      */
     default boolean needsSatisfied() {
-        return need.get() <= available();
+        return need.get() <= availableQuads();
     }
 
 }
