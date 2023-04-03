@@ -17,9 +17,13 @@ package dk.ekot.eternii.quad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -27,27 +31,32 @@ import java.util.stream.Stream;
  */
 public class QuadMapFactory {
     private static final Logger log = LoggerFactory.getLogger(QuadMapFactory.class);
-    private final int maxHash;
-    private final UniqueCounter counter;
 
-    public QuadMapFactory(int maxHash, Stream<Integer> hashStream) {
-        this.maxHash = maxHash;
-        if (maxHash <= 1024 * 1024) { // Single + double side
-            counter = new UniqueCounterArray(maxHash + 1);
+    public static final int MAX_PCOL = 27;
+    public static final int MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
+
+    public static QuadMap generateMap(long maxHash, int[] qpieces, long[] qedges, Function<Long, Long> hasher) {
+        UniqueCounter counter;
+        if (maxHash <= MAX_QCOL_EDGE1) { // Single + double side
+            counter = new UniqueCounterArray(Math.toIntExact(maxHash + 1));
         } else {
             counter = new UniqueCounterHash();
         }
-        hashStream.forEach(counter);
-        log.info("QuadFactory got stated maxHash={}, found {}",
+        Arrays.stream(qedges).
+                boxed().
+                map(hasher).
+                forEach(counter);
+        log.info("QuadFactory got stated maxHash={}, #quads=" + qedges.length + ", found {}",
                  maxHash, counter.stats());
-        // TODO: Finish implementation
+        // TODO: Implement this
+        return null;
     }
 
-    private interface UniqueCounter extends Consumer<Integer> {
+    private interface UniqueCounter extends Consumer<Long> {
         /**
          * @return the number of times the hash has been counted.
          */
-        int getCount(int hash);
+        int getCount(long hash);
 
         /**
          * @return the count for the hash with the highest count.
@@ -57,15 +66,15 @@ public class QuadMapFactory {
         /**
          * @return the hash with the highest numeric value.
          */
-        int getMaxHash();
+        long getMaxHash();
 
         long getCountSum();
 
         int getUniqueHashCount();
 
         default String stats() {
-            return "maxCount=" + getMaxCount() + ", maxHash=" + getMaxHash() + ", uniqueHash=" + getUniqueHashCount() +
-                   ", countSum=" + getCountSum();
+            return "maxSameHash=" + getMaxCount() + ", maxHash=" + getMaxHash() + ", #uniqueHash=" + getUniqueHashCount() +
+                   ", countSum=" + getCountSum(); // countSum is sanity check
         }
     }
 
@@ -77,13 +86,13 @@ public class QuadMapFactory {
         }
 
         @Override
-        public void accept(Integer hash) {
-            ++counters[hash];
+        public void accept(Long hash) {
+            ++counters[Math.toIntExact(hash)];
         }
 
         @Override
-        public int getCount(int hash) {
-            return counters[hash];
+        public int getCount(long hash) {
+            return counters[Math.toIntExact(hash)];
         }
 
         @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -99,7 +108,7 @@ public class QuadMapFactory {
         }
 
         @Override
-        public int getMaxHash() {
+        public long getMaxHash() {
             int maxIndex = 0;
             for (int i = 0; i < counters.length; i++) {
                 if (counters[i] != 0) {
@@ -132,10 +141,10 @@ public class QuadMapFactory {
 
     private static class UniqueCounterHash implements UniqueCounter {
         // (hash, count)
-        private final Map<Integer, Integer> countMap = new HashMap<>();
+        private final Map<Long, Integer> countMap = new HashMap<>();
 
         @Override
-        public int getCount(int hash) {
+        public int getCount(long hash) {
             // Fails on unknown key on purpose (should only be called with seen keys)
             return countMap.get(hash);
         }
@@ -148,9 +157,9 @@ public class QuadMapFactory {
         }
 
         @Override
-        public int getMaxHash() {
+        public long getMaxHash() {
             return countMap.keySet().stream().
-                    mapToInt(Integer::intValue).
+                    mapToLong(Long::longValue).
                     max().orElse(0);
         }
 
@@ -161,7 +170,7 @@ public class QuadMapFactory {
                     sum();
         }
         @Override
-        public void accept(Integer hash) {
+        public void accept(Long hash) {
             if (!countMap.containsKey(hash)) {
                 countMap.put(hash, 1);
             } else {

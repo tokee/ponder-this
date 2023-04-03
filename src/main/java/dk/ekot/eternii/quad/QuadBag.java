@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Holds Quads, packed as ints & longs as defined in {@link QBits}.
@@ -35,19 +36,47 @@ import java.util.Set;
 public class QuadBag {
     private static final Logger log = LoggerFactory.getLogger(QuadBag.class);
 
-    public static final int MAX_PCOL = 27;
-    public static final int MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
+    public static final long MAX_PCOL = 27;
+    public static final long MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
+    public static final long MAX_QCOL_EDGE2 = MAX_QCOL_EDGE1 * MAX_QCOL_EDGE1;
+    public static final long MAX_QCOL_EDGE3 = MAX_QCOL_EDGE2 * MAX_QCOL_EDGE1;
+    public static final long MAX_QCOL_EDGE4 = MAX_QCOL_EDGE3 * MAX_QCOL_EDGE1;
 
     private final PieceMap pieceMap;
     private final BAG_TYPE bagType;
     // n=0b1000, e=0b0100, s=0b0010, w=0b0001
-    private final QuadSet[] sets = new QuadSet[16];
+    private final QuadMap[] qmaps = new QuadMap[16];
 
     public enum BAG_TYPE {
         corner_nw, corner_ne, corner_se, corner_sw, 
         border_n, border_e, border_s, border_w, 
         clue_nw, clue_ne, clue_se, clue_sw, clue_c,
-        inner
+        inner;
+
+        /**
+         * Border and corner bags have 1 or 2 fixed edges that are always the same (grey).
+         * @return which edges of the bag that are NOT fixed, with notation n=0b1000, e=0b0100, s=0b0010, w=0b0001
+         */
+        public int variableEdges() {
+            switch (this) {
+                case corner_nw: return 0b0110;
+                case corner_ne: return 0b0011;
+                case corner_se: return 0b1001;
+                case corner_sw: return 0b1100;
+                case border_n:  return 0b0111;
+                case border_e:  return 0b1011;
+                case border_s:  return 0b1101;
+                case border_w:  return 0b1110;
+                case clue_nw:
+                case clue_ne:
+                case clue_se:
+                case clue_sw:
+                case clue_c:
+                case inner:
+                    return 0b1111;
+                default: throw new IllegalStateException("Unknown BAG_TYPE: " + this);
+            }
+        }
     }
     
     /**
@@ -78,26 +107,26 @@ public class QuadBag {
     }
 
     /**
-     * Get the quad set corresponding to the given colors.
+     * Get the quad map corresponding to the given colors.
      * The colors are extracted using e.g. {@link QBits#getColN} for the quad in the given direction.
      * If there are no quad, {@code -1} is given.
      *
      * The method automatically ignores irrelevant edges, e.g. the north edge if bagType == border_n.
      * @return the quad set for the given defined border colors.
      */
-    public QuadSet getSet(int colN, int colE, int colS, int colW) {
-        return getSetReduced(bagType == BAG_TYPE.border_n || bagType == BAG_TYPE.corner_nw ? -1 : colN,
+    public QuadMap getMap(int colN, int colE, int colS, int colW) {
+        return getMapReduced(bagType == BAG_TYPE.border_n || bagType == BAG_TYPE.corner_nw ? -1 : colN,
                              bagType == BAG_TYPE.border_e || bagType == BAG_TYPE.corner_ne ? -1 : colE,
                              bagType == BAG_TYPE.border_s || bagType == BAG_TYPE.corner_se ? -1 : colS,
                              bagType == BAG_TYPE.border_w || bagType == BAG_TYPE.corner_sw ? -1 : colW);
     }
 
-    private QuadSet getSetReduced(int colN, int colE, int colS, int colW) {
+    private QuadMap getMapReduced(int colN, int colE, int colS, int colW) {
         final int defined = (colN != -1 ? 0b1000 : 0b000) |
                             (colE != -1 ? 0b0100 : 0b000) |
                             (colS != -1 ? 0b0010 : 0b000) |
                             (colW != -1 ? 0b0001 : 0b000);
-        return sets[defined];
+        return qmaps[defined];
     }
 
     /**
@@ -346,23 +375,53 @@ public class QuadBag {
     public void generateSets() {
         // TODO: Ensure trimmed growables!
         log.info("Generating sets for QuadBag of type " + bagType);
-        if (bagType != BAG_TYPE.corner_nw && bagType != BAG_TYPE.corner_ne && bagType != BAG_TYPE.border_n) {
-            // 0b1000
-            QuadMapFactory factory = new QuadMapFactory(
-                    MAX_QCOL_EDGE1, Arrays.stream(qedges.rawLongs()).
-                    boxed().
-                    map(QBits::getColInvN));
-            // TODO: Generate sets
+
+        generateSet(0b1000, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvN(qedges));
+        generateSet(0b0100, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvE(qedges));
+        generateSet(0b0010, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvS(qedges));
+        generateSet(0b0001, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvW(qedges));
+
+        generateSet(0b1100, MAX_QCOL_EDGE2,
+                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvE(qedges));
+        generateSet(0b0110, MAX_QCOL_EDGE2,
+                    qedges -> QBits.getColInvE(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvS(qedges));
+        generateSet(0b0011, MAX_QCOL_EDGE2,
+                    qedges -> QBits.getColInvS(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvW(qedges));
+        generateSet(0b1001, MAX_QCOL_EDGE2,
+                    qedges -> QBits.getColInvW(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvN(qedges));
+
+        generateSet(0b1010, MAX_QCOL_EDGE2,
+                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvS(qedges));
+        generateSet(0b0101, MAX_QCOL_EDGE2,
+                    qedges -> QBits.getColInvE(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvW(qedges));
+
+        generateSet(0b1110, MAX_QCOL_EDGE3,
+                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE2 +
+                              QBits.getColInvE(qedges)*MAX_QCOL_EDGE1 +
+                              QBits.getColInvS(qedges));
+        generateSet(0b0111, MAX_QCOL_EDGE3,
+                    qedges -> QBits.getColInvE(qedges)*MAX_QCOL_EDGE2 +
+                              QBits.getColInvS(qedges)*MAX_QCOL_EDGE1 +
+                              QBits.getColInvW(qedges));
+        generateSet(0b1011, MAX_QCOL_EDGE3,
+                    qedges -> QBits.getColInvS(qedges)*MAX_QCOL_EDGE2 +
+                              QBits.getColInvW(qedges)*MAX_QCOL_EDGE1 +
+                              QBits.getColInvN(qedges));
+        generateSet(0b1101, MAX_QCOL_EDGE3,
+                    qedges -> QBits.getColInvW(qedges)*MAX_QCOL_EDGE2 +
+                              QBits.getColInvN(qedges)*MAX_QCOL_EDGE1 +
+                              QBits.getColInvE(qedges));
+
+        generateSet(0b1111, MAX_QCOL_EDGE4,
+                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE3 +
+                              QBits.getColInvE(qedges)*MAX_QCOL_EDGE2 +
+                              QBits.getColInvS(qedges)*MAX_QCOL_EDGE1 +
+                              QBits.getColInvW(qedges));
+    }
+
+    private void generateSet(int wantedEdges, long maxHash, Function<Long, Long> hasher) {
+        if ((bagType.variableEdges() & wantedEdges) == wantedEdges) {
+            qmaps[wantedEdges] = QuadMapFactory.generateMap(maxHash, qpieces.rawInts(), qedges.rawLongs(), hasher);
         }
-        if (bagType != BAG_TYPE.corner_nw && bagType != BAG_TYPE.corner_ne && bagType != BAG_TYPE.corner_se &&
-            bagType != BAG_TYPE.border_n && bagType != BAG_TYPE.border_e) {
-            // 0b1100
-            QuadMapFactory factory = new QuadMapFactory(
-                    (MAX_QCOL_EDGE1+1)*(MAX_QCOL_EDGE1+1), Arrays.stream(qedges.rawLongs()).
-                    boxed().
-                    map(qedges -> QBits.getColInvN(qedges)*(MAX_QCOL_EDGE1+1) +
-                                  QBits.getColInvE(qedges)));
-        }
-        // TODO: Generate sets
     }
 }
