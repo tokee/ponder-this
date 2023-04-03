@@ -22,16 +22,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Holds Quads, packed as ints & longs as defined in {@link QBits}.
- *
- * Quads are never removed but instead masked.
+ * <p>
+ * Once constructed, QuadBag pieces and edges are immutable and can be shared between threads.
+ * <p>
+ * Quad availability is controlled by {@link #existing} which is NOT shared between threads.
  */
 public class QuadBag {
     private static final Logger log = LoggerFactory.getLogger(QuadBag.class);
-    private final PieceMap pieceMap;
 
+    public static final int MAX_PCOL = 27;
+    public static final int MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
+
+    private final PieceMap pieceMap;
+    private final BAG_TYPE bagType;
+    // n=0b1000, e=0b0100, s=0b0010, w=0b0001
+    private final QuadSet[] sets = new QuadSet[16];
+
+    public enum BAG_TYPE {
+        corner_nw, corner_ne, corner_se, corner_sw, 
+        border_n, border_e, border_s, border_w, 
+        clue_nw, clue_ne, clue_se, clue_sw, clue_c,
+        inner
+    }
+    
     /**
      * Number of Quads in this set.
      */
@@ -42,27 +60,72 @@ public class QuadBag {
     private Bitmap snapshot = null;
     private Bitmap existing;
 
-    public QuadBag(PieceMap pieceMap) {
+    public QuadBag(PieceMap pieceMap, BAG_TYPE bagType) {
         this.pieceMap = pieceMap;
+        this.bagType = bagType;
         qpieces = new GrowableInts();
         qedges = new GrowableLongs();
         existing = new GrowableBitmap(0);
     }
 
-    public QuadBag(PieceMap pieceMap, GrowableInts qpieces, GrowableLongs qedges, GrowableBitmap existing) {
+    public QuadBag(PieceMap pieceMap, BAG_TYPE bagType,
+                   GrowableInts qpieces, GrowableLongs qedges, GrowableBitmap existing) {
         this.pieceMap = pieceMap;
+        this.bagType = bagType;
         this.qpieces = qpieces;
         this.qedges = qedges;
         this.existing = existing;
     }
 
     /**
+     * Get the quad set corresponding to the given colors.
+     * The colors are extracted using e.g. {@link QBits#getColN} for the quad in the given direction.
+     * If there are no quad, {@code -1} is given.
+     *
+     * The method automatically ignores irrelevant edges, e.g. the north edge if bagType == border_n.
+     * @return the quad set for the given defined border colors.
+     */
+    public QuadSet getSet(int colN, int colE, int colS, int colW) {
+        return getSetReduced(bagType == BAG_TYPE.border_n || bagType == BAG_TYPE.corner_nw ? -1 : colN,
+                             bagType == BAG_TYPE.border_e || bagType == BAG_TYPE.corner_ne ? -1 : colE,
+                             bagType == BAG_TYPE.border_s || bagType == BAG_TYPE.corner_se ? -1 : colS,
+                             bagType == BAG_TYPE.border_w || bagType == BAG_TYPE.corner_sw ? -1 : colW);
+    }
+
+    private QuadSet getSetReduced(int colN, int colE, int colS, int colW) {
+        final int defined = (colN != -1 ? 0b1000 : 0b000) |
+                            (colE != -1 ? 0b0100 : 0b000) |
+                            (colS != -1 ? 0b0010 : 0b000) |
+                            (colW != -1 ? 0b0001 : 0b000);
+        return sets[defined];
+    }
+
+    /**
      * Trim the holding structures down to size, without any room for further quads.
      */
     public QuadBag trim() {
-        // TODO: Implement this
-//        log.warn("trim not implemented yet!");
+        qpieces = qpieces.trimCopy();
+        qedges = qedges.trimCopy();
+        //verifyUnique();
+        generateSets();
         return this;
+    }
+
+    /**
+     * Iterates quads is this bag, ensuring uniqueness.
+     * Slow and with high memory overhead.
+     */
+    private void verifyUnique() {
+        log.info("Verifying uniqueness of quad bag of type " + bagType);
+        Set<String> encountered = new HashSet<>();
+        for (int i = 0 ; i < size() ; i++) {
+            String quad = qpieces.get(i) + "_" + qedges.get(i);
+            if (!encountered.add(quad)) {
+                throw new IllegalStateException(
+                        "Internal error: The QuadBag of type " + bagType + " had a duplicate entry at index " + i +
+                        ": " + QBits.toStringFull(qpieces.get(i), qedges.get(i)));
+            }
+        }
     }
 
     /**
@@ -230,16 +293,47 @@ public class QuadBag {
      * Creates a new QuadBag from this by rotating all pieces 90 degrees clockwise.
      */
     public QuadBag rotClockwise() {
-        GrowableInts rotQpieces = qpieces.copy();
+        GrowableInts rotQpieces = qpieces.trimCopy();
         for (int i = 0 ; i < rotQpieces.size() ; i++) {
             rotQpieces.rawInts()[i] = QBits.rotQPieceClockwise(rotQpieces.rawInts()[i]);
         }
-        GrowableLongs rotQEdges = qedges.copy();
+        GrowableLongs rotQEdges = qedges.trimCopy();
         for (int i = 0 ; i < rotQEdges.size() ; i++) {
             rotQEdges.rawLongs()[i] = QBits.rotQEdgesClockwise(rotQEdges.rawLongs()[i]);
         }
         GrowableBitmap blankExisting = new GrowableBitmap(existing.size());
-        return new QuadBag(pieceMap, rotQpieces, rotQEdges, blankExisting);
+        BAG_TYPE newType;
+        switch (bagType) {
+            case corner_nw:
+                newType = BAG_TYPE.corner_ne;
+                break;
+            case corner_ne:
+                newType = BAG_TYPE.corner_se;
+                break;
+            case corner_se:
+                newType = BAG_TYPE.corner_sw;
+                break;
+            case corner_sw:
+                newType = BAG_TYPE.corner_nw;
+                break;
+            case border_n:
+                newType = BAG_TYPE.border_e;
+                break;
+            case border_e:
+                newType = BAG_TYPE.border_s;
+                break;
+            case border_s:
+                newType = BAG_TYPE.border_w;
+                break;
+            case border_w:
+                newType = BAG_TYPE.border_n;
+                break;
+            case inner:
+                newType = BAG_TYPE.inner;
+                break;
+            default: throw new IllegalStateException("Unable to rotate QuadBag of type " + bagType);
+        };
+        return new QuadBag(pieceMap, newType, rotQpieces, rotQEdges, blankExisting);
     }
 
     public int getQPiece(int index) {
@@ -247,5 +341,28 @@ public class QuadBag {
     }
     public long getQEdges(int index) {
         return qedges.get(index);
+    }
+
+    public void generateSets() {
+        // TODO: Ensure trimmed growables!
+        log.info("Generating sets for QuadBag of type " + bagType);
+        if (bagType != BAG_TYPE.corner_nw && bagType != BAG_TYPE.corner_ne && bagType != BAG_TYPE.border_n) {
+            // 0b1000
+            QuadMapFactory factory = new QuadMapFactory(
+                    MAX_QCOL_EDGE1, Arrays.stream(qedges.rawLongs()).
+                    boxed().
+                    map(QBits::getColInvN));
+            // TODO: Generate sets
+        }
+        if (bagType != BAG_TYPE.corner_nw && bagType != BAG_TYPE.corner_ne && bagType != BAG_TYPE.corner_se &&
+            bagType != BAG_TYPE.border_n && bagType != BAG_TYPE.border_e) {
+            // 0b1100
+            QuadMapFactory factory = new QuadMapFactory(
+                    (MAX_QCOL_EDGE1+1)*(MAX_QCOL_EDGE1+1), Arrays.stream(qedges.rawLongs()).
+                    boxed().
+                    map(qedges -> QBits.getColInvN(qedges)*(MAX_QCOL_EDGE1+1) +
+                                  QBits.getColInvE(qedges)));
+        }
+        // TODO: Generate sets
     }
 }

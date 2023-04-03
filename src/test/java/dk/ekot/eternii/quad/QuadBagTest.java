@@ -27,11 +27,11 @@ public class QuadBagTest extends TestCase {
 
         final Random r = new Random(87);
         PieceMap pm = new PieceMap();
-        QuadBag qb = new QuadBag(pm);
+        QuadBag qb = new QuadBag(pm, QuadBag.BAG_TYPE.inner);
         for (int qid = 0 ; qid < quads ; qid++) {
             qb.addQuad(r.nextInt(), r.nextLong());
         }
-        System.out.println("Created bag with " + quads + " quads");
+        System.out.println("Created fake quad bag with " + quads + " quads");
 
         for (int run = 1 ; run <= runs ; run++) {
             r.nextBytes(pm.pieceIDByteMap);

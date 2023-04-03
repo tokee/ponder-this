@@ -35,9 +35,14 @@ public class QuadSetArray implements QuadSet {
     final GrowableInts quadIDs;
     boolean[] mask;
 
-    public QuadSetArray(Bitmap base, PieceMap pieceMap) {
+    /**
+     *
+     * @param freeQuads free quads from a QuadBag.
+     * @param pieceMap the piecemap for the {@link QBoard}.
+     */
+    public QuadSetArray(Bitmap freeQuads, PieceMap pieceMap) {
         this.pieceMap = pieceMap;
-        this.base = base;
+        this.base = freeQuads;
         quadIDs = new GrowableInts();
         mask = new boolean[0];
     }

@@ -52,7 +52,7 @@ public class QuadCreator {
     }
 
     public static QuadBag createQuads() {
-        QuadBag qb = new QuadBag(new PieceMap());
+        QuadBag qb = new QuadBag(new PieceMap(), QuadBag.BAG_TYPE.clue_c);
         //createInners(qb);  //   912,330
         //createEdges(qb);   //    69,531
         //createCorners(qb); //     1,291

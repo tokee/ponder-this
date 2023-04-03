@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Represents a board of 8x8 Quads.
  *
- * The boards guarantees a consistent internal state.
+ * The boards guaranties a consistent internal state.
  */
 public class QBoard {
     private static final Logger log = LoggerFactory.getLogger(QBoard.class);
@@ -56,29 +56,35 @@ public class QBoard {
 
     public QBoard() {
         // TODO: Share piece masker bitmap and processing between corners (and edges)
-        BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceMap)).trim();
+        BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceMap, QuadBag.BAG_TYPE.corner_nw)).trim();
         BAG_CORNER_NE = BAG_CORNER_NW.rotClockwise();
+        BAG_CORNER_NE.generateSets();
         BAG_CORNER_SE = BAG_CORNER_NE.rotClockwise();
+        BAG_CORNER_SE.generateSets();
         BAG_CORNER_SW = BAG_CORNER_SE.rotClockwise();
+        BAG_CORNER_SW.generateSets();
 
-        BAG_BORDER_N = QuadCreator.createEdges(new QuadBag(pieceMap)).trim();
+        BAG_BORDER_N = QuadCreator.createEdges(new QuadBag(pieceMap, QuadBag.BAG_TYPE.border_n)).trim();
         BAG_BORDER_E = BAG_BORDER_N.rotClockwise();
+        BAG_BORDER_E.generateSets();
         BAG_BORDER_S = BAG_BORDER_E.rotClockwise();
+        BAG_BORDER_S.generateSets();
         BAG_BORDER_W = BAG_BORDER_S.rotClockwise();
+        BAG_BORDER_W.generateSets();
 
-        BAG_CLUE_NW = QuadCreator.createClueNW(new QuadBag(pieceMap)).trim();
-        BAG_CLUE_NE = QuadCreator.createClueNE(new QuadBag(pieceMap)).trim();
-        BAG_CLUE_SE = QuadCreator.createClueSE(new QuadBag(pieceMap)).trim();
-        BAG_CLUE_SW = QuadCreator.createClueSW(new QuadBag(pieceMap)).trim();
-        BAG_CLUE_C =  QuadCreator.createClueC( new QuadBag(pieceMap)).trim();
+        BAG_CLUE_NW = QuadCreator.createClueNW(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_nw)).trim();
+        BAG_CLUE_NE = QuadCreator.createClueNE(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_ne)).trim();
+        BAG_CLUE_SE = QuadCreator.createClueSE(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_se)).trim();
+        BAG_CLUE_SW = QuadCreator.createClueSW(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_sw)).trim();
+        BAG_CLUE_C =  QuadCreator.createClueC( new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_c)).trim();
 
         // TODO: Optimize by using createInnersNoQRot and invent new tricks
-        BAG_INNER =  QuadCreator.createInners(new QuadBag(pieceMap)).trim();
+        BAG_INNER =  QuadCreator.createInners(new QuadBag(pieceMap, QuadBag.BAG_TYPE.inner)).trim();
 
         epieces = EPieces.getEternii();
         eboard = new EBoard(epieces, WIDTH*2, HEIGHT*2);
 
-        // Init all fields
+        // Assign the correct QuadBags to all fields.
         fields = new QField[WIDTH][HEIGHT];
         for (int x = 0 ; x <= 7 ; x++) {
             for (int y = 0 ; y <= 7 ;y++) {

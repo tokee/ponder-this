@@ -62,7 +62,7 @@ public class GrowableLongs {
     /**
      * @return a deep copy of this Growablelongs with the internal structure trimmed down to {@link #size()}.
      */
-    public GrowableLongs copy() {
+    public GrowableLongs trimCopy() {
         GrowableLongs copy = new GrowableLongs(pos);
         System.arraycopy(longs, 0, copy.longs, 0, pos);
         copy.pos = pos;

@@ -189,6 +189,7 @@ public class QBits {
         return qpiece & 0b11111111;
     }
 
+    // Rotations for the 4 pieces making up the quad
     public static int getRotNW(long qedges) {
         return (int) ((qedges >>> 46) & 0b11L);
     }
@@ -200,6 +201,38 @@ public class QBits {
     }
     public static int getRotSW(long qedges) {
         return (int) ((qedges >>> 40) & 0b11L);
+    }
+
+    // Direct colors, as seen from the center of the quad, clockwise
+    public static int getColN(long qedges) {
+        return (int) ((qedges >>> 30) & 0b11111_11111L);
+    }
+    public static int getColE(long qedges) {
+        return (int) ((qedges >>> 20) & 0b11111_11111L);
+    }
+    public static int getColS(long qedges) {
+        return (int) ((qedges >>> 10) & 0b11111_11111L);
+    }
+    public static int getColW(long qedges) {
+        return (int) (qedges & 0b11111_11111L);
+    }
+
+    // Inverse colors, as seen from outside of the quad, counterclockwise
+    public static int getColInvN(long qedges) {
+        return (int)  (((qedges >>> 35) & 0b11111) |
+                      (((qedges >>> 30) & 0b11111)) << 5);
+    }
+    public static int getColInvE(long qedges) {
+        return (int)  (((qedges >>> 25) & 0b11111) |
+                      (((qedges >>> 20) & 0b11111)) << 5);
+    }
+    public static int getColInvS(long qedges) {
+        return (int)  (((qedges >>> 15) & 0b11111) |
+                      (((qedges >>> 10) & 0b11111)) << 5);
+    }
+    public static int getColInvW(long qedges) {
+        return (int)  (((qedges >>> 5) & 0b11111) |
+                      ((qedges & 0b11111)) << 5);
     }
 
     public static String toStringFull(int qpiece, long qedges) {

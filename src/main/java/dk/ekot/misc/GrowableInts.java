@@ -61,7 +61,7 @@ public class GrowableInts {
     /**
      * @return a deep copy of this GrowableInts with the internal structure trimmed down to {@link #size()}.
      */
-    public GrowableInts copy() {
+    public GrowableInts trimCopy() {
         GrowableInts copy = new GrowableInts(pos);
         System.arraycopy(ints, 0, copy.ints, 0, pos);
         copy.pos = pos;
