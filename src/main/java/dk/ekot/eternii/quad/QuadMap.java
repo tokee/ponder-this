@@ -15,7 +15,7 @@
 package dk.ekot.eternii.quad;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 /**
  * Special purpose map from hash to quad sets.
@@ -28,7 +28,7 @@ public interface QuadMap {
     /**
      * @return IDs for free Quads in the abstract set.
      */
-    Stream<Integer> getQuadIDs(int hash);
+    IntStream getQuadIDs(long hash);
 
     /**
      * Increment need.

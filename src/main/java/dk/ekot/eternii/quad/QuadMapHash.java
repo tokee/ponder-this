@@ -17,10 +17,11 @@ package dk.ekot.eternii.quad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 /**
  * Basic HashMap-based QuadMap.
@@ -57,8 +58,9 @@ public class QuadMapHash implements QuadMap {
     }
 
     @Override
-    public Stream<Integer> getQuadIDs(int hash) {
-        return null;
+    public IntStream getQuadIDs(long hash) {
+        // TODO: Can the array from the quadMap be null?
+        return Arrays.stream(quadMap.get(hash));
     }
 
     @Override
