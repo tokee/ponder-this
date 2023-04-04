@@ -40,14 +40,14 @@ class QField {
      * sets free to false
      * decrements needs in set (if available)
      */
-    public void setQuad(int qpiece, long qedges) {
+    public void setQuad(int quadID) {
         if (free && set != null) {
             set.decNeed();
         }
         set = null;
 
-        this.qpiece = qpiece;
-        this.qedges = qedges;
+        this.qpiece = quadBag.getQPiece(quadID);
+        this.qedges = quadBag.getQEdges(quadID);
 
         free = false;
     }
@@ -81,5 +81,21 @@ class QField {
 
     public QuadBag getBag() {
         return quadBag;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public int getQPiece() {
+        return qpiece;
+    }
+
+    public long getQEdges() {
+        return qedges;
     }
 }

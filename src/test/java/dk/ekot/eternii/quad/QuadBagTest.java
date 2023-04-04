@@ -26,7 +26,7 @@ public class QuadBagTest extends TestCase {
         final int runs = 100;
 
         final Random r = new Random(87);
-        PieceMap pm = new PieceMap();
+        PieceTracker pm = new PieceTracker();
         QuadBag qb = new QuadBag(pm, QuadBag.BAG_TYPE.inner);
         for (int qid = 0 ; qid < quads ; qid++) {
             qb.addQuad(r.nextInt(), r.nextLong());

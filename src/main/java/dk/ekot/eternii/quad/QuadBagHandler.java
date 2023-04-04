@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 public class QuadBagHandler {
     private static final Logger log = LoggerFactory.getLogger(QuadBagHandler.class);
 
-    private final PieceMap pieceMap = new PieceMap(); // 1 = available for use, 0 = positioned on the board
+    private final PieceTracker pieceTracker; // 1 = available for use, 0 = positioned on the board
 
     private final QuadBag BAG_CORNER_NW;
     private final QuadBag BAG_CORNER_NE;
@@ -43,9 +43,10 @@ public class QuadBagHandler {
 
     private final QuadBag BAG_INNER;
 
-    public QuadBagHandler() {
+    public QuadBagHandler(PieceTracker pieceTracker) {
+        this.pieceTracker = pieceTracker;
         // TODO: Share piece masker bitmap and processing between corners
-        BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceMap, QuadBag.BAG_TYPE.corner_nw)).trim();
+        BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.corner_nw)).trim();
         BAG_CORNER_NE = BAG_CORNER_NW.rotClockwise();
         BAG_CORNER_NE.generateSets();
         BAG_CORNER_SE = BAG_CORNER_NE.rotClockwise();
@@ -54,7 +55,7 @@ public class QuadBagHandler {
         BAG_CORNER_SW.generateSets();
 
         // TODO: Share piece masker bitmap and processing between edges
-        BAG_BORDER_N = QuadCreator.createEdges(new QuadBag(pieceMap, QuadBag.BAG_TYPE.border_n)).trim();
+        BAG_BORDER_N = QuadCreator.createEdges(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.border_n)).trim();
         BAG_BORDER_E = BAG_BORDER_N.rotClockwise();
         BAG_BORDER_E.generateSets();
         BAG_BORDER_S = BAG_BORDER_E.rotClockwise();
@@ -62,14 +63,14 @@ public class QuadBagHandler {
         BAG_BORDER_W = BAG_BORDER_S.rotClockwise();
         BAG_BORDER_W.generateSets();
 
-        BAG_CLUE_NW = QuadCreator.createClueNW(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_nw)).trim();
-        BAG_CLUE_NE = QuadCreator.createClueNE(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_ne)).trim();
-        BAG_CLUE_SE = QuadCreator.createClueSE(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_se)).trim();
-        BAG_CLUE_SW = QuadCreator.createClueSW(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_sw)).trim();
-        BAG_CLUE_C =  QuadCreator.createClueC( new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_c)).trim();
+        BAG_CLUE_NW = QuadCreator.createClueNW(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.clue_nw)).trim();
+        BAG_CLUE_NE = QuadCreator.createClueNE(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.clue_ne)).trim();
+        BAG_CLUE_SE = QuadCreator.createClueSE(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.clue_se)).trim();
+        BAG_CLUE_SW = QuadCreator.createClueSW(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.clue_sw)).trim();
+        BAG_CLUE_C =  QuadCreator.createClueC( new QuadBag(pieceTracker, QuadBag.BAG_TYPE.clue_c)).trim();
 
         // TODO: Optimize by using createInnersNoQRot and invent new tricks
-        BAG_INNER =  QuadCreator.createInners(new QuadBag(pieceMap, QuadBag.BAG_TYPE.inner)).trim();
+        BAG_INNER =  QuadCreator.createInners(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.inner)).trim();
     }
 
     public void assignBagsToFields(QField[][] fields) {

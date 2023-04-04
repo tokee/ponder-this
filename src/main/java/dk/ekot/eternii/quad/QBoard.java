@@ -16,7 +16,6 @@ package dk.ekot.eternii.quad;
 
 import dk.ekot.eternii.EBoard;
 import dk.ekot.eternii.EPieces;
-import org.apache.commons.collections.Bag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +27,9 @@ import org.slf4j.LoggerFactory;
 public class QBoard {
     private static final Logger log = LoggerFactory.getLogger(QBoard.class);
 
-    public final EPieces epieces;
-    public final EBoard eboard;
+    private final PieceTracker pieceTracker = new PieceTracker(); // 1 = available for use, 0 = positioned on the board
+    private final EPieces epieces;
+    private final EBoard eboard;
     private final QuadBagHandler bagHandler;
 
     private final int WIDTH = 8;
@@ -40,7 +40,7 @@ public class QBoard {
     public QBoard() {
         epieces = EPieces.getEternii();
         eboard = new EBoard(epieces, WIDTH*2, HEIGHT*2);
-        bagHandler = new QuadBagHandler();
+        bagHandler = new QuadBagHandler(pieceTracker);
         bagHandler.assignBagsToFields(fields);
     }
 
@@ -51,30 +51,40 @@ public class QBoard {
     public void testMoveAll() {
         for (int x = 0 ; x <= 7 ; x++) {
             for (int y = 0 ; y <= 7 ;y++) {
-                placePiece(fields[x][y].getBag(), y+x*8, x, y);
+                placePiece(x, y, y + x * 8);
             }
         }
     }
 
-    private void placePiece(QuadBag bag, int index, int x, int y) {
-        int qpiece = bag.getQPiece(index);
-        long qedges = bag.getQEdges(index);
-        placePiece(qpiece, qedges, x, y);
+    /**
+     * Takes the quad with the given ID from the {@link QuadBag} at field {@code (x, y)}
+     * and assigns it to the given field.
+     *
+     * Side effect include removing the 4 pieces from the pool of available pieces.
+     * @param x position on the board.
+     * @param y position on the board.
+     * @param quadID the index in the QuadBag at {@code (x, y)}.
+     */
+    private void placePiece(int x, int y, int quadID) {
+        QField field = fields[x][y];
+        field.setQuad(quadID);
+        pieceTracker.removeQPiece(field.getQPiece());
+        placePiece(x, y, field.getQPiece(), field.getQEdges());
     }
 
-    private void placePiece(int qpiece, long qedges, int x, int y) {
-        if (eboard.getPiece(x << 1, y << 1) != EPieces.NULL_P ||
-            eboard.getPiece((x << 1 )+1, y << 1) != EPieces.NULL_P ||
+    private void placePiece(int x, int y, int qpiece, long qedges) {
+        if (eboard.getPiece(x << 1, y << 1) !=          EPieces.NULL_P ||
+            eboard.getPiece((x << 1 )+1, y << 1) !=     EPieces.NULL_P ||
             eboard.getPiece((x << 1 )+1, (y << 1)+1) != EPieces.NULL_P ||
-            eboard.getPiece(x << 1, (y << 1)+1) != EPieces.NULL_P) {
+            eboard.getPiece(x << 1, (y << 1)+1) !=      EPieces.NULL_P) {
             throw new IllegalStateException("Attempting to place quad at (" + x + ", " + y + ") but it was occupied");
         }
         //        System.out.println("Piece: " + QBits.toStringFull(qpiece, qedges));
         //System.out.println("Edges: " + QBits.toStringQEdges(qedges));
-        eboard.placeUntrackedPiece(x << 1, y << 1, QBits.getPieceNW(qpiece), QBits.getRotNW(qedges));
-        eboard.placeUntrackedPiece((x << 1) + 1, y << 1, QBits.getPieceNE(qpiece), QBits.getRotNE(qedges));
+        eboard.placeUntrackedPiece(x << 1, y << 1,             QBits.getPieceNW(qpiece), QBits.getRotNW(qedges));
+        eboard.placeUntrackedPiece((x << 1) + 1, y << 1,       QBits.getPieceNE(qpiece), QBits.getRotNE(qedges));
         eboard.placeUntrackedPiece((x << 1) + 1, (y << 1) + 1, QBits.getPieceSE(qpiece), QBits.getRotSE(qedges));
-        eboard.placeUntrackedPiece(x << 1, (y << 1) + 1, QBits.getPieceSW(qpiece), QBits.getRotSW(qedges));
+        eboard.placeUntrackedPiece(x << 1, (y << 1) + 1,       QBits.getPieceSW(qpiece), QBits.getRotSW(qedges));
         // TODO: Update surrounding qfields
         // TODO: Check overall board validity
     }

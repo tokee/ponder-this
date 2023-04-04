@@ -42,7 +42,7 @@ public class QuadBag {
     public static final long MAX_QCOL_EDGE3 = MAX_QCOL_EDGE2 * MAX_QCOL_EDGE1;
     public static final long MAX_QCOL_EDGE4 = MAX_QCOL_EDGE3 * MAX_QCOL_EDGE1;
 
-    private final PieceMap pieceMap;
+    private final PieceTracker pieceTracker;
     private final BAG_TYPE bagType;
     // n=0b1000, e=0b0100, s=0b0010, w=0b0001
     private final QuadMap[] qmaps = new QuadMap[16];
@@ -89,17 +89,17 @@ public class QuadBag {
     private Bitmap snapshot = null;
     private Bitmap existing;
 
-    public QuadBag(PieceMap pieceMap, BAG_TYPE bagType) {
-        this.pieceMap = pieceMap;
+    public QuadBag(PieceTracker pieceTracker, BAG_TYPE bagType) {
+        this.pieceTracker = pieceTracker;
         this.bagType = bagType;
         qpieces = new GrowableInts();
         qedges = new GrowableLongs();
         existing = new GrowableBitmap(0);
     }
 
-    public QuadBag(PieceMap pieceMap, BAG_TYPE bagType,
+    public QuadBag(PieceTracker pieceTracker, BAG_TYPE bagType,
                    GrowableInts qpieces, GrowableLongs qedges, GrowableBitmap existing) {
-        this.pieceMap = pieceMap;
+        this.pieceTracker = pieceTracker;
         this.bagType = bagType;
         this.qpieces = qpieces;
         this.qedges = qedges;
@@ -236,7 +236,7 @@ public class QuadBag {
     }
 
     public void recalculateQPieces() {
-        recalculateQPieces(pieceMap.pieceIDByteMap, 0, calcBlock(qedges.size()));
+        recalculateQPieces(pieceTracker.pieceIDByteMap, 0, calcBlock(qedges.size()));
     }
 
     public void recalculateQPiecesParallel() {
@@ -253,7 +253,7 @@ public class QuadBag {
         final int lastStartBlock = startBlocks[segments-1];
         Arrays.stream(startBlocks).parallel().forEach(startBlock -> {
             int localEndBlock = startBlock == lastStartBlock ? endBlock+1 : startBlock+segmentBlocks;
-            recalculateQPieces(pieceMap.pieceIDByteMap, startBlock, localEndBlock);
+            recalculateQPieces(pieceTracker.pieceIDByteMap, startBlock, localEndBlock);
         });
     }
 
@@ -362,14 +362,14 @@ public class QuadBag {
                 break;
             default: throw new IllegalStateException("Unable to rotate QuadBag of type " + bagType);
         };
-        return new QuadBag(pieceMap, newType, rotQpieces, rotQEdges, blankExisting);
+        return new QuadBag(pieceTracker, newType, rotQpieces, rotQEdges, blankExisting);
     }
 
-    public int getQPiece(int index) {
-        return qpieces.get(index);
+    public int getQPiece(int quadID) {
+        return qpieces.get(quadID);
     }
-    public long getQEdges(int index) {
-        return qedges.get(index);
+    public long getQEdges(int quadID) {
+        return qedges.get(quadID);
     }
 
     public void generateSets() {

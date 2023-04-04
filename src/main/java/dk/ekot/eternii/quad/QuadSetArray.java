@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 public class QuadSetArray implements QuadSet {
     private static final Logger log = LoggerFactory.getLogger(QuadSetArray.class);
 
-    final PieceMap pieceMap;
+    final PieceTracker pieceTracker;
     final Bitmap base;
     long lastBaseChangeCounter = -1;
     int available = -1;
@@ -38,10 +38,10 @@ public class QuadSetArray implements QuadSet {
     /**
      *
      * @param freeQuads free quads from a QuadBag.
-     * @param pieceMap the piecemap for the {@link QBoard}.
+     * @param pieceTracker the piecemap for the {@link QBoard}.
      */
-    public QuadSetArray(Bitmap freeQuads, PieceMap pieceMap) {
-        this.pieceMap = pieceMap;
+    public QuadSetArray(Bitmap freeQuads, PieceTracker pieceTracker) {
+        this.pieceTracker = pieceTracker;
         this.base = freeQuads;
         quadIDs = new GrowableInts();
         mask = new boolean[0];
@@ -73,7 +73,7 @@ public class QuadSetArray implements QuadSet {
         }
         available = 0;
         for (int i = 0 ; i < quadIDs.size() ; i++) {
-            if (pieceMap.pieceIDByteMap[i] == 1) {
+            if (pieceTracker.pieceIDByteMap[i] == 1) {
                 mask[i] = true;
                 available++;
             } else {
