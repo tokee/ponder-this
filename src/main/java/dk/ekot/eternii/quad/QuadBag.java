@@ -421,8 +421,7 @@ public class QuadBag {
 
     private void generateSet(int wantedEdges, long maxHash, Function<Long, Long> hasher) {
         if ((bagType.variableEdges() & wantedEdges) == wantedEdges) {
-            qmaps[wantedEdges] = QuadMapFactory.generateMap(
-                    this, maxHash, hasher);
+            qmaps[wantedEdges] = QuadMapFactory.generateMap(this, maxHash, hasher);
         }
     }
 

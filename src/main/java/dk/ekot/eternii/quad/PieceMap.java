@@ -14,6 +14,8 @@
  */
 package dk.ekot.eternii.quad;
 
+import java.util.Arrays;
+
 /**
  *
  */
@@ -22,6 +24,10 @@ public class PieceMap {
      * ByteMap representing pieces: 1 = present, 0 = not present
      */
     public byte[] pieceIDByteMap = new byte[256];
+
+    public PieceMap() {
+        Arrays.fill(pieceIDByteMap, (byte) 1);
+    }
 
     public void enablePiece(int pieceID) {
         pieceIDByteMap[pieceID] = 1;

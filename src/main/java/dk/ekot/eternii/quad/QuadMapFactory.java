@@ -31,24 +31,25 @@ public class QuadMapFactory {
 
     public static QuadMap generateMap(
             QuadBag quadBag, long maxHash, Function<Long, Long> hasher) {
-        dumpStats(maxHash, quadBag.getQedgesRaw(), hasher);
+        dumpStats(quadBag, maxHash, hasher);
         // TODO: Introduce optimized maps, consider replacing 0b1111 with 0b111 and an extra check
         return new QuadMapHash(quadBag, hasher);
     }
 
-    private static void dumpStats(long maxHash, long[] qedges, Function<Long, Long> hasher) {
+    private static void dumpStats(QuadBag quadBag, long maxHash, Function<Long, Long> hasher) {
         UniqueCounter counter;
         if (maxHash <= MAX_QCOL_EDGE1) { // Single + double side
             counter = new UniqueCounterArray(Math.toIntExact(maxHash + 1));
         } else {
             counter = new UniqueCounterHash();
         }
+        long[] qedges = quadBag.getQedgesRaw();
         Arrays.stream(qedges).
                 boxed().
                 map(hasher).
                 forEach(counter);
-        log.info("QuadFactory got stated maxHash={}, #quads=" + qedges.length + ", found {}",
-                 maxHash, counter.stats());
+        log.info("QB {} set got stated maxHash={}, #quads={}, found {}",
+                 quadBag.getType(), maxHash, qedges.length, counter.stats());
     }
 
     private interface UniqueCounter extends Consumer<Long> {

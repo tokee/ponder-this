@@ -16,6 +16,7 @@ package dk.ekot.eternii.quad;
 
 import dk.ekot.eternii.EBoard;
 import dk.ekot.eternii.EPieces;
+import org.apache.commons.collections.Bag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,83 +30,18 @@ public class QBoard {
 
     public final EPieces epieces;
     public final EBoard eboard;
+    private final QuadBagHandler bagHandler;
 
     private final int WIDTH = 8;
     private final int HEIGHT = 8;
 
-    private final PieceMap pieceMap = new PieceMap(); // 1 = available for use, 0 = positioned on the board
-    private final QField[][] fields;
-
-    private final QuadBag BAG_CORNER_NW;
-    private final QuadBag BAG_CORNER_NE;
-    private final QuadBag BAG_CORNER_SE;
-    private final QuadBag BAG_CORNER_SW;
-
-    private final QuadBag BAG_BORDER_N;
-    private final QuadBag BAG_BORDER_E;
-    private final QuadBag BAG_BORDER_S;
-    private final QuadBag BAG_BORDER_W;
-
-    private final QuadBag BAG_CLUE_NW;
-    private final QuadBag BAG_CLUE_NE;
-    private final QuadBag BAG_CLUE_SE;
-    private final QuadBag BAG_CLUE_SW;
-    private final QuadBag BAG_CLUE_C;
-
-    private final QuadBag BAG_INNER;
+    private final QField[][] fields = new QField[WIDTH][HEIGHT];;
 
     public QBoard() {
-        // TODO: Share piece masker bitmap and processing between corners (and edges)
-        BAG_CORNER_NW = QuadCreator.createCorner(new QuadBag(pieceMap, QuadBag.BAG_TYPE.corner_nw)).trim();
-        BAG_CORNER_NE = BAG_CORNER_NW.rotClockwise();
-        BAG_CORNER_NE.generateSets();
-        BAG_CORNER_SE = BAG_CORNER_NE.rotClockwise();
-        BAG_CORNER_SE.generateSets();
-        BAG_CORNER_SW = BAG_CORNER_SE.rotClockwise();
-        BAG_CORNER_SW.generateSets();
-
-        BAG_BORDER_N = QuadCreator.createEdges(new QuadBag(pieceMap, QuadBag.BAG_TYPE.border_n)).trim();
-        BAG_BORDER_E = BAG_BORDER_N.rotClockwise();
-        BAG_BORDER_E.generateSets();
-        BAG_BORDER_S = BAG_BORDER_E.rotClockwise();
-        BAG_BORDER_S.generateSets();
-        BAG_BORDER_W = BAG_BORDER_S.rotClockwise();
-        BAG_BORDER_W.generateSets();
-
-        BAG_CLUE_NW = QuadCreator.createClueNW(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_nw)).trim();
-        BAG_CLUE_NE = QuadCreator.createClueNE(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_ne)).trim();
-        BAG_CLUE_SE = QuadCreator.createClueSE(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_se)).trim();
-        BAG_CLUE_SW = QuadCreator.createClueSW(new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_sw)).trim();
-        BAG_CLUE_C =  QuadCreator.createClueC( new QuadBag(pieceMap, QuadBag.BAG_TYPE.clue_c)).trim();
-
-        // TODO: Optimize by using createInnersNoQRot and invent new tricks
-        BAG_INNER =  QuadCreator.createInners(new QuadBag(pieceMap, QuadBag.BAG_TYPE.inner)).trim();
-
         epieces = EPieces.getEternii();
         eboard = new EBoard(epieces, WIDTH*2, HEIGHT*2);
-
-        // Assign the correct QuadBags to all fields.
-        fields = new QField[WIDTH][HEIGHT];
-        for (int x = 0 ; x <= 7 ; x++) {
-            for (int y = 0 ; y <= 7 ;y++) {
-                fields[x][y] = new QField(BAG_INNER, x, y);
-            }
-        }
-        fields[0][0] = new QField(BAG_CORNER_NW, 0, 0);
-        fields[7][0] = new QField(BAG_CORNER_NE, 7, 0);
-        fields[7][7] = new QField(BAG_CORNER_SE, 7, 7);
-        fields[0][7] = new QField(BAG_CORNER_SW, 0, 7);
-        for (int t = 1 ; t <= 6 ; t++) {
-            fields[t][0] = new QField(BAG_BORDER_N, t, 0);
-            fields[t][7] = new QField(BAG_BORDER_S, t, 7);
-            fields[0][t] = new QField(BAG_BORDER_W, 0, t);
-            fields[7][t] = new QField(BAG_BORDER_E, 7, t);
-        }
-        fields[1][1] = new QField(BAG_CLUE_NW, 1, 1);
-        fields[6][1] = new QField(BAG_CLUE_NE, 6, 1);
-        fields[6][6] = new QField(BAG_CLUE_SE, 6, 6);
-        fields[1][6] = new QField(BAG_CLUE_SW, 1, 6);
-        fields[3][4] = new QField(BAG_CLUE_C,  3, 4);
+        bagHandler = new QuadBagHandler();
+        bagHandler.assignBagsToFields(fields);
     }
 
     public EBoard getEboard() {
@@ -118,25 +54,6 @@ public class QBoard {
                 placePiece(fields[x][y].getBag(), y+x*8, x, y);
             }
         }
-    }
-    public void testMove() {
-        placePiece(BAG_CORNER_NW, 0, 0, 0);
-        placePiece(BAG_CORNER_NE, 1, 7, 0);
-        placePiece(BAG_CORNER_SE, 2, 7, 7);
-        placePiece(BAG_CORNER_SW, 3, 0, 7);
-
-        placePiece(BAG_BORDER_N, 0, 2, 0);
-        placePiece(BAG_BORDER_E, 3, 7, 2);
-        placePiece(BAG_BORDER_S, 5, 5, 7);
-        placePiece(BAG_BORDER_W, 7, 0, 5);
-
-        placePiece(BAG_CLUE_NW, 0, 1, 1);
-        placePiece(BAG_CLUE_NE, 1, 6, 1);
-        placePiece(BAG_CLUE_SE, 2, 6, 6);
-        placePiece(BAG_CLUE_SW, 3, 1, 6);
-        placePiece(BAG_CLUE_C, 3, 3, 4);
-
-        placePiece(BAG_INNER, 0, 4, 2);
     }
 
     private void placePiece(QuadBag bag, int index, int x, int y) {
