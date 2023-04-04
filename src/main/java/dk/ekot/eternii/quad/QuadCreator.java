@@ -94,7 +94,6 @@ public class QuadCreator {
                          edge, ROT_ALL, (piece, rot) -> epieces.getLeft(piece, rot) == EPieces.EDGE_EDGE,
 
                          epieces, quadBag);
-        log.info("Quad corners: " + quadBag.size());
         return quadBag;
     }
 
@@ -117,7 +116,6 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
-        log.info("Quad edges: " + quadBag.size());
         return quadBag;
     }
 
@@ -138,7 +136,6 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
-        log.info("Quad inners: " + quadBag.size());
         return quadBag;
     }
 
@@ -159,7 +156,6 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> piece > nw.get(),
 
                          epieces, quadBag);
-        log.info("Quad inners: " + quadBag.size());
         return quadBag;
     }
 
@@ -188,7 +184,6 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
-        log.info("Quad clue NWs: " + quadBag.size());
         return quadBag;
     }
 
@@ -217,7 +212,6 @@ public class QuadCreator {
                          free, ROT_ALL, (piece, rot) -> true,
 
                          epieces, quadBag);
-        log.info("Quad clue NEs: " + quadBag.size());
         return quadBag;
     }
 
@@ -247,7 +241,6 @@ public class QuadCreator {
                 free, ROT_ALL, (piece, rot) -> true,
 
                 epieces, quadBag);
-        log.info("Quad clue SEs: " + quadBag.size());
         return quadBag;
     }
 
@@ -277,7 +270,6 @@ public class QuadCreator {
                 clue, clueR, (piece, rot) -> true,
 
                 epieces, quadBag);
-        log.info("Quad clue SWs: " + quadBag.size());
         return quadBag;
     }
 
@@ -307,7 +299,6 @@ public class QuadCreator {
                 free, ROT_ALL, (piece, rot) -> true,
 
                 epieces, quadBag);
-        log.info("Quad clue Cs: " + quadBag.size());
         return quadBag;
     }
 
@@ -320,6 +311,7 @@ public class QuadCreator {
                                         int[] ses, int[] sers, BiPredicate<Integer, Integer> sep,
                                         int[] sws, int[] swrs, BiPredicate<Integer, Integer> swp,
                                         EPieces epieces, QuadBag quadBag) {
+        long startTimeNS = System.nanoTime();
         for (final int nw : nws) {
             for (int nwr: nwrs) {
                 if (!nwp.test(nw, nwr)) {
@@ -383,6 +375,9 @@ public class QuadCreator {
                 }
             }
         }
+        long spendTimeNS = System.nanoTime() - startTimeNS;
+        log.info("Created {} quads for type {} in {}ms: {} quads/s",
+                 quadBag.size(), quadBag.getType(), spendTimeNS/1000000, quadBag.size()*1000000000L/spendTimeNS);
     }
 
     private static void validate(int qpiece, long qedges, int nw, int ne, int se, int sw, int nwr, int ner, int ser, int swr) {

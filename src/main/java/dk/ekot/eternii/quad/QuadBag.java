@@ -433,4 +433,8 @@ public class QuadBag {
     public long[] getQedgesRaw() {
         return qedges.rawLongs();
     }
+    public BAG_TYPE getType() {
+        return bagType;
+    }
 }
+
