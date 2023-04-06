@@ -84,6 +84,79 @@ public class QBits {
     public static final long ROT_SW_MASK = ROT_MASK << ROT_SW_SHIFT;
 
     public static final long COL_MASK = 0b11111L; // 5 bit
+    public static final long MAX_PCOL = 27;
+    public static final long MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
+    public static final long MAX_QCOL_EDGE2 = MAX_QCOL_EDGE1 * MAX_QCOL_EDGE1;
+    public static final long MAX_QCOL_EDGE3 = MAX_QCOL_EDGE2 * MAX_QCOL_EDGE1;
+    public static final long MAX_QCOL_EDGE4 = MAX_QCOL_EDGE3 * MAX_QCOL_EDGE1;
+
+    /**
+     * Calculate a hash based on defined edges in the qedges: n=0b1000, e=0b0100, s=0b0010, w=0b0001.
+     * @param defined   the defined edges.
+     * @param qedges    quad edges containing the plain edges.
+     * @param insideOut if true, the 2 plain edges for each qedge are reversed.
+     * @return a hash for the quedges.
+     */
+    public static long getHash(int defined, long qedges, boolean insideOut) {
+        switch (defined) {
+            case 0b0000: return 0; // No edges = everything matches
+
+            case 0b1000: return insideOut ?
+                    (long) getColInvN(qedges) :
+                    (long) getColN(qedges);
+            case 0b0100: return insideOut ?
+                    (long) getColInvE(qedges) :
+                    (long) getColE(qedges);
+            case 0b0010: return insideOut ?
+                    (long) getColInvS(qedges) :
+                    (long) getColS(qedges);
+            case 0b0001: return insideOut ?
+                    (long) getColInvW(qedges) :
+                    (long) getColW(qedges);
+
+            case 0b1100: return insideOut ?
+                    getColInvN(qedges) * MAX_QCOL_EDGE1 + getColInvE(qedges) :
+                    getColN(qedges) * MAX_QCOL_EDGE1 + getColE(qedges);
+            case 0b0110: return insideOut ?
+                    getColInvE(qedges) * MAX_QCOL_EDGE1 + getColInvS(qedges) :
+                    getColE(qedges) * MAX_QCOL_EDGE1 + getColS(qedges);
+            case 0b0011: return insideOut ?
+                    getColInvS(qedges) * MAX_QCOL_EDGE1 + getColInvW(qedges) :
+                    getColS(qedges) * MAX_QCOL_EDGE1 + getColW(qedges);
+            case 0b1001: return insideOut ?
+                    getColInvW(qedges) * MAX_QCOL_EDGE1 + getColInvN(qedges) :
+                    getColW(qedges) * MAX_QCOL_EDGE1 + getColN(qedges);
+
+            case 0b1010: return insideOut ?
+                    getColInvN(qedges) * MAX_QCOL_EDGE1 + getColInvS(qedges) :
+                    getColN(qedges) * MAX_QCOL_EDGE1 + getColS(qedges);
+            case 0b0101: return insideOut ?
+                    getColInvE(qedges) * MAX_QCOL_EDGE1 + getColInvW(qedges) :
+                    getColE(qedges) * MAX_QCOL_EDGE1 + getColW(qedges);
+
+            case 0b1110: return insideOut ?
+                    getColInvN(qedges) * MAX_QCOL_EDGE2 + getColInvE(qedges) * MAX_QCOL_EDGE1 + getColInvS(qedges) :
+                    getColN(qedges) * MAX_QCOL_EDGE2 + getColE(qedges) * MAX_QCOL_EDGE1 + getColS(qedges);
+            case 0b0111: return insideOut ?
+                    getColInvE(qedges) * MAX_QCOL_EDGE2 + getColInvS(qedges) * MAX_QCOL_EDGE1 + getColInvW(qedges) :
+                    getColE(qedges) * MAX_QCOL_EDGE2 + getColS(qedges) * MAX_QCOL_EDGE1 + getColW(qedges);
+            case 0b1011: return insideOut ?
+                    getColInvS(qedges) * MAX_QCOL_EDGE2 + getColInvW(qedges) * MAX_QCOL_EDGE1 + getColInvN(qedges) :
+                    getColS(qedges) * MAX_QCOL_EDGE2 + getColW(qedges) * MAX_QCOL_EDGE1 + getColN(qedges);
+            case 0b1101: return insideOut ?
+                    getColInvW(qedges) * MAX_QCOL_EDGE2 + getColInvN(qedges) * MAX_QCOL_EDGE1 + getColInvE(qedges) :
+                    getColW(qedges) * MAX_QCOL_EDGE2 + getColN(qedges) * MAX_QCOL_EDGE1 + getColE(qedges);
+
+            case 0b1111: return insideOut ?
+                    getColInvN(qedges) * MAX_QCOL_EDGE3 + getColInvE(qedges) * MAX_QCOL_EDGE2 +
+                    getColInvS(qedges) * MAX_QCOL_EDGE1 + getColInvW(qedges) :
+                    getColN(qedges) * MAX_QCOL_EDGE3 + getColE(qedges) * MAX_QCOL_EDGE2 +
+                    getColS(qedges) * MAX_QCOL_EDGE1 + getColW(qedges);
+            default:
+                throw new IllegalArgumentException(
+                        "The defined mask 0b" + Integer.toBinaryString(defined) + " is not supported");
+        }
+    }
 
     /**
      * @return hash based on which outer edges are set.
@@ -236,10 +309,12 @@ public class QBits {
     }
 
     public static String toStringFull(int qpiece, long qedges) {
-        return   "nw " + ETERNII.toDisplayString(getPieceNW(qpiece), getRotNW(qedges)) +
-               ", ne " + ETERNII.toDisplayString(getPieceNE(qpiece), getRotNE(qedges)) +
-               ", se " + ETERNII.toDisplayString(getPieceSE(qpiece), getRotSW(qedges)) +
-               ", sw " + ETERNII.toDisplayString(getPieceSW(qpiece), getRotSW(qedges));
+        return  ETERNII.toDisplayString(getPieceNW(qpiece), getRotNW(qedges)) + " " +
+                ETERNII.toDisplayString(getPieceNE(qpiece), getRotNE(qedges)) + " " +
+                ETERNII.toDisplayString(getPieceSE(qpiece), getRotSW(qedges)) + " " +
+                ETERNII.toDisplayString(getPieceSW(qpiece), getRotSW(qedges)) + ", pids [" +
+                getPieceNW(qpiece) + ", " + getPieceNE(qpiece) + ", " +
+                getPieceSE(qpiece) + ", " + getPieceSW(qpiece) + "]";
     }
     public static String toStringQPiece(int qpiece) {
         return toString(qpiece, new int[]{8, 8, 8, 8});

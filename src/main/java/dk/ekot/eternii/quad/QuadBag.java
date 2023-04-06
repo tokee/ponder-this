@@ -36,16 +36,10 @@ import java.util.function.Function;
 public class QuadBag {
     private static final Logger log = LoggerFactory.getLogger(QuadBag.class);
 
-    public static final long MAX_PCOL = 27;
-    public static final long MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
-    public static final long MAX_QCOL_EDGE2 = MAX_QCOL_EDGE1 * MAX_QCOL_EDGE1;
-    public static final long MAX_QCOL_EDGE3 = MAX_QCOL_EDGE2 * MAX_QCOL_EDGE1;
-    public static final long MAX_QCOL_EDGE4 = MAX_QCOL_EDGE3 * MAX_QCOL_EDGE1;
-
     private final PieceTracker pieceTracker;
     private final BAG_TYPE bagType;
     // n=0b1000, e=0b0100, s=0b0010, w=0b0001
-    private final QuadMap[] qmaps = new QuadMap[16];
+    private final QuadEdgeMap[] qeMaps = new QuadEdgeMap[16];
 
     public enum BAG_TYPE {
         corner_nw, corner_ne, corner_se, corner_sw, 
@@ -114,19 +108,19 @@ public class QuadBag {
      * The method automatically ignores irrelevant edges, e.g. the north edge if bagType == border_n.
      * @return the quad set for the given defined border colors.
      */
-    public QuadMap getMap(int colN, int colE, int colS, int colW) {
+    public QuadEdgeMap getMap(int colN, int colE, int colS, int colW) {
         return getMapReduced(bagType == BAG_TYPE.border_n || bagType == BAG_TYPE.corner_nw ? -1 : colN,
                              bagType == BAG_TYPE.border_e || bagType == BAG_TYPE.corner_ne ? -1 : colE,
                              bagType == BAG_TYPE.border_s || bagType == BAG_TYPE.corner_se ? -1 : colS,
                              bagType == BAG_TYPE.border_w || bagType == BAG_TYPE.corner_sw ? -1 : colW);
     }
 
-    private QuadMap getMapReduced(int colN, int colE, int colS, int colW) {
+    private QuadEdgeMap getMapReduced(int colN, int colE, int colS, int colW) {
         final int defined = (colN != -1 ? 0b1000 : 0b000) |
                             (colE != -1 ? 0b0100 : 0b000) |
                             (colS != -1 ? 0b0010 : 0b000) |
                             (colW != -1 ? 0b0001 : 0b000);
-        return qmaps[defined];
+        return qeMaps[defined];
     }
 
     /**
@@ -376,52 +370,35 @@ public class QuadBag {
         // TODO: Ensure trimmed growables!
         log.info("Generating sets for QuadBag of type " + bagType);
 
-        generateSet(0b1000, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvN(qedges));
-        generateSet(0b0100, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvE(qedges));
-        generateSet(0b0010, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvS(qedges));
-        generateSet(0b0001, MAX_QCOL_EDGE1, qedges -> (long) QBits.getColInvW(qedges));
+        generateEdgeMap(0b1000, QBits.MAX_QCOL_EDGE1);
+        generateEdgeMap(0b0100, QBits.MAX_QCOL_EDGE1);
+        generateEdgeMap(0b0010, QBits.MAX_QCOL_EDGE1);
+        generateEdgeMap(0b0001, QBits.MAX_QCOL_EDGE1);
 
-        generateSet(0b1100, MAX_QCOL_EDGE2,
-                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvE(qedges));
-        generateSet(0b0110, MAX_QCOL_EDGE2,
-                    qedges -> QBits.getColInvE(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvS(qedges));
-        generateSet(0b0011, MAX_QCOL_EDGE2,
-                    qedges -> QBits.getColInvS(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvW(qedges));
-        generateSet(0b1001, MAX_QCOL_EDGE2,
-                    qedges -> QBits.getColInvW(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvN(qedges));
+        generateEdgeMap(0b1100, QBits.MAX_QCOL_EDGE2);
+        generateEdgeMap(0b0110, QBits.MAX_QCOL_EDGE2);
+        generateEdgeMap(0b0011, QBits.MAX_QCOL_EDGE2);
+        generateEdgeMap(0b1001, QBits.MAX_QCOL_EDGE2);
 
-        generateSet(0b1010, MAX_QCOL_EDGE2,
-                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvS(qedges));
-        generateSet(0b0101, MAX_QCOL_EDGE2,
-                    qedges -> QBits.getColInvE(qedges)*MAX_QCOL_EDGE1 + QBits.getColInvW(qedges));
+        generateEdgeMap(0b1010, QBits.MAX_QCOL_EDGE2);
+        generateEdgeMap(0b0101, QBits.MAX_QCOL_EDGE2);
 
-        generateSet(0b1110, MAX_QCOL_EDGE3,
-                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE2 +
-                              QBits.getColInvE(qedges)*MAX_QCOL_EDGE1 +
-                              QBits.getColInvS(qedges));
-        generateSet(0b0111, MAX_QCOL_EDGE3,
-                    qedges -> QBits.getColInvE(qedges)*MAX_QCOL_EDGE2 +
-                              QBits.getColInvS(qedges)*MAX_QCOL_EDGE1 +
-                              QBits.getColInvW(qedges));
-        generateSet(0b1011, MAX_QCOL_EDGE3,
-                    qedges -> QBits.getColInvS(qedges)*MAX_QCOL_EDGE2 +
-                              QBits.getColInvW(qedges)*MAX_QCOL_EDGE1 +
-                              QBits.getColInvN(qedges));
-        generateSet(0b1101, MAX_QCOL_EDGE3,
-                    qedges -> QBits.getColInvW(qedges)*MAX_QCOL_EDGE2 +
-                              QBits.getColInvN(qedges)*MAX_QCOL_EDGE1 +
-                              QBits.getColInvE(qedges));
+        generateEdgeMap(0b1110, QBits.MAX_QCOL_EDGE3);
+        generateEdgeMap(0b0111, QBits.MAX_QCOL_EDGE3);
+        generateEdgeMap(0b1011, QBits.MAX_QCOL_EDGE3);
+        generateEdgeMap(0b1101, QBits.MAX_QCOL_EDGE3);
 
-        generateSet(0b1111, MAX_QCOL_EDGE4,
-                    qedges -> QBits.getColInvN(qedges)*MAX_QCOL_EDGE3 +
-                              QBits.getColInvE(qedges)*MAX_QCOL_EDGE2 +
-                              QBits.getColInvS(qedges)*MAX_QCOL_EDGE1 +
-                              QBits.getColInvW(qedges));
+        generateEdgeMap(0b1111, QBits.MAX_QCOL_EDGE4);
     }
 
-    private void generateSet(int wantedEdges, long maxHash, Function<Long, Long> hasher) {
+    private void generateEdgeMap(int wantedEdges, long maxHash) {
+        if (wantedEdges == 0b1111) {
+            log.warn("Skipping set for edges 0b1111 for now. Will probably be enabled later");
+            // TODO: enable set for 0b1111
+        }
+        Function<Long, Long> hasher = qedges -> QBits.getHash(wantedEdges, qedges, true);
         if ((bagType.variableEdges() & wantedEdges) == wantedEdges) {
-            qmaps[wantedEdges] = QuadMapFactory.generateMap(this, maxHash, hasher);
+            qeMaps[wantedEdges] = QuadMapFactory.generateMap(this, maxHash, hasher);
         }
     }
 
@@ -434,6 +411,26 @@ public class QuadBag {
     }
     public BAG_TYPE getType() {
         return bagType;
+    }
+
+    /**
+     * Get the map suitable for the surrounding set fields.
+     * If a surrounding fields is an outer board edge (grey), its value is ignored.
+     */
+    public QuadEdgeMap getQuadEdgeMap(boolean isFilledNW, boolean isFilledNE,
+                                      boolean isFilledSE, boolean isFilledSW) {
+        return getQuadEdgeMap((isFilledNW ? 0b1000 : 0) |(isFilledNE ? 0b0100 : 0) |
+                              (isFilledSE ? 0b0010 : 0) |(isFilledSW ? 0b0001 : 0));
+    }
+
+    /**
+     * Get the map suitable for the surrounding set fields.
+     * If a surrounding fields is an outer board edge (grey), its value is ignored.
+     * @param neighbours n=0b1000, e=0b0100, s=0b0010, w=0b0001.
+     */
+    public QuadEdgeMap getQuadEdgeMap(int neighbours) {
+        // No check for null. Callers are expected never to ask for non-existing maps
+        return qeMaps[bagType.variableEdges() & neighbours];
     }
 }
 
