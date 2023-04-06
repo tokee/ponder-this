@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 /**
  * Holds Quads, packed as ints & longs as defined in {@link QBits}.
@@ -33,13 +34,14 @@ import java.util.function.Function;
  * <p>
  * Quad availability is controlled by {@link #existing} which is NOT shared between threads.
  */
-public class QuadBag {
+public class QuadBag implements QuadHolder {
     private static final Logger log = LoggerFactory.getLogger(QuadBag.class);
 
     private final PieceTracker pieceTracker;
     private final BAG_TYPE bagType;
     // n=0b1000, e=0b0100, s=0b0010, w=0b0001
     private final QuadEdgeMap[] qeMaps = new QuadEdgeMap[16];
+
 
     public enum BAG_TYPE {
         corner_nw, corner_ne, corner_se, corner_sw, 
@@ -80,8 +82,11 @@ public class QuadBag {
 
     private GrowableInts qpieces;
     private GrowableLongs qedges;
+    // TODO: Switch to stateID->bitmap Map-based cache with multiple snapshots
     private Bitmap snapshot = null;
     private Bitmap existing;
+    private long existingStateID = -1;
+    private int existingAvailable = -1;
 
     public QuadBag(PieceTracker pieceTracker, BAG_TYPE bagType) {
         this.pieceTracker = pieceTracker;
@@ -98,6 +103,21 @@ public class QuadBag {
         this.qpieces = qpieces;
         this.qedges = qedges;
         this.existing = existing;
+    }
+
+    @Override
+    public IntStream getAvailableQuadIDs() {
+        validateAvailability();
+        if (available() == 0) {
+            throw new IllegalStateException("No pieces available in quad bag " + bagType);
+        }
+        return existing.getSetIndicesStream();
+    }
+
+    @Override
+    public boolean isAvailable(int quadID) {
+        validateAvailability();
+        return existing.get(quadID);
     }
 
     /**
@@ -124,11 +144,12 @@ public class QuadBag {
     }
 
     /**
-     * Trim the holding structures down to size, without any room for further quads.
+     * Trim the holding structures down to size modulo 64, without any room for further quads.
      */
     public QuadBag trim() {
-        qpieces = qpieces.trimCopy();
-        qedges = qedges.trimCopy();
+        qpieces = qpieces.trimCopyAlign(64);
+        qedges = qedges.trimCopyAlign(64);
+
         //verifyUnique();
         generateSets();
         return this;
@@ -158,15 +179,28 @@ public class QuadBag {
     public void addQuad(int qpiece, long qedges) {
         qpieces.add(qpiece);
         this.qedges.add(qedges);
-        existing.set(size++);
+        existing.set(size++); // Extend existing
+        existingStateID = -1; // Invalidate existing
 //        if (c++ < 4) {
 //            System.out.println("Add " + QBits.toStringFull(qpiece, qedges));
 //        }
     }
 //    int c = 0;
 
+    /**
+     * @return the number of all quads, takes as well as free.
+     */
     public int size() {
         return size;
+    }
+
+    /**
+     * @return the number of free/available quads based on masking.
+     */
+    @Override
+    public int available() {
+        validateAvailability(); // If already done this is a null op
+        return existingAvailable;
     }
 
     /**
@@ -229,34 +263,17 @@ public class QuadBag {
         snapshot.copy(existing);
     }
 
-    public void recalculateQPieces() {
-        recalculateQPieces(pieceTracker.pieceIDByteMap, 0, calcBlock(qedges.size()));
-    }
+    public void validateAvailability() {
+        if (existingStateID == pieceTracker.getStateID()) {
+            log.info("validateAvailability for {} had matching statedID={}", bagType, existingStateID);
+            return;
+        }
 
-    public void recalculateQPiecesParallel() {
-        final int segmentBlocks = 512;
-        int endBlock = calcBlock(qedges.size());
-        int segments = endBlock/segmentBlocks;
-        if (segments*segmentBlocks < endBlock) {
-            ++segments;
-        }
-        int[] startBlocks = new int[segments+1];
-        for (int i = 0 ; i < segments ; i++) {
-            startBlocks[i] = i*segmentBlocks;
-        }
-        final int lastStartBlock = startBlocks[segments-1];
-        Arrays.stream(startBlocks).parallel().forEach(startBlock -> {
-            int localEndBlock = startBlock == lastStartBlock ? endBlock+1 : startBlock+segmentBlocks;
-            recalculateQPieces(pieceTracker.pieceIDByteMap, startBlock, localEndBlock);
-        });
-    }
-
-    private int calcBlock(int pos) {
-        int blocks = pos >>> 6;
-        if (blocks << 6 < pos) {
-            return blocks+1;
-        }
-        return blocks;
+        validateAvailability(pieceTracker.pieceIDByteMap, 0, calcBlock(qedges.size()));
+        existingStateID = pieceTracker.getStateID();
+        existingAvailable = existing.cardinality();
+        log.info("validateAvailability for {} showed {}/{} quads available",
+                 bagType, available(), size());
     }
 
     /**
@@ -266,22 +283,25 @@ public class QuadBag {
      * @param startBlock first block (of 64 pieceID bits), inclusive.
      * @param endBlock last block (of 64 pieceID bits), exclusive.
      */
-    private void recalculateQPieces(byte[] pieceMask, int startBlock, int endBlock) {
+    private void validateAvailability(byte[] pieceMask, int startBlock, int endBlock) {
         long[] blocks = existing.getBacking();
         for (int blockIndex = startBlock ; blockIndex < endBlock ; blockIndex++) {
             long block = 0L;
             for (int i = 0 ; i < 64 ; i++) {
+                block = block << 1;
                 int id = (blockIndex << 6) + i;
                 final int pieceIDs = qpieces.get(id);
-                // TODO: Sanity check this hack. Why should it sum to exactly 4?
                 block |= (pieceMask[pieceIDs & 0xFF] +
                           pieceMask[(pieceIDs >> 8) & 0xFF] +
                           pieceMask[(pieceIDs >> 16) & 0xFF] +
                           pieceMask[(pieceIDs >> 24) & 0xFF]) >> 2; // 4 -> 1
-                block = block << 1;
             }
             blocks[blockIndex] = block;
         }
+
+        // Last block might be padded with invalids to align to longs
+        blocks[endBlock-1] &= -1L << (qpieces.backingArraySize()-qpieces.size());
+
 /*        // Last block might not be full
         long block = 0;
         for (int i = 0 ; i < 64 ; i++) {
@@ -311,6 +331,34 @@ public class QuadBag {
             }
         } */
     }
+
+    // Experimental. Works fine but maybe better to keep the full stack single threaded and use multiple stacks?
+    private void recalculateQPiecesParallel() {
+        final int segmentBlocks = 512;
+        int endBlock = calcBlock(qedges.size());
+        int segments = endBlock/segmentBlocks;
+        if (segments*segmentBlocks < endBlock) {
+            ++segments;
+        }
+        int[] startBlocks = new int[segments+1];
+        for (int i = 0 ; i < segments ; i++) {
+            startBlocks[i] = i*segmentBlocks;
+        }
+        final int lastStartBlock = startBlocks[segments-1];
+        Arrays.stream(startBlocks).parallel().forEach(startBlock -> {
+            int localEndBlock = startBlock == lastStartBlock ? endBlock+1 : startBlock+segmentBlocks;
+            validateAvailability(pieceTracker.pieceIDByteMap, startBlock, localEndBlock);
+        });
+    }
+
+    private int calcBlock(int pos) {
+        int blocks = pos >>> 6;
+        if (blocks << 6 < pos) {
+            return blocks+1;
+        }
+        return blocks;
+    }
+
 
     /**
      * Creates a new QuadBag from this by rotating all pieces 90 degrees clockwise.
@@ -367,9 +415,15 @@ public class QuadBag {
     }
 
     public void generateSets() {
-        // TODO: Ensure trimmed growables!
+        if (bagType == BAG_TYPE.inner) {
+            log.warn("Skipping sets for bagType "+ bagType);
+            qeMaps[0b000] = new QuadMapAll(this); // Okay, except this cheap one
+            return;
+            // TODO: Enable this
+        }
         log.info("Generating sets for QuadBag of type " + bagType);
-
+        qeMaps[0b000] = new QuadMapAll(this);
+        
         generateEdgeMap(0b1000, QBits.MAX_QCOL_EDGE1);
         generateEdgeMap(0b0100, QBits.MAX_QCOL_EDGE1);
         generateEdgeMap(0b0010, QBits.MAX_QCOL_EDGE1);
@@ -392,14 +446,16 @@ public class QuadBag {
     }
 
     private void generateEdgeMap(int wantedEdges, long maxHash) {
-        if (wantedEdges == 0b1111) {
-            log.warn("Skipping set for edges 0b1111 for now. Will probably be enabled later");
-            // TODO: enable set for 0b1111
+        if (Integer.bitCount(wantedEdges) >= 3) {
+            // TODO: enable
+            log.warn("Skipping set for edges " + QBits.toStringEdges(wantedEdges) + " for now. Will probably be enabled later");
+            return;
         }
         Function<Long, Long> hasher = qedges -> QBits.getHash(wantedEdges, qedges, true);
         if ((bagType.variableEdges() & wantedEdges) == wantedEdges) {
-            qeMaps[wantedEdges] = QuadMapFactory.generateMap(this, maxHash, hasher);
+            qeMaps[wantedEdges] = QuadMapFactory.generateMap(this, maxHash, hasher, wantedEdges);
         }
+        log.info("Generated map for " + bagType + " edges " + QBits.toStringEdges(wantedEdges));
     }
 
     public int[] getQpiecesRaw() {

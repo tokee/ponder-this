@@ -30,12 +30,14 @@ import java.util.stream.IntStream;
 public class QuadMapHash implements QuadEdgeMap {
     private static final Logger log = LoggerFactory.getLogger(QuadMapHash.class);
 
+    private final int edges;
     private final QuadBag quadBag;
     // (hash, quadIDs)
     private final Map<Long, int[]> quadMap = new HashMap<>();
 
-    public QuadMapHash(QuadBag quadBag, Function<Long, Long> hasher) {
+    public QuadMapHash(QuadBag quadBag, Function<Long, Long> hasher, int edges) {
         this.quadBag = quadBag;
+        this.edges = edges;
         fillMap(hasher);
     }
 
@@ -58,13 +60,19 @@ public class QuadMapHash implements QuadEdgeMap {
     }
 
     @Override
-    public IntStream getQuadIDs(long hash) {
+    public IntStream getAvailableQuadIDs(long hash) {
         // TODO: Can the array from the quadMap be null?
-        return Arrays.stream(quadMap.get(hash));
+        int[] quadIDs = quadMap.get(hash);
+        if (quadIDs == null) {
+            throw new IllegalArgumentException(
+                    "Requested auth IDs for hash " + hash + " from quad map for edges " +
+                    QBits.toStringQEdges(edges) + " but got null");
+        }
+        return Arrays.stream(quadIDs).filter(quadBag::isAvailable);
     }
 
     @Override
-    public int availableQuads() {
-        return 0;
+    public int available(long hash) {
+        return quadMap.get(hash).length;
     }
 }

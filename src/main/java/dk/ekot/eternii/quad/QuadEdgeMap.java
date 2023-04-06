@@ -28,7 +28,7 @@ public interface QuadEdgeMap {
     /**
      * @return IDs for free Quads in the abstract set.
      */
-    IntStream getQuadIDs(long hash);
+    IntStream getAvailableQuadIDs(long hash);
 
     /**
      * Increment need.
@@ -50,15 +50,15 @@ public interface QuadEdgeMap {
      * Getting the size might mean a recalculation of the mask.
      * @return the number of remaining Quads.
      */
-    int availableQuads();
+    int available(long hash);
 
     /**
      * needsSatisfied is not a guarantee as some quads might share pieces.
-     * Checking involves calling {@link #availableQuads()} which might mean a recalculation of the mask.
+     * Checking involves calling {@link #available(long)} which might mean a recalculation of the mask.
      * @return true if needs are less than size.
      */
-    default boolean needsSatisfied() {
-        return need.get() <= availableQuads();
+    default boolean needsSatisfied(long hash) {
+        return need.get() <= available(hash);
     }
 
 }

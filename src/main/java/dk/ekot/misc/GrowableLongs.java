@@ -68,4 +68,16 @@ public class GrowableLongs {
         copy.pos = pos;
         return copy;
     }
+
+    /**
+     * @return a deep copy of this GrowableLong with the internal structure trimmed down to {@link #size()}
+     * rounded up to align with blockSize.
+     */
+    public GrowableLongs trimCopyAlign(int blockSize) {
+        int newSize = pos % blockSize == 0 ? pos : pos + (blockSize - pos % blockSize);
+        GrowableLongs copy = new GrowableLongs(newSize);
+        System.arraycopy(longs, 0, copy.longs, 0, pos);
+        copy.pos = pos;
+        return copy;
+    }
 }

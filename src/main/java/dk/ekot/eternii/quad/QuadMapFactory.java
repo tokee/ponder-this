@@ -30,10 +30,10 @@ public class QuadMapFactory {
     public static final int MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
 
     public static QuadEdgeMap generateMap(
-            QuadBag quadBag, long maxHash, Function<Long, Long> hasher) {
+            QuadBag quadBag, long maxHash, Function<Long, Long> hasher, int edges) {
 //        dumpStats(quadBag, maxHash, hasher);
         // TODO: Introduce optimized maps, consider replacing 0b1111 with 0b111 and an extra check
-        return new QuadMapHash(quadBag, hasher);
+        return new QuadMapHash(quadBag, hasher, edges);
     }
 
     /**

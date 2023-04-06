@@ -3,12 +3,16 @@ package dk.ekot.misc;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Spliterators;
+import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 
 /**
  * Specialized Bitmap (the specialized part is the whole-bitmap shift).
  */
-public class Bitmap {
+public class Bitmap implements Iterable<Integer> {
     public static final boolean DEFAULT_ENABLE_SHIFT_CACHE = false;
 
     long[] backing;
@@ -298,5 +302,38 @@ public class Bitmap {
         long[] copy = new long[backing.length];
         System.arraycopy(backing, 0, copy, 0, backing.length);
         return copy;
+    }
+
+    /**
+     * @return a stream with the indexes for set bits, in increasing order.
+     */
+    // TODO: Create optimized atomic version
+    public IntStream getSetIndicesStream() {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator(), 0), false).
+                mapToInt(Integer::valueOf);
+    }
+
+    /**
+     * @return an iterator over the indexes for set bits, in increasing order.
+     */
+    @Override
+    public Iterator<Integer> iterator() {
+        return new Iterator<Integer>() {
+            private int setIndex = thisOrNext(0);
+            @Override
+            public boolean hasNext() {
+                return setIndex != Integer.MAX_VALUE;
+            }
+
+            @Override
+            public Integer next() {
+                if (!hasNext()) {
+                    throw new ArrayIndexOutOfBoundsException("No more elements");
+                }
+                int current = setIndex;
+                setIndex = thisOrNext(setIndex+1);
+                return current;
+            }
+        };
     }
 }

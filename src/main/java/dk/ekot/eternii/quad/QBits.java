@@ -14,6 +14,7 @@
  */
 package dk.ekot.eternii.quad;
 
+import dk.ekot.eternii.EBits;
 import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,7 +178,7 @@ public class QBits {
                     getColS(qedges) * MAX_QCOL_EDGE1 + getColW(qedges);
             default:
                 throw new IllegalArgumentException(
-                        "The defined mask 0b" + Integer.toBinaryString(defined) + " is not supported");
+                        "The defined mask " + QBits.toStringQEdges(defined) + " is not supported");
         }
     }
 
@@ -364,4 +365,11 @@ public class QBits {
         return form + bin;
     }
 
+    public static String toStringEdges(int edges) {
+        String res = Integer.toBinaryString(edges);
+        while (res.length() < 4) {
+            res = "0" + res;
+        }
+        return "0b" + res;
+    }
 }

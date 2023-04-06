@@ -14,10 +14,14 @@
  */
 package dk.ekot.eternii.quad;
 
+import junit.framework.Assert;
 import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.util.Locale;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class QuadBagTest extends TestCase {
 
@@ -36,10 +40,41 @@ public class QuadBagTest extends TestCase {
         for (int run = 1 ; run <= runs ; run++) {
             r.nextBytes(pm.pieceIDByteMap);
             long recalcTime = -System.nanoTime();
-            qb.recalculateQPieces();
+            qb.validateAvailability();
             recalcTime += System.nanoTime();
             System.out.printf(Locale.ROOT, "run=%2d, time=%6.2f ms, %,10d quads/ms\n",
                               run, recalcTime/1000000.0, quads*1000000L/recalcTime);
         }
+    }
+
+    public void testAvailableNW() {
+        final int[] QPIECES = new int[] {
+                277532,
+                277529,
+                277530,
+                277789,
+                277785
+        };
+        final long[] QEDGES = new long[] {
+                214404807560192L,
+                227598950205440L,
+                227598950206464L,
+                214404807595008L,
+                227598951450624L
+        };
+        PieceTracker tracker = new PieceTracker();
+        QuadBag bag = new QuadBag(tracker, QuadBag.BAG_TYPE.inner);
+        for (int i = 0 ; i < QPIECES.length ; i++) {
+            bag.addQuad(QPIECES[i], QEDGES[i]);
+        }
+        bag.trim();
+
+        Assert.assertEquals("There should be the expected number of total quads",
+                            QPIECES.length, bag.size());
+        Assert.assertEquals("There should be the expected number of available quads",
+                            QPIECES.length, bag.available());
+        AtomicInteger counter = new AtomicInteger(0);
+        bag.getAvailableQuadIDs().forEach(quadID -> assertEquals(
+                "Extracted ID should match", counter.getAndIncrement(), quadID));
     }
 }

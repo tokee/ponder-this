@@ -45,6 +45,9 @@ public class GrowableInts {
     public int size() {
         return pos;
     }
+    public int backingArraySize() {
+        return ints.length;
+    }
 
     /**
      * @return truncated version.
@@ -63,6 +66,18 @@ public class GrowableInts {
      */
     public GrowableInts trimCopy() {
         GrowableInts copy = new GrowableInts(pos);
+        System.arraycopy(ints, 0, copy.ints, 0, pos);
+        copy.pos = pos;
+        return copy;
+    }
+
+    /**
+     * @return a deep copy of this GrowableInts with the internal structure trimmed down to {@link #size()}
+     * rounded up to align with blockSize.
+     */
+    public GrowableInts trimCopyAlign(int blockSize) {
+        int newSize = pos % blockSize == 0 ? pos : pos + (blockSize - pos % blockSize);
+        GrowableInts copy = new GrowableInts(newSize);
         System.arraycopy(ints, 0, copy.ints, 0, pos);
         copy.pos = pos;
         return copy;

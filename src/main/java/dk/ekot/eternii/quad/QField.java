@@ -77,13 +77,13 @@ class QField {
      *
      * @return true if not free or set.needsSatisfied().
      */
-    public boolean isOK() {
+    public boolean needsSatisfied() {
         // TODO: Ensure that needsSatisfied is auto-checking for changes
-        return !free || (edgeMap != null && edgeMap.needsSatisfied());
+        return !free || (edgeMap != null && edgeMap.needsSatisfied(edgeHash));
     }
 
     public IntStream getAvailableQuadIDs() {
-        return edgeMap.getQuadIDs(edgeHash);
+        return edgeMap.getAvailableQuadIDs(edgeHash);
     }
 
     public QuadBag getBag() {
@@ -139,7 +139,13 @@ class QField {
      * @param edgeW the W edge or -1 if not available.
      */
     public void autoSelectEdgeMap(int edgeN, int edgeE, int edgeS, int edgeW) {
-        setEdgeMap(quadBag.getQuadEdgeMap(edgeN != -1, edgeE != -1, edgeS != -1, edgeW != -1));
+        try {
+            setEdgeMap(quadBag.getQuadEdgeMap(edgeN != -1, edgeE != -1, edgeS != -1, edgeW != -1));
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Exception auto requesting and setting edgeMap for quadBag type " + quadBag.getType() +
+                    " with edges " + edgeN + ", " + edgeE + ", " + edgeS + ", " + edgeE, e);
+        }
         edgeHash = QBits.getHash(edgeN, edgeE, edgeS, edgeW, false);
     }
 }

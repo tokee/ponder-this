@@ -24,11 +24,10 @@ public class QBoardTest extends TestCase {
         QBoard board = new QBoard();
         BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
 
-        QField f0_0 = board.getField(0, 0);
-        board.placePiece(f0_0.getX(), f0_0.getY(), f0_0.getAvailableQuadIDs().findFirst().getAsInt());
-
-        QField f1_1 = board.getField(1, 1);
-        board.placePiece(f1_1.getX(), f1_1.getY(), f1_1.getAvailableQuadIDs().findFirst().getAsInt());
+        placeFirstAvailable(board, 0, 0);
+        placeFirstAvailable(board, 1, 1);
+        placeFirstAvailable(board, 0, 1);
+        placeFirstAvailable(board, 1, 0);
 
         try {
             Thread.sleep(1000000000L);
@@ -36,5 +35,10 @@ public class QBoardTest extends TestCase {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private void placeFirstAvailable(QBoard board, int x, int y) {
+        QField field = board.getField(x, y);
+        board.placePiece(field.getX(), field.getY(), field.getAvailableQuadIDs().findFirst().getAsInt());
     }
 }
