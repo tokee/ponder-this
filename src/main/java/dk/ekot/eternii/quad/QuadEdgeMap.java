@@ -22,7 +22,7 @@ import java.util.stream.IntStream;
  * <p>
  * The sets are abstract and interaction goes through the map.
  */
-public interface QuadMap {
+public interface QuadEdgeMap {
     AtomicInteger need = new AtomicInteger(0);
 
     /**

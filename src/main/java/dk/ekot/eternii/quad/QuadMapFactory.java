@@ -29,13 +29,16 @@ public class QuadMapFactory {
     public static final int MAX_PCOL = 27;
     public static final int MAX_QCOL_EDGE1 = MAX_PCOL * MAX_PCOL;
 
-    public static QuadMap generateMap(
+    public static QuadEdgeMap generateMap(
             QuadBag quadBag, long maxHash, Function<Long, Long> hasher) {
-        dumpStats(quadBag, maxHash, hasher);
+//        dumpStats(quadBag, maxHash, hasher);
         // TODO: Introduce optimized maps, consider replacing 0b1111 with 0b111 and an extra check
         return new QuadMapHash(quadBag, hasher);
     }
 
+    /**
+     * Calculate and output stats for maps.
+     */
     private static void dumpStats(QuadBag quadBag, long maxHash, Function<Long, Long> hasher) {
         UniqueCounter counter;
         if (maxHash <= MAX_QCOL_EDGE1) { // Single + double side

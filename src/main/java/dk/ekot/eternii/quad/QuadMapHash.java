@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
  * Basic HashMap-based QuadMap.
  * Qua standard Java HashMap it works best with low to medium keys and medium to large array values.
  */
-public class QuadMapHash implements QuadMap {
+public class QuadMapHash implements QuadEdgeMap {
     private static final Logger log = LoggerFactory.getLogger(QuadMapHash.class);
 
     private final QuadBag quadBag;

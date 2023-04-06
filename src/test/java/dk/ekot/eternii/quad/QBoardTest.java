@@ -19,11 +19,16 @@ import junit.framework.TestCase;
  */
 public class QBoardTest extends TestCase {
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     public void testVisualisation() {
         QBoard board = new QBoard();
         BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
 
-        board.testMoveAll();
+        QField f0_0 = board.getField(0, 0);
+        board.placePiece(f0_0.getX(), f0_0.getY(), f0_0.getAvailableQuadIDs().findFirst().getAsInt());
+
+        QField f1_1 = board.getField(1, 1);
+        board.placePiece(f1_1.getX(), f1_1.getY(), f1_1.getAvailableQuadIDs().findFirst().getAsInt());
 
         try {
             Thread.sleep(1000000000L);

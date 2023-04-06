@@ -91,6 +91,29 @@ public class QBits {
     public static final long MAX_QCOL_EDGE4 = MAX_QCOL_EDGE3 * MAX_QCOL_EDGE1;
 
     /**
+     * Calculate as hash based on the defined edges.
+     * @param qedgeN N edge or -1 if not defined.
+     * @param qedgeE E edge or -1 if not defined.
+     * @param qedgeS S edge or -1 if not defined.
+     * @param qedgeW W edge or -1 if not defined.
+     * @param insideOut if true, the 2 plain edges for each qedge are reversed.
+     * @return a hash for the qedges.
+     */
+    public static long getHash(int qedgeN, int qedgeE, int qedgeS, int qedgeW, boolean insideOut) {
+        int defined =
+                (qedgeN == -1 ? 0 : 0b1000) |
+                (qedgeE == -1 ? 0 : 0b0100) |
+                (qedgeS == -1 ? 0 : 0b001) |
+                (qedgeW == -1 ? 0 : 0b0001);
+        long qedgesSansRot =
+                (((long)qedgeN) << 30) |
+                (((long)qedgeN) << 20) |
+                (((long)qedgeN) << 10) |
+                ((long)qedgeN);
+        return getHash(defined, qedgesSansRot, insideOut);
+    }
+
+    /**
      * Calculate a hash based on defined edges in the qedges: n=0b1000, e=0b0100, s=0b0010, w=0b0001.
      * @param defined   the defined edges.
      * @param qedges    quad edges containing the plain edges.

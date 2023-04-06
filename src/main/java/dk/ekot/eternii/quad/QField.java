@@ -14,6 +14,8 @@
  */
 package dk.ekot.eternii.quad;
 
+import java.util.stream.IntStream;
+
 /**
  * A field on a QBoard. It is static and always uses the same Quadbag.
  */
@@ -23,7 +25,8 @@ class QField {
     private final int y;
 
     private boolean free = true;
-    private QuadSet set = null;
+    private QuadEdgeMap edgeMap = null;
+    private long edgeHash;
     // If free == false below
     private int qpiece = 0;
     private long qedges = 0;
@@ -41,10 +44,10 @@ class QField {
      * decrements needs in set (if available)
      */
     public void setQuad(int quadID) {
-        if (free && set != null) {
-            set.decNeed();
+        if (free && edgeMap != null) {
+            edgeMap.decNeed();
         }
-        set = null;
+        edgeMap = null;
 
         this.qpiece = quadBag.getQPiece(quadID);
         this.qedges = quadBag.getQEdges(quadID);
@@ -53,18 +56,18 @@ class QField {
     }
 
     /**
-     * Setting the QField to free automatically
+     *
      * <p>
      * sets free to true
      * increments needs in set
      * decrements needs in previous set (if available)
      */
-    public void setFree(QuadSet set) {
-        if (free && this.set != null) {
-            this.set.decNeed();
+    protected void setEdgeMap(QuadEdgeMap edgeMap) {
+        if (free && this.edgeMap != null) {
+            this.edgeMap.decNeed();
         }
-        this.set = set;
-        set.incNeed();
+        this.edgeMap = edgeMap;
+        edgeMap.incNeed();
 
         free = true;
     }
@@ -76,7 +79,11 @@ class QField {
      */
     public boolean isOK() {
         // TODO: Ensure that needsSatisfied is auto-checking for changes
-        return !free || (set != null && set.needsSatisfied());
+        return !free || (edgeMap != null && edgeMap.needsSatisfied());
+    }
+
+    public IntStream getAvailableQuadIDs() {
+        return edgeMap.getQuadIDs(edgeHash);
     }
 
     public QuadBag getBag() {
@@ -97,5 +104,42 @@ class QField {
 
     public long getQEdges() {
         return qedges;
+    }
+
+    /**
+     * @return -1 if the field is free, else the N edge.
+     */
+    public int getEdgeIfDefinedN() {
+        return free ? -1 : QBits.getColN(qedges);
+    }
+    /**
+     * @return -1 if the field is free, else the N edge.
+     */
+    public int getEdgeIfDefinedE() {
+        return free ? -1 : QBits.getColE(qedges);
+    }
+    /**
+     * @return -1 if the field is free, else the N edge.
+     */
+    public int getEdgeIfDefinedS() {
+        return free ? -1 : QBits.getColS(qedges);
+    }
+    /**
+     * @return -1 if the field is free, else the N edge.
+     */
+    public int getEdgeIfDefinedW() {
+        return free ? -1 : QBits.getColW(qedges);
+    }
+
+    /**
+     * Based on the colors and availability of the surrounding edges, choose and set the fitting bag.
+     * @param edgeN the N edge or -1 if not available.
+     * @param edgeE the E edge or -1 if not available.
+     * @param edgeS the S edge or -1 if not available.
+     * @param edgeW the W edge or -1 if not available.
+     */
+    public void autoSelectEdgeMap(int edgeN, int edgeE, int edgeS, int edgeW) {
+        setEdgeMap(quadBag.getQuadEdgeMap(edgeN != -1, edgeE != -1, edgeS != -1, edgeW != -1));
+        edgeHash = QBits.getHash(edgeN, edgeE, edgeS, edgeW, false);
     }
 }
