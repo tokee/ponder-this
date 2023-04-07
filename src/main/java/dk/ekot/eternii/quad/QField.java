@@ -14,12 +14,17 @@
  */
 package dk.ekot.eternii.quad;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.stream.IntStream;
 
 /**
  * A field on a QBoard. It is static and always uses the same Quadbag.
  */
 class QField {
+    private static final Logger log = LoggerFactory.getLogger(QField.class);
+
     private final QuadBag quadBag;
     private final int x;
     private final int y;
@@ -78,6 +83,7 @@ class QField {
      * @return true if not free or set.needsSatisfied().
      */
     public boolean needsSatisfied() {
+        //log.info("Checking needs satisfied for " + this);
         // TODO: Ensure that needsSatisfied is auto-checking for changes
         return !free || (edgeMap != null && edgeMap.needsSatisfied(edgeHash));
     }
@@ -140,12 +146,27 @@ class QField {
      */
     public void autoSelectEdgeMap(int edgeN, int edgeE, int edgeS, int edgeW) {
         try {
-            setEdgeMap(quadBag.getQuadEdgeMap(edgeN != -1, edgeE != -1, edgeS != -1, edgeW != -1));
+            QuadEdgeMap edgeMap = quadBag.getQuadEdgeMap(edgeN != -1, edgeE != -1, edgeS != -1, edgeW != -1);
+            if (edgeMap == null) {
+                // TODO: Elevate this to error or Exception
+                log.warn("Got edgeMap == null for quadBag type {} with position ({}, {}) " +
+                         "with edges {}, {}, {}, {}. Probably due to a temporary disabling of edgeMap generation",
+                         quadBag.getType(), getX(), getY(), edgeN, edgeE, edgeS, edgeW);
+            } else {
+                setEdgeMap(edgeMap);
+            }
         } catch (Exception e) {
             throw new IllegalStateException(
                     "Exception auto requesting and setting edgeMap for quadBag type " + quadBag.getType() +
-                    " with edges " + edgeN + ", " + edgeE + ", " + edgeS + ", " + edgeE, e);
+                    " with position (" + getX() + ", " + getY() + 
+                    ") with edges " + edgeN + ", " + edgeE + ", " + edgeS + ", " + edgeW, e);
         }
         edgeHash = QBits.getHash(edgeN, edgeE, edgeS, edgeW, false);
     }
+
+    @Override
+    public String toString() {
+        return "QField(" + x + ", " + y + ", quad=" + !free + ")";
+    }
+
 }

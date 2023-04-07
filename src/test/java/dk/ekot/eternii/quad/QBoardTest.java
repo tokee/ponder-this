@@ -2,6 +2,8 @@ package dk.ekot.eternii.quad;
 
 import dk.ekot.eternii.BoardVisualiser;
 import junit.framework.TestCase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,16 +20,20 @@ import junit.framework.TestCase;
  *
  */
 public class QBoardTest extends TestCase {
+    private static final Logger log = LoggerFactory.getLogger(QBoardTest.class);
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     public void testVisualisation() {
         QBoard board = new QBoard();
         BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
 
+        log.info("Board created. Placing pieces");
         placeFirstAvailable(board, 0, 0);
-        placeFirstAvailable(board, 1, 1);
         placeFirstAvailable(board, 0, 1);
+        placeFirstAvailable(board, 0, 2);
+        placeFirstAvailable(board, 0, 3);
         placeFirstAvailable(board, 1, 0);
+        placeFirstAvailable(board, 1, 1);
 
         try {
             Thread.sleep(1000000000L);
@@ -38,6 +44,7 @@ public class QBoardTest extends TestCase {
     }
 
     private void placeFirstAvailable(QBoard board, int x, int y) {
+        log.debug("Placing first available at ({}, {})", x, y);
         QField field = board.getField(x, y);
         board.placePiece(field.getX(), field.getY(), field.getAvailableQuadIDs().findFirst().getAsInt());
     }

@@ -78,6 +78,7 @@ public class GrowableInts {
     public GrowableInts trimCopyAlign(int blockSize) {
         int newSize = pos % blockSize == 0 ? pos : pos + (blockSize - pos % blockSize);
         GrowableInts copy = new GrowableInts(newSize);
+//        System.out.println("Trimming from " + pos + " to " + newSize);
         System.arraycopy(ints, 0, copy.ints, 0, pos);
         copy.pos = pos;
         return copy;

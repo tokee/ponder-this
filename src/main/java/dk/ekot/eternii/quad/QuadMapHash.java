@@ -61,18 +61,19 @@ public class QuadMapHash implements QuadEdgeMap {
 
     @Override
     public IntStream getAvailableQuadIDs(long hash) {
-        // TODO: Can the array from the quadMap be null?
         int[] quadIDs = quadMap.get(hash);
         if (quadIDs == null) {
+            // We should never reach this as isOK should fail and cause a rolleback
             throw new IllegalArgumentException(
-                    "Requested auth IDs for hash " + hash + " from quad map for edges " +
-                    QBits.toStringQEdges(edges) + " but got null");
+                    "Requested quadIDs for hash " + hash + " from quad map for bag type " + quadBag.getType() +
+                    " for edges " + QBits.toStringEdges(edges) + " but got null");
         }
         return Arrays.stream(quadIDs).filter(quadBag::isAvailable);
     }
 
     @Override
     public int available(long hash) {
-        return quadMap.get(hash).length;
+        return (int) getAvailableQuadIDs(hash).count();
+        //return quadMap.get(hash).length;
     }
 }

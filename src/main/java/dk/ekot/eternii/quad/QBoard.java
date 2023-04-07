@@ -19,6 +19,7 @@ import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -43,10 +44,16 @@ public class QBoard {
     public QBoard() {
         epieces = EPieces.getEternii();
         eboard = new EBoard(epieces, WIDTH*2, HEIGHT*2);
+        log.debug("Creating bagHandler");
         bagHandler = new QuadBagHandler(pieceTracker);
+        log.debug("Assigning bags to fields");
         bagHandler.assignBagsToFields(fields);
+        log.debug("Auto selecting edge maps");
         autoSelectEdgeMaps();
+        log.debug("Checking needsSatisfiedAll");
+        log.info("Board created with initial needsSatisfiedAll=" + isNeedsSatisfiedAll());
     }
+
 
     public EBoard getEboard() {
         return eboard;
@@ -78,6 +85,16 @@ public class QBoard {
      */
     public void visitAllFields(Consumer<QField> visitor) {
         visitAllCoordinates((x, y) -> visitor.accept(fields[x][y]));
+    }
+
+    /**
+     * Visit all fields and check that {@link QField#needsSatisfied()} is true.
+     * @return true if {@link QField#needsSatisfied()} is true for all fields.
+     */
+    private boolean isNeedsSatisfiedAll() {
+        AtomicBoolean ok = new AtomicBoolean(true);
+        visitAllFields(field -> ok.set(ok.get() && field.needsSatisfied()));
+        return ok.get();
     }
 
     /**

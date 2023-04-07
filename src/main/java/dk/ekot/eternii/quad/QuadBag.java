@@ -97,12 +97,13 @@ public class QuadBag implements QuadHolder {
     }
 
     public QuadBag(PieceTracker pieceTracker, BAG_TYPE bagType,
-                   GrowableInts qpieces, GrowableLongs qedges, GrowableBitmap existing) {
+                   GrowableInts qpieces, GrowableLongs qedges, GrowableBitmap existing, int size) {
         this.pieceTracker = pieceTracker;
         this.bagType = bagType;
         this.qpieces = qpieces;
         this.qedges = qedges;
         this.existing = existing;
+        this.size = size;
     }
 
     @Override
@@ -265,15 +266,18 @@ public class QuadBag implements QuadHolder {
 
     public void validateAvailability() {
         if (existingStateID == pieceTracker.getStateID()) {
-            log.info("validateAvailability for {} had matching statedID={}", bagType, existingStateID);
+//            log.info("validateAvailability for {} had matching statedID={} with {} available",
+//                     bagType, existingStateID, existingAvailable);
             return;
         }
 
         validateAvailability(pieceTracker.pieceIDByteMap, 0, calcBlock(qedges.size()));
+
         existingStateID = pieceTracker.getStateID();
         existingAvailable = existing.cardinality();
-        log.info("validateAvailability for {} showed {}/{} quads available",
-                 bagType, available(), size());
+
+        log.debug("validateAvailability for {} calculated {}/{} quads available for stateID {}",
+                 bagType, available(), size(), existingStateID);
     }
 
     /**
@@ -364,7 +368,7 @@ public class QuadBag implements QuadHolder {
      * Creates a new QuadBag from this by rotating all pieces 90 degrees clockwise.
      */
     public QuadBag rotClockwise() {
-        GrowableInts rotQpieces = qpieces.trimCopy();
+        GrowableInts rotQpieces = qpieces.trimCopyAlign(64);
         for (int i = 0 ; i < rotQpieces.size() ; i++) {
             rotQpieces.rawInts()[i] = QBits.rotQPieceClockwise(rotQpieces.rawInts()[i]);
         }
@@ -404,7 +408,7 @@ public class QuadBag implements QuadHolder {
                 break;
             default: throw new IllegalStateException("Unable to rotate QuadBag of type " + bagType);
         };
-        return new QuadBag(pieceTracker, newType, rotQpieces, rotQEdges, blankExisting);
+        return new QuadBag(pieceTracker, newType, rotQpieces, rotQEdges, blankExisting, size);
     }
 
     public int getQPiece(int quadID) {
@@ -417,12 +421,12 @@ public class QuadBag implements QuadHolder {
     public void generateSets() {
         if (bagType == BAG_TYPE.inner) {
             log.warn("Skipping sets for bagType "+ bagType);
-            qeMaps[0b000] = new QuadMapAll(this); // Okay, except this cheap one
+            qeMaps[0b0000] = new QuadMapAll(this); // Okay, except this cheap one
             return;
             // TODO: Enable this
         }
-        log.info("Generating sets for QuadBag of type " + bagType);
-        qeMaps[0b000] = new QuadMapAll(this);
+        log.info("Generating maps for QuadBag of type " + bagType);
+        qeMaps[0b0000] = new QuadMapAll(this);
         
         generateEdgeMap(0b1000, QBits.MAX_QCOL_EDGE1);
         generateEdgeMap(0b0100, QBits.MAX_QCOL_EDGE1);
@@ -448,14 +452,14 @@ public class QuadBag implements QuadHolder {
     private void generateEdgeMap(int wantedEdges, long maxHash) {
         if (Integer.bitCount(wantedEdges) >= 3) {
             // TODO: enable
-            log.warn("Skipping set for edges " + QBits.toStringEdges(wantedEdges) + " for now. Will probably be enabled later");
+            log.warn("Skipping set for edges " + QBits.toStringEdges(wantedEdges) + " for now. Should be enabled later");
             return;
         }
         Function<Long, Long> hasher = qedges -> QBits.getHash(wantedEdges, qedges, true);
         if ((bagType.variableEdges() & wantedEdges) == wantedEdges) {
             qeMaps[wantedEdges] = QuadMapFactory.generateMap(this, maxHash, hasher, wantedEdges);
         }
-        log.info("Generated map for " + bagType + " edges " + QBits.toStringEdges(wantedEdges));
+        //log.info("Generated map for " + bagType + " edges " + QBits.toStringEdges(wantedEdges));
     }
 
     public int[] getQpiecesRaw() {
@@ -475,8 +479,8 @@ public class QuadBag implements QuadHolder {
      */
     public QuadEdgeMap getQuadEdgeMap(boolean isFilledNW, boolean isFilledNE,
                                       boolean isFilledSE, boolean isFilledSW) {
-        return getQuadEdgeMap((isFilledNW ? 0b1000 : 0) |(isFilledNE ? 0b0100 : 0) |
-                              (isFilledSE ? 0b0010 : 0) |(isFilledSW ? 0b0001 : 0));
+        return getQuadEdgeMap((isFilledNW ? 0b1000 : 0) | (isFilledNE ? 0b0100 : 0) |
+                              (isFilledSE ? 0b0010 : 0) | (isFilledSW ? 0b0001 : 0));
     }
 
     /**
