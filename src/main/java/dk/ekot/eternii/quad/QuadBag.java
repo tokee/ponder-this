@@ -265,19 +265,38 @@ public class QuadBag implements QuadHolder {
     }
 
     public void validateAvailability() {
+        long startTimeNS = System.nanoTime();
         if (existingStateID == pieceTracker.getStateID()) {
 //            log.info("validateAvailability for {} had matching statedID={} with {} available",
 //                     bagType, existingStateID, existingAvailable);
             return;
         }
 
-        validateAvailability(pieceTracker.pieceIDByteMap, 0, calcBlock(qedges.size()));
+        //validateAvailability(pieceTracker.pieceIDByteMap, 0, calcBlock(qedges.size()));
+        updateExistingSafe();
 
         existingStateID = pieceTracker.getStateID();
         existingAvailable = existing.cardinality();
 
-        log.debug("validateAvailability for {} calculated {}/{} quads available for stateID {} with {} free pieces",
-                 bagType, available(), size(), existingStateID, pieceTracker.cardinality());
+        log.debug("validateAvailability for {} calculated {}/{} quads available for stateID {} with {} free pieces " +
+                  "in {}ms",
+                  bagType, available(), size(), existingStateID, pieceTracker.cardinality(),
+                  (System.nanoTime()-startTimeNS)*1000000L);
+    }
+
+    private void updateExistingSafe() {
+        final byte[] pieceMask = pieceTracker.pieceIDByteMap;
+        for (int quadID = 0 ; quadID < size ; quadID++) {
+            final int pieceIDs = qpieces.get(quadID);
+            if (((pieceMask[pieceIDs & 0xFF] +
+                      pieceMask[(pieceIDs >>> 8) & 0xFF] +
+                      pieceMask[(pieceIDs >>> 16) & 0xFF] +
+                      pieceMask[(pieceIDs >>> 24) & 0xFF]) >>> 2) == 1) {
+              existing.set(quadID);
+            } else {
+                existing.clear(quadID);
+            }
+        }
     }
 
     /**
@@ -287,6 +306,7 @@ public class QuadBag implements QuadHolder {
      * @param startBlock first block (of 64 pieceID bits), inclusive.
      * @param endBlock last block (of 64 pieceID bits), exclusive.
      */
+    // TODO: Bugfix this
     private void validateAvailability(byte[] pieceMask, int startBlock, int endBlock) {
         long[] blocks = existing.getBacking();
         for (int blockIndex = startBlock ; blockIndex < endBlock ; blockIndex++) {
