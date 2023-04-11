@@ -104,13 +104,13 @@ public class QBits {
         int defined =
                 (qedgeN == -1 ? 0 : 0b1000) |
                 (qedgeE == -1 ? 0 : 0b0100) |
-                (qedgeS == -1 ? 0 : 0b001) |
+                (qedgeS == -1 ? 0 : 0b0010) |
                 (qedgeW == -1 ? 0 : 0b0001);
         long qedgesSansRot =
-                (((long)qedgeN) << 30) |
-                (((long)qedgeN) << 20) |
-                (((long)qedgeN) << 10) |
-                ((long)qedgeN);
+                (qedgeN == -1 ? 0 : (((long)qedgeN) << 30)) |
+                (qedgeE == -1 ? 0 : (((long)qedgeE) << 20)) |
+                (qedgeS == -1 ? 0 : (((long)qedgeS) << 10)) |
+                (qedgeW == -1 ? 0 : ((long)qedgeW));
         return getHash(defined, qedgesSansRot, insideOut);
     }
 
@@ -122,6 +122,7 @@ public class QBits {
      * @return a hash for the quedges.
      */
     public static long getHash(int defined, long qedges, boolean insideOut) {
+//        System.out.println("defined=" + toStringEdges(defined) + ", edges=" + toStringQEdges(qedges) + ", insideOut=" + insideOut);
         switch (defined) {
             case 0b0000: return 0; // No edges = everything matches
 

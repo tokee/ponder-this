@@ -25,7 +25,7 @@ public class QBoardTest extends TestCase {
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     public void testVisualisation() {
         QBoard board = new QBoard();
-        BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
+    //    BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
 
         log.info("Board created. Placing pieces");
         placeFirstAvailable(board, 0, 0);
@@ -34,18 +34,21 @@ public class QBoardTest extends TestCase {
         placeFirstAvailable(board, 0, 3);
         placeFirstAvailable(board, 1, 0);
         placeFirstAvailable(board, 1, 1);
-
-        try {
+       /* try {
             Thread.sleep(1000000000L);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
+        }*/
 
     }
 
     private void placeFirstAvailable(QBoard board, int x, int y) {
         log.debug("Placing first available at ({}, {})", x, y);
         QField field = board.getField(x, y);
-        board.placePiece(field.getX(), field.getY(), field.getAvailableQuadIDs().findFirst().getAsInt());
+        int quadID = field.getAvailableQuadIDs().findFirst().getAsInt();
+        log.debug("First available quad ID for ({}, {}) was {}", x, y, quadID);
+        boolean allNeedsSatisfied = board.placePiece(x, y, quadID);
+        assertTrue("All needs must be satisfied", allNeedsSatisfied);
+        //log.info("allNeedsSatisfied = " + allNeedsSatisfied);
     }
 }

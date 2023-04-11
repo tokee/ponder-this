@@ -83,6 +83,7 @@ class QField {
      * @return true if not free or set.needsSatisfied().
      */
     public boolean needsSatisfied() {
+        //log.debug("needsSatisfied called for {}", this);
         //log.info("Checking needs satisfied for " + this);
         // TODO: Ensure that needsSatisfied is auto-checking for changes
         return !free || (edgeMap != null && edgeMap.needsSatisfied(edgeHash));
@@ -145,6 +146,9 @@ class QField {
      * @param edgeW the W edge or -1 if not available.
      */
     public void autoSelectEdgeMap(int edgeN, int edgeE, int edgeS, int edgeW) {
+        if (!free) {
+            return;
+        }
         try {
             QuadEdgeMap edgeMap = quadBag.getQuadEdgeMap(edgeN != -1, edgeE != -1, edgeS != -1, edgeW != -1);
             if (edgeMap == null) {
@@ -153,6 +157,8 @@ class QField {
                          "with edges {}, {}, {}, {}. Probably due to a temporary disabling of edgeMap generation",
                          quadBag.getType(), getX(), getY(), edgeN, edgeE, edgeS, edgeW);
             } else {
+                log.debug("Setting edgeMap for ({}, {}) with edges N={}, E={}, S={}, W={}",
+                          x, y, edgeN, edgeE, edgeS, edgeW);
                 setEdgeMap(edgeMap);
             }
         } catch (Exception e) {

@@ -276,8 +276,8 @@ public class QuadBag implements QuadHolder {
         existingStateID = pieceTracker.getStateID();
         existingAvailable = existing.cardinality();
 
-        log.debug("validateAvailability for {} calculated {}/{} quads available for stateID {}",
-                 bagType, available(), size(), existingStateID);
+        log.debug("validateAvailability for {} calculated {}/{} quads available for stateID {} with {} free pieces",
+                 bagType, available(), size(), existingStateID, pieceTracker.cardinality());
     }
 
     /**
@@ -296,9 +296,9 @@ public class QuadBag implements QuadHolder {
                 int id = (blockIndex << 6) + i;
                 final int pieceIDs = qpieces.get(id);
                 block |= (pieceMask[pieceIDs & 0xFF] +
-                          pieceMask[(pieceIDs >> 8) & 0xFF] +
-                          pieceMask[(pieceIDs >> 16) & 0xFF] +
-                          pieceMask[(pieceIDs >> 24) & 0xFF]) >> 2; // 4 -> 1
+                          pieceMask[(pieceIDs >>> 8) & 0xFF] +
+                          pieceMask[(pieceIDs >>> 16) & 0xFF] +
+                          pieceMask[(pieceIDs >>> 24) & 0xFF]) >>> 2; // 4 -> 1
             }
             blocks[blockIndex] = block;
         }
@@ -477,10 +477,10 @@ public class QuadBag implements QuadHolder {
      * Get the map suitable for the surrounding set fields.
      * If a surrounding fields is an outer board edge (grey), its value is ignored.
      */
-    public QuadEdgeMap getQuadEdgeMap(boolean isFilledNW, boolean isFilledNE,
-                                      boolean isFilledSE, boolean isFilledSW) {
-        return getQuadEdgeMap((isFilledNW ? 0b1000 : 0) | (isFilledNE ? 0b0100 : 0) |
-                              (isFilledSE ? 0b0010 : 0) | (isFilledSW ? 0b0001 : 0));
+    public QuadEdgeMap getQuadEdgeMap(boolean isFilledN, boolean isFilledE,
+                                      boolean isFilledS, boolean isFilledW) {
+        return getQuadEdgeMap((isFilledN ? 0b1000 : 0) | (isFilledE ? 0b0100 : 0) |
+                              (isFilledS ? 0b0010 : 0) | (isFilledW ? 0b0001 : 0));
     }
 
     /**

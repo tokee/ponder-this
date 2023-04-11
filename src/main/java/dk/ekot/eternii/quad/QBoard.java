@@ -107,26 +107,34 @@ public class QBoard {
      * @param x position on the board.
      * @param y position on the board.
      * @param quadID the index in the QuadBag at {@code (x, y)}.
+     * @return true if all surrounding fields has {@link QField#needsSatisfied()} {@code true}, else false.
      */
     // TODO: Trigger update of surrounding fields
-    public void placePiece(int x, int y, int quadID) {
+    public boolean placePiece(int x, int y, int quadID) {
         QField field = fields[x][y];
         field.setQuad(quadID);
+        pieceTracker.removeQPiece(field.getQPiece()); // Must be done before calling needsSatisfied()
+
+        boolean allNeedsSatisfied = true;
         if (y != 0) {
             autoSelectEdgeMap(x, y-1);
+            allNeedsSatisfied &= getField(x, y-1).needsSatisfied();
         }
         if (x != 7) {
             autoSelectEdgeMap(x+1, y);
+            allNeedsSatisfied &= getField(x+1, y).needsSatisfied();
         }
         if (y != 7) {
             autoSelectEdgeMap(x, y+1);
+            allNeedsSatisfied &= getField(x, y+1).needsSatisfied();
         }
         if (x != 0) {
             autoSelectEdgeMap(x-1, y);
+            allNeedsSatisfied &= getField(x-1, y).needsSatisfied();
         }
 //        System.out.println("Attempting to place " + QBits.toStringFull(field.getQPiece(), field.getQEdges()));
-        pieceTracker.removeQPiece(field.getQPiece());
         placePieceOnEBoard(x, y, field.getQPiece(), field.getQEdges());
+        return allNeedsSatisfied;
     }
 
     // Update the EBoard only.

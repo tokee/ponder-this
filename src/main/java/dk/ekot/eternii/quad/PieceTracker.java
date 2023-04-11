@@ -14,8 +14,6 @@
  */
 package dk.ekot.eternii.quad;
 
-import dk.ekot.eternii.EBits;
-
 import java.util.Arrays;
 
 /**
@@ -91,4 +89,13 @@ public class PieceTracker {
         return stateID;
     }
 
+    public int cardinality() {
+        int cardinality = 0;
+        for (int i = 0 ; i < pieceIDByteMap.length ; i++) {
+            if (pieceIDByteMap[i] == 1) {
+                ++cardinality;
+            }
+        }
+        return cardinality;
+    }
 }

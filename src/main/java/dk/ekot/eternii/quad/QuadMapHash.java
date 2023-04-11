@@ -62,6 +62,8 @@ public class QuadMapHash implements QuadEdgeMap {
     @Override
     public IntStream getAvailableQuadIDs(long hash) {
         int[] quadIDs = quadMap.get(hash);
+        log.debug("Unfiltered quads for hash {}: {}",
+                  hash, quadIDs != null ? quadIDs.length : "N/A");
         if (quadIDs == null) {
             // We should never reach this as isOK should fail and cause a rolleback
             throw new IllegalArgumentException(
@@ -71,9 +73,15 @@ public class QuadMapHash implements QuadEdgeMap {
         return Arrays.stream(quadIDs).filter(quadBag::isAvailable);
     }
 
+    // TODO: Introduce stop-early version that stops counting as soon as needs are satisfied
     @Override
     public int available(long hash) {
-        return (int) getAvailableQuadIDs(hash).count();
-        //return quadMap.get(hash).length;
+        int[] quadIDs = quadMap.get(hash);
+        if (quadIDs == null) {
+            log.debug("available({}) for type {} got null quadIDs from the map",
+                      hash, quadBag.getType());
+            return 0;
+        }
+        return (int) Arrays.stream(quadIDs).filter(quadBag::isAvailable).count();
     }
 }
