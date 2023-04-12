@@ -34,12 +34,12 @@ public class WalkerExp extends WalkerImpl {
     @Override
     protected Comparator<Move> getMoveComparator() {
         return Comparator.
-                //comparingInt(this::onBoardEdges)
-                //comparingInt(Move::clueCornersOrdered)
-//                .thenComparingInt(Move::piecesSize)
+                comparingInt(Move::clueCornersOrdered).
+                thenComparingInt(Move::boardEdgeFirst).
+                thenComparingInt(Move::validPiecesSize).
 //                .thenComparingInt(this::onBoardEdges)
                 //.thenComparingInt(onTopLeftBottomRight());
-                comparingInt(Move::topLeftFirst);
+                thenComparingInt(Move::topLeftFirst);
                 //.thenComparingInt(Move::getTopLeftPos);
     }
 
