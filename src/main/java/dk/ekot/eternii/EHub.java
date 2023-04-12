@@ -79,11 +79,20 @@ public class EHub implements EListener, Runnable {
     @Override
     public void run() {
         System.out.println("Beginning solve... " + Thread.currentThread().getName());
-        testSolver(board -> new WalkerGeneric(board, Comparator.
-                           comparingInt(Walker.Move::topLeftFirst)
-        ),clues);
+        testSolver(board -> new WalkerGeneric(board, getComparator()),clues);
         //testSolver(WalkerG2R::new, true);
     }
+
+    private Comparator<Walker.Move> getComparator() {
+        return Comparator.
+                comparingInt(Walker.Move::clueCornersOrdered).
+                thenComparingInt(Walker.Move::boardEdgeFirst).
+                thenComparingInt(Walker.Move::validPiecesSize);
+//                .thenComparingInt(this::onBoardEdges)
+                //.thenComparingInt(onTopLeftBottomRight());
+                //        thenComparingInt(Walker.Move::topLeftFirst);
+    }
+
 
     private void testSolver(Function<EBoard, Walker> walkerFactory) {
         testSolver(walkerFactory, clues);
