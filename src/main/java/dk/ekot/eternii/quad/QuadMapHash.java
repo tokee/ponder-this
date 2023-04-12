@@ -37,6 +37,10 @@ public class QuadMapHash implements QuadEdgeMap {
     // (hash, quadIDs)
     private final Map<Long, int[]> quadMap = new HashMap<>();
 
+    private long hasNeededTrackerID = -1;
+    private long hasNeededHash = -1;
+    private long hasNeededFound = -1;
+
     public QuadMapHash(QuadBag quadBag, Function<Long, Long> hasher, int edges) {
         this.quadBag = quadBag;
         this.edges = edges;
@@ -59,6 +63,18 @@ public class QuadMapHash implements QuadEdgeMap {
             }
             quadMap.put(hash, mapQuadIDs);
         }
+    }
+
+    @Override
+    public String approximateQuadCount(long hash) {
+        int[] quadIDs = quadMap.get(hash);
+        if (quadIDs == null) {
+            return "0";
+        }
+        if (hasNeededTrackerID == quadBag.getPieceTracker().getStateID() && hasNeededHash == hash) {
+            return hasNeededFound + "+";
+        }
+        return quadIDs.length + "-";
     }
 
     @Override
@@ -106,14 +122,23 @@ public class QuadMapHash implements QuadEdgeMap {
 
     @Override
     public boolean hasNeeded(long hash, int need) {
+        if (hasNeededHash == hash && hasNeededFound >= need &&
+            hasNeededTrackerID == quadBag.getPieceTracker().getStateID()) {
+            return true;
+        }
+        // We need a full recalc even if hash & stateID matches as we might have stopped counting on the earlier run
+
         int[] quadIDs = quadMap.get(hash);
         if (quadIDs == null || quadIDs.length < need) {
             return false;
         }
-        return Arrays.stream(quadIDs).
+        hasNeededFound = Arrays.stream(quadIDs).
                        filter(quadBag::isAvailableNoCache).
                        limit(need).
-                       count() >= need;
+                       count();
+        hasNeededHash = hash;
+        hasNeededTrackerID = quadBag.getPieceTracker().getStateID();
+        return hasNeededFound >= need;
     }
 
     @Override

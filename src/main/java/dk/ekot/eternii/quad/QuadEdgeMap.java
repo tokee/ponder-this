@@ -64,6 +64,13 @@ public interface QuadEdgeMap {
     boolean hasNeeded(long hash, int need);
 
     /**
+     * Guaranteed fast version that delivers a rough estimate of the number of available quads used for feedback.
+     * Return format is a string, allowing for prefix {@code ~} or postfixes {@code -} and {@code -}.
+     * @return approximate number of available quads.
+     */
+    String approximateQuadCount(long hash);
+
+    /**
      * needsSatisfied is an upper bound as some quads might share pieces.
      * Checking involves calling {@link #hasNeeded(long, int)}.
      * @return true if needs are less than size.

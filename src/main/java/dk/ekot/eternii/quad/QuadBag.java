@@ -550,5 +550,9 @@ public class QuadBag implements QuadHolder {
         // No check for null. Callers are expected never to ask for non-existing maps
         return qeMaps[bagType.variableEdges() & neighbours];
     }
+
+    public PieceTracker getPieceTracker() {
+        return pieceTracker;
+    }
 }
 

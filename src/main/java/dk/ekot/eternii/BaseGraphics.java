@@ -67,6 +67,7 @@ public class BaseGraphics {
         jFrame.setVisible(true);
 
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        jFrame.setTitle("Eternii - TE");
         lastFrame = jFrame;
         return jLabel;
     }

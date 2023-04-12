@@ -30,6 +30,8 @@ public class QSolverTest extends TestCase {
     public void testBasic() {
         QBoard board = new QBoard();
         BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
+        board.registerObserver(visualiser);
+        
         QWalker walker = new QWalkerImpl(board,
                 Comparator.comparingInt(QWalker.cornersOrdered()).
                         thenComparingInt(QWalker.borders()).

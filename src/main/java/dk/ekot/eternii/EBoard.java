@@ -91,7 +91,7 @@ public class EBoard {
     // Index = piece ID, incement with 1 each time placePiece returns false
     private final long[] terminators = new long[256];
 
-    private final Set<Observer> observers = new HashSet<>();
+    private final Set<BoardObserver> observers = new HashSet<>();
 
     public EBoard(EPieces pieces, int width, int height) {
         this.pieces = pieces;
@@ -979,16 +979,16 @@ public class EBoard {
      * Register an observer of board changes.
      * @param observer called when the board changes.
      */
-    public synchronized void registerObserver(Observer observer) {
+    public synchronized void registerObserver(BoardObserver observer) {
         observers.add(observer);
     }
 
     /**
      * Unregisters a previously registered board change observer.
-     * @param observer an observer previously added with {@link #registerObserver(Observer)}.
+     * @param observer an observer previously added with {@link #registerObserver(BoardObserver)}.
      * @return true if the observer was previously registered, else false.
      */
-    public synchronized boolean unregisterObserver(Observer observer) {
+    public synchronized boolean unregisterObserver(BoardObserver observer) {
         boolean wasThere = observers.remove(observer);
         log.debug(wasThere ?
                           "Unregistered board update observer {}" :
@@ -1002,15 +1002,6 @@ public class EBoard {
      */
     private void notifyObservers(int x, int y, String label) {
         observers.forEach(o -> o.boardChanged(x, y, label));
-    }
-
-    /**
-     * Functional equivalent of {@code BiConsumer<Integer, Integer>} with a less generic method name, to support
-     * registering observers with {@code registerObserver(this)} instead of {@code registerObserver(this::boardChanged}.
-     */
-    @FunctionalInterface
-    public interface Observer {
-        void boardChanged(int x, int y, String label);
     }
 
     public PieceTracker getFreeBag() {

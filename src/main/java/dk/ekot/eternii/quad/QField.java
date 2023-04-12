@@ -36,6 +36,7 @@ class QField {
     private int quadID = -1;
     private int qpiece = 0;
     private long qedges = 0;
+    private int sequence = -1;
 
     public QField(QuadBag quadBag, int x, int y) {
         this.quadBag = quadBag;
@@ -60,6 +61,10 @@ class QField {
         this.qedges = quadBag.getQEdges(quadID);
 
         free = false;
+    }
+
+    public QuadEdgeMap getEdgeMap() {
+        return edgeMap;
     }
 
     /**
@@ -206,5 +211,17 @@ class QField {
             throw new IllegalStateException("Attempting to get quad ID for a free field " + this);
         }
         return quadID;
+    }
+
+    public String approximateQuadCount() {
+        return (!free || quadBag == null) ? "N/A" : edgeMap.approximateQuadCount(edgeHash);
+    }
+
+    public int getSequence() {
+        return sequence;
+    }
+
+    public void setSequence(int sequence) {
+        this.sequence = sequence;
     }
 }

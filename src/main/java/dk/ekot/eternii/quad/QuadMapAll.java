@@ -17,6 +17,7 @@ package dk.ekot.eternii.quad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
@@ -30,6 +31,9 @@ public class QuadMapAll implements QuadEdgeMap {
     private final int edges;
     private final AtomicInteger need = new AtomicInteger(0);
 
+    private long hasNeededTrackerID = -1;
+    private long hasNeededHash = -1;
+    private long hasNeededFound = -1;
 
     public QuadMapAll(QuadBag quadBag, int edges) {
         this.quadBag = quadBag;
@@ -53,7 +57,19 @@ public class QuadMapAll implements QuadEdgeMap {
 
     @Override
     public boolean hasNeeded(long hash, int need) {
-        return quadBag.hasNeeded(need);
+        if (hasNeededHash == hash && hasNeededFound >= need &&
+            hasNeededTrackerID == quadBag.getPieceTracker().getStateID()) {
+            return true;
+        }
+
+        if (!quadBag.hasNeeded(need)) {
+            return false;
+        }
+
+        hasNeededFound = need;
+        hasNeededHash = hash;
+        hasNeededTrackerID = quadBag.getPieceTracker().getStateID();
+        return true;
     }
 
     @Override
@@ -64,6 +80,14 @@ public class QuadMapAll implements QuadEdgeMap {
     @Override
     public AtomicInteger getNeed() {
         return need;
+    }
+
+    @Override
+    public String approximateQuadCount(long hash) {
+        if (hasNeededTrackerID == quadBag.getPieceTracker().getStateID() && hasNeededHash == hash) {
+            return hasNeededFound + "+";
+        }
+        return quadBag.size() + "-";
     }
 
     public String toString() {

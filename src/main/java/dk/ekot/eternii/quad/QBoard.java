@@ -14,11 +14,14 @@
  */
 package dk.ekot.eternii.quad;
 
+import dk.ekot.eternii.BoardObserver;
 import dk.ekot.eternii.EBoard;
 import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -35,6 +38,7 @@ public class QBoard {
     private final EPieces epieces;
     private final EBoard eboard;
     private final QuadBagHandler bagHandler;
+    private final Set<BoardObserver> observers = new HashSet<>();
 
     private final int WIDTH = 8;
     private final int HEIGHT = 8;
@@ -119,6 +123,7 @@ public class QBoard {
 //        System.out.println("Attempting to place " + QBits.toStringFull(field.getQPiece(), field.getQEdges()));
 
         placePieceOnEBoard(x, y, field.getQPiece(), field.getQEdges());
+        updateTextAll();
         return allNeedsSatisfied;
     }
 
@@ -131,7 +136,8 @@ public class QBoard {
         field.setFree();
         autoSelectEdgeMap(x, y);
         autoSelectAdjacentEdgeMaps(x, y);
-        
+        updateTextAll();
+
         removeQPieceFromEBoard(x, y);
     }
 
@@ -189,6 +195,19 @@ public class QBoard {
         // TODO: Check overall board validity
     }
 
+    private void updateTextAll() {
+        visitAllFields(this::updateText);
+    }
+
+    private void updateText(QField field) {
+        if (field.isFree()) {
+            setObserverText(field.getX()<<1, field.getY()<<1, field.approximateQuadCount());
+            //setObserverText(field.getX()<<1, field.getY()<<1, Integer.toString(field.getEdgeMap().getNeed().get()));
+        } else {
+            setObserverText(field.getX()<<1, field.getY()<<1, Integer.toString(field.getSequence()));
+        }
+    }
+
     /**
      * Choose the correct edge map for all fields based on surrounding fields.
      */
@@ -217,5 +236,35 @@ public class QBoard {
 
     public PieceTracker getPieceTracker() {
         return pieceTracker;
+    }
+
+    /**
+     * Register an observer of board changes.
+     * @param observer called when the board changes.
+     */
+    public synchronized void registerObserver(BoardObserver observer) {
+        observers.add(observer);
+    }
+
+    /**
+     * Unregisters a previously registered board change observer.
+     * @param observer an observer previously added with {@link #registerObserver(BoardObserver)}.
+     * @return true if the observer was previously registered, else false.
+     */
+    public synchronized boolean unregisterObserver(BoardObserver observer) {
+        boolean wasThere = observers.remove(observer);
+        log.debug(wasThere ?
+                          "Unregistered board update observer {}" :
+                          "Attempted to unregister configuration update observer {} but is was not found",
+                  observer);
+        return wasThere;
+    }
+
+    private void setObserverText(int x, int y, String label) {
+        observers.forEach(o -> o.setText(x, y, label));
+    }
+
+    public void setSequence(int x, int y, int sequence) {
+        fields[x][y].setSequence(sequence);
     }
 }

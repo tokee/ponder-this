@@ -97,6 +97,7 @@ public class QSolverBacktrack implements Runnable {
             attempts++;
             //log.debug("Placing quad {} on ({}, {})", quadID, field.getX(), field.getY());
             board.placePiece(move.getX(), move.getY(), quadID);
+            board.setSequence(move.getX(), move.getY(), depth);
             if (board.areNeedsSatisfiedAll()) {
                 // TODO: Optimize field.getAvailableQuadIDs().count() and use that instead of 2
                 if (dive(depth + 1, possibilities * 2)) {

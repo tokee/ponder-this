@@ -22,16 +22,14 @@ import java.awt.*;
 import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
 import java.text.AttributedString;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Set;
 
 /**
  * Opens a windows showing an {@link EBoard} and tracks changes.
  */
 // TODO: Print number of valid pieces on non-piece fields
-public class BoardVisualiser implements EBoard.Observer {
+public class BoardVisualiser implements BoardObserver {
     private static final Logger log = LoggerFactory.getLogger(BoardVisualiser.class);
 
     public static final int UPDATE_INTERVAL = 300; // Milliseconds
@@ -173,6 +171,12 @@ public class BoardVisualiser implements EBoard.Observer {
         } else {
             needsUpdate = true;
         }
+    }
+
+    @Override
+    public void setText(int x, int y, String label) {
+        labels[x][y] = label;
+        needsUpdate = true;
     }
 
     private void updateTile(int x, int y) {
