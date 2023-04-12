@@ -202,6 +202,15 @@ public class EBoard {
         notifyObservers(x, y, "");
     }
 
+    /**
+     * Remove the piece without updating or checking any of the tracking structures.
+     * Use only for visualisation!
+     */
+    public void removeUntrackedPiece(int x, int y) {
+        board[x][y] = EBits.BLANK_STATE;
+        notifyObservers(x, y, "");
+    }
+
     public boolean placePiece(int x, int y, int piece) {
         return placePiece(x, y, piece, getValidRotationFailing(x, y, piece), "");
     }
