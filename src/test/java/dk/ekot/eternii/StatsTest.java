@@ -70,6 +70,11 @@ public class StatsTest extends TestCase {
                 board, new int[][]{{0, 5}, {1, 5}, {0, 6}, {1, 6}}), 4));
     }
 
+    public void testEdge3x3() {
+        System.out.println("Possible 3x3 edge: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{{0, 5}, {1, 5}, {2, 5}, {0, 6}, {1, 6}, {2, 6}, {0, 7}, {1, 7}, {2, 7}}), 9));
+    }
+
     public void testCornerHexTL() {
         System.out.println("Possible hex top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
@@ -87,6 +92,11 @@ public class StatsTest extends TestCase {
                 board, new Rect(1, 0, 3, 2)), 9));
         System.out.println("Possible 3x3 inner: " + HexCorners.countSolutions(board -> new WalkerRectangle(
                 board, new Rect(5, 5, 7, 7)), 9));
+    }
+
+    public void testCenterClue3x3() {
+        System.out.println("Possible 3x3 center clues: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(6, 7, 8, 9)), 9));
     }
 
     public void testEdgeHex() {
