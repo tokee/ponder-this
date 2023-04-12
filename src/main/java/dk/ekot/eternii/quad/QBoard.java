@@ -137,6 +137,21 @@ public class QBoard {
         return allNeedsSatisfied;
     }
 
+    public void removePiece(int x, int y) {
+        QField field = fields[x][y];
+        if (field.isFree()) {
+            throw new IllegalStateException("The field " + fields[x][y] + " was already free");
+        }
+        pieceTracker.addQPiece(field.getQPiece());
+        autoSelectEdgeMap(x, y);
+        removeQPieceFromEBoard(x, y);
+    }
+
+    private void removeQPieceFromEBoard(int x, int y) {
+        // TODO: Implement this
+    }
+
+
     // Update the EBoard only.
     private void placePieceOnEBoard(int x, int y, int qpiece, long qedges) {
         if (eboard.getPiece(x << 1, y << 1) !=          EPieces.NULL_P ||
@@ -180,4 +195,5 @@ public class QBoard {
     public QField getField(int x, int y) {
         return fields[x][y];
     }
+
 }

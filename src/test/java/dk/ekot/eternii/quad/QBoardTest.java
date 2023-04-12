@@ -33,6 +33,7 @@ public class QBoardTest extends TestCase {
         placeFirstAvailable(board, 0, 2);
         placeFirstAvailable(board, 0, 3);
         placeFirstAvailable(board, 1, 0);
+        board.removePiece(0, 2);
         //placeFirstAvailable(board, 1, 1);
         try {
             Thread.sleep(1000000000L);

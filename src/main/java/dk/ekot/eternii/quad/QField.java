@@ -33,6 +33,7 @@ class QField {
     private QuadEdgeMap edgeMap = null;
     private long edgeHash;
     // If free == false below
+    private int quadID = -1;
     private int qpiece = 0;
     private long qedges = 0;
 
@@ -54,6 +55,7 @@ class QField {
         }
         edgeMap = null;
 
+        this.quadID = quadID;
         this.qpiece = quadBag.getQPiece(quadID);
         this.qedges = quadBag.getQEdges(quadID);
 
@@ -175,4 +177,17 @@ class QField {
         return "QField(" + x + ", " + y + ", quad=" + !free + ")";
     }
 
+    /**
+     * @return true if there are no quad on the field, else false.
+     */
+    public boolean isFree() {
+        return free;
+    }
+
+    public int getQuadID() {
+        if (free) {
+            throw new IllegalStateException("Attempting to get quad ID for a free field " + this);
+        }
+        return quadID;
+    }
 }
