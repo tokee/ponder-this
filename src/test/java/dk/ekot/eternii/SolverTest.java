@@ -59,7 +59,7 @@ public class SolverTest extends TestCase {
         testSolver(WalkerF::new, BacktrackReturnOnBothSolver::new);
     }
     public void testExp() {
-        testSolver(WalkerExp::new, BacktrackReturnOnBothSolver::new, false);
+        testSolver(WalkerExp::new, BacktrackReturnOnBothSolver::new, true);
     }
 
     /* --------------------------------------------------------------------------------------------------------------- */
@@ -69,8 +69,10 @@ public class SolverTest extends TestCase {
         testSolver(board -> new WalkerGeneric(board, Comparator.
                            comparingInt(Walker.Move::identity).
 
+                           //thenComparingInt(Walker.Move::topLeftFirst).
                            thenComparingInt(Walker.Move::clueCornersOrdered).
-                           thenComparingInt(Walker.onSpiralIn(board)).
+                           thenComparingInt(Walker.Move::boardEdgeFirst).
+                           //thenComparingInt(Walker.onSpiralIn(board)).
                            thenComparingInt(Walker.Move::validPiecesSize).
 
                            thenComparingInt(Walker.Move::identity)
