@@ -148,7 +148,8 @@ public interface QWalker {
         }
 
         public IntStream getAvailableQuadIDs() {
-            return getField().getAvailableQuadIDs();
+            // TODO: Consider making this an option
+            return getField().getAvailableQuadIDsNoCache();
         }
     }
 

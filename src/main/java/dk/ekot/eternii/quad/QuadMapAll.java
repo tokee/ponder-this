@@ -42,8 +42,18 @@ public class QuadMapAll implements QuadEdgeMap {
     }
 
     @Override
+    public IntStream getAvailableQuadIDsNoCache(long hash) {
+        return quadBag.getAvailableQuadIDsNoCache();
+    }
+
+    @Override
     public int available(long hash) {
         return quadBag.available();
+    }
+
+    @Override
+    public boolean hasNeeded(long hash, int need) {
+        return quadBag.hasNeeded(need);
     }
 
     @Override

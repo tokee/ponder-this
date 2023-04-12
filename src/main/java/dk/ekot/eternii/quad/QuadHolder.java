@@ -36,4 +36,8 @@ public interface QuadHolder {
      */
     int available();
 
+    /**
+     * @return true if there are at least {@code need} available quads.
+     */
+    boolean hasNeeded(int need);
 }

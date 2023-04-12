@@ -33,6 +33,9 @@ public class QSolverBacktrack implements Runnable {
     private int minFree = 256;
     private String best = "";
     private long startTimeMS;
+    private long nextPrintMS = System.currentTimeMillis();
+    private long printDeltaMS = 1000;
+
 
     public QSolverBacktrack(QBoard board, QWalker walker) {
         this(board, walker, Integer.MAX_VALUE, Long.MAX_VALUE);
@@ -70,10 +73,19 @@ public class QSolverBacktrack implements Runnable {
         }
         if (minFree > free) {
             minFree = free;
-            best = board.getEboard().getDisplayURL();
+            best = free + "free: " + board.getEboard().getDisplayURL();
             // TODO: Add persisting collector as BacktrackReturnOnBothSolver uses
             log.info("free={}, board={}", free, best);
         }
+
+        if (System.currentTimeMillis() > nextPrintMS) {
+            int max = 256;
+            System.out.printf("Attempts: %d, placed=%3d|%3d, att/sec=%d, possible=%3.0e best=%s\n",
+                              attempts, max-free, max-minFree,
+                              attempts*1000/(System.currentTimeMillis()-startTimeMS), possibilities, best);
+            nextPrintMS = System.currentTimeMillis() + printDeltaMS;
+        }
+
         final QWalker.Move move = walker.getMove();
         if (move == null) {
             log.warn("Got no move at depth {}", depth);

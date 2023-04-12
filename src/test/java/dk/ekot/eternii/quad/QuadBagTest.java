@@ -16,12 +16,10 @@ package dk.ekot.eternii.quad;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
-import org.junit.Test;
 
 import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public class QuadBagTest extends TestCase {
 

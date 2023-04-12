@@ -28,6 +28,8 @@ public interface QuadEdgeMap {
      */
     IntStream getAvailableQuadIDs(long hash);
 
+    IntStream getAvailableQuadIDsNoCache(long hash);
+
     /**
      * Increment need.
      * @return new need.
@@ -56,13 +58,18 @@ public interface QuadEdgeMap {
     int available(long hash);
 
     /**
-     * needsSatisfied is not a guarantee as some quads might share pieces.
-     * Checking involves calling {@link #available(long)} which might mean a recalculation of the mask.
+     * Verifies that there are at least {@code need} available quads in the structure.
+     * @return true if the need is met.
+     */
+    boolean hasNeeded(long hash, int need);
+
+    /**
+     * needsSatisfied is an upper bound as some quads might share pieces.
+     * Checking involves calling {@link #hasNeeded(long, int)}.
      * @return true if needs are less than size.
      */
     default boolean needsSatisfied(long hash) {
-        // TODO: Don't perform a full available-calculation as only need is necessary
-        return getNeed().get() <= available(hash);
+        return hasNeeded(hash, getNeed().get());
     }
 
     /**

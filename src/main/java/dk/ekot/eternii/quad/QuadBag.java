@@ -115,11 +115,29 @@ public class QuadBag implements QuadHolder {
         return existing.getSetIndicesStream();
     }
 
+    public IntStream getAvailableQuadIDsNoCache() {
+        return IntStream.range(0, size).filter(this::isAvailableNoCache);
+    }
+
     @Override
     public boolean isAvailable(int quadID) {
         validateAvailability();
         return existing.get(quadID);
     }
+
+    /**
+     * Non-cached version of {@link #isAvailable(int)}.
+     * @return true if the quad with the given {@code quadID} is free to be placed.
+     */
+    public boolean isAvailableNoCache(int quadID) {
+        final byte[] pieceMask = pieceTracker.pieceIDByteMap;
+        final int pieceIDs = qpieces.get(quadID);
+        return ((pieceMask[pieceIDs & 0xFF] +
+                 pieceMask[(pieceIDs >>> 8) & 0xFF] +
+                 pieceMask[(pieceIDs >>> 16) & 0xFF] +
+                 pieceMask[(pieceIDs >>> 24) & 0xFF]) >>> 2) == 1;
+    }
+
 
     /**
      * Get the quad map corresponding to the given colors.
@@ -204,6 +222,22 @@ public class QuadBag implements QuadHolder {
         return existingAvailable;
     }
 
+    @Override
+    public boolean hasNeeded(int need) {
+        if (existingStateID == pieceTracker.getStateID()) {
+            return existingAvailable >= need;
+        }
+        int available = 0;
+        for (int quadID = 0 ; quadID < qpieces.size() ; quadID++) {
+            if (isAvailableNoCache(quadID)) {
+                if (++available >= need) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * Remove all Quads which contains any of the marked pieces.
      * @param pieceMask an array of length 256, each entry representing the piece with index as ID.
@@ -264,7 +298,10 @@ public class QuadBag implements QuadHolder {
         snapshot.copy(existing);
     }
 
-    public void validateAvailability() {
+    void validateAvailability() {
+        if (1 == 1) {
+            throw new IllegalStateException("Nopes!");
+        }
         long startTimeNS = System.nanoTime();
         if (existingStateID == pieceTracker.getStateID()) {
 //            log.info("validateAvailability for {} had matching statedID={} with {} available",

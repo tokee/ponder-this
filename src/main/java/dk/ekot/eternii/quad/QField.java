@@ -99,6 +99,9 @@ class QField {
     public IntStream getAvailableQuadIDs() {
         return edgeMap.getAvailableQuadIDs(edgeHash);
     }
+    public IntStream getAvailableQuadIDsNoCache() {
+        return edgeMap.getAvailableQuadIDsNoCache(edgeHash);
+    }
 
     public QuadBag getBag() {
         return quadBag;

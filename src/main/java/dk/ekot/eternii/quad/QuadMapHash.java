@@ -72,10 +72,25 @@ public class QuadMapHash implements QuadEdgeMap {
                     "Requested quadIDs for hash " + hash + " from quad map for bag type " + quadBag.getType() +
                     " for edges " + QBits.toStringEdges(edges) + " but got null");
         }
-        return Arrays.stream(quadIDs).filter(quadBag::isAvailable);
+        return Arrays.stream(quadIDs).
+                filter(quadBag::isAvailable);
     }
 
-    // TODO: Introduce stop-early version that stops counting as soon as needs are satisfied
+    @Override
+    public IntStream getAvailableQuadIDsNoCache(long hash) {
+        int[] quadIDs = quadMap.get(hash);
+        //        log.debug("Unfiltered quads for hash {}: {}",
+        //          hash, quadIDs != null ? quadIDs.length : "N/A");
+        if (quadIDs == null) {
+            // We should never reach this as isOK should fail and cause a rolleback
+            throw new IllegalArgumentException(
+                    "Requested quadIDs for hash " + hash + " from quad map for bag type " + quadBag.getType() +
+                    " for edges " + QBits.toStringEdges(edges) + " but got null");
+        }
+        return Arrays.stream(quadIDs).
+                filter(quadBag::isAvailableNoCache);
+    }
+
     @Override
     public int available(long hash) {
         int[] quadIDs = quadMap.get(hash);
@@ -84,7 +99,21 @@ public class QuadMapHash implements QuadEdgeMap {
             //          hash, quadBag.getType());
             return 0;
         }
-        return (int) Arrays.stream(quadIDs).filter(quadBag::isAvailable).count();
+        return (int) Arrays.stream(quadIDs).
+                filter(quadBag::isAvailable).
+                count();
+    }
+
+    @Override
+    public boolean hasNeeded(long hash, int need) {
+        int[] quadIDs = quadMap.get(hash);
+        if (quadIDs == null || quadIDs.length < need) {
+            return false;
+        }
+        return Arrays.stream(quadIDs).
+                       filter(quadBag::isAvailableNoCache).
+                       limit(need).
+                       count() >= need;
     }
 
     @Override
