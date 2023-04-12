@@ -35,7 +35,7 @@ public class QSolverTest extends TestCase {
                         thenComparingInt(QWalker.borders()).
                         thenComparingInt(QWalker.borderBorders()).
                         thenComparingInt(QWalker.topLeft()));
-        QSolverBacktrack solver = new QSolverBacktrack(board, walker, 1000, 50000);
+        QSolverBacktrack solver = new QSolverBacktrack(board, walker);
 
         try {
             solver.run();

@@ -73,9 +73,9 @@ public class QSolverBacktrack implements Runnable {
         }
         if (minFree > free) {
             minFree = free;
-            best = free + "free: " + board.getEboard().getDisplayURL();
+            best = (256-free) + " free: " + board.getEboard().getDisplayURL();
             // TODO: Add persisting collector as BacktrackReturnOnBothSolver uses
-            log.info("free={}, board={}", free, best);
+            log.info("free={} / filled={}, board={}", free, 256-free, board.getEboard().getDisplayURL());
         }
 
         if (System.currentTimeMillis() > nextPrintMS) {
