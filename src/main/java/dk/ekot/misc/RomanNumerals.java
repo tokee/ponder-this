@@ -51,10 +51,15 @@ public class RomanNumerals {
             }
         }
 
-/*        String romans = "IVXLCDM";
+        String romans = "IVXLCDM";
         for (char c: romans.toCharArray()) {
-            System.out.println(c + " -> (c-0x42) " + (c-0x42) + " -> (c%'B') " + (c%'B'));
-        }*/
+            String message = c + " -> (c-0x42) " + (c-0x42) + " -> (c%'') " + (c%'B') + ": " + Integer.toBinaryString(c);
+            if (c-0x42 == (c&0b1000010)) {
+                System.out.println(message);
+            } else {
+                System.err.println(message);
+            }
+        }
 //        dumpRomans();
     }
 
