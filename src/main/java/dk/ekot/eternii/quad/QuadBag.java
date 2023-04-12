@@ -276,12 +276,13 @@ public class QuadBag implements QuadHolder {
         updateExistingSafe();
 
         existingStateID = pieceTracker.getStateID();
+        // TODO: Performance: Introduce early termination here
         existingAvailable = existing.cardinality();
 
-        log.debug("validateAvailability for {} calculated {}/{} quads available for stateID {} with {} free pieces " +
-                  "in {}ms",
-                  bagType, available(), size(), existingStateID, pieceTracker.cardinality(),
-                  (System.nanoTime()-startTimeNS)*1000000L);
+        //log.debug("validateAvailability for {} calculated {}/{} quads available for stateID {} with {} free pieces " +
+        //          "in {}ms",
+        //          bagType, available(), size(), existingStateID, pieceTracker.cardinality(),
+        //          (System.nanoTime()-startTimeNS)/1000000L);
     }
 
     private void updateExistingSafe() {
@@ -439,14 +440,14 @@ public class QuadBag implements QuadHolder {
     }
 
     public void generateSets() {
-        if (bagType == BAG_TYPE.inner) {
+        if (bagType == BAG_TYPE.inner && false) {
             log.warn("Skipping sets for bagType "+ bagType);
-            qeMaps[0b0000] = new QuadMapAll(this); // Okay, except this cheap one
+            qeMaps[0b0000] = new QuadMapAll(this, 0b0000); // Okay, except this cheap one
             return;
             // TODO: Enable this
         }
         log.info("Generating maps for QuadBag of type " + bagType);
-        qeMaps[0b0000] = new QuadMapAll(this);
+        qeMaps[0b0000] = new QuadMapAll(this, 0b0000);
         
         generateEdgeMap(0b1000, QBits.MAX_QCOL_EDGE1);
         generateEdgeMap(0b0100, QBits.MAX_QCOL_EDGE1);
@@ -470,7 +471,7 @@ public class QuadBag implements QuadHolder {
     }
 
     private void generateEdgeMap(int wantedEdges, long maxHash) {
-        if (Integer.bitCount(wantedEdges) >= 3) {
+        if (Integer.bitCount(wantedEdges) >= 3 && false) {
             // TODO: enable
             log.warn("Skipping set for edges " + QBits.toStringEdges(wantedEdges) + " for now. Should be enabled later");
             return;

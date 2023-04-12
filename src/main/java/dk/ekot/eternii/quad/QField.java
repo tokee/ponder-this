@@ -88,7 +88,12 @@ class QField {
         //log.debug("needsSatisfied called for {}", this);
         //log.info("Checking needs satisfied for " + this);
         // TODO: Ensure that needsSatisfied is auto-checking for changes
-        return !free || (edgeMap != null && edgeMap.needsSatisfied(edgeHash));
+        boolean satisfied = !free || (edgeMap != null && edgeMap.needsSatisfied(edgeHash));
+        //if (!satisfied) {
+        //    log.debug("needsNotSatisfied for {} with {}, needs {} and hash {}",
+        //            this, edgeMap == null ? "no edgemap" : edgeMap, edgeMap == null ? "N/A" : edgeMap.getNeed(), edgeHash);
+        //}
+        return satisfied;
     }
 
     public IntStream getAvailableQuadIDs() {
@@ -149,6 +154,8 @@ class QField {
      */
     public void autoSelectEdgeMap(int edgeN, int edgeE, int edgeS, int edgeW) {
         if (!free) {
+            // No need for warning as this is "auto"
+            //log.warn("Attempting to set edgeMap for non-free " + this);
             return;
         }
         try {
@@ -159,8 +166,8 @@ class QField {
                          "with edges {}, {}, {}, {}. Probably due to a temporary disabling of edgeMap generation",
                          quadBag.getType(), getX(), getY(), edgeN, edgeE, edgeS, edgeW);
             } else {
-                log.debug("Setting edgeMap for ({}, {}) with edges N={}, E={}, S={}, W={}",
-                          x, y, edgeN, edgeE, edgeS, edgeW);
+                //log.debug("Setting edgeMap for ({}, {}) with edges N={}, E={}, S={}, W={}",
+                //          x, y, edgeN, edgeE, edgeS, edgeW);
                 setEdgeMap(edgeMap);
             }
         } catch (Exception e) {
@@ -182,6 +189,13 @@ class QField {
      */
     public boolean isFree() {
         return free;
+    }
+
+    public void setFree() {
+        if (free && this.edgeMap != null) {
+            this.edgeMap.decNeed();
+        }
+        free = true;
     }
 
     public int getQuadID() {

@@ -23,8 +23,6 @@ import java.util.stream.IntStream;
  * The sets are abstract and interaction goes through the map.
  */
 public interface QuadEdgeMap {
-    AtomicInteger need = new AtomicInteger(0);
-
     /**
      * @return IDs for free Quads in the abstract set.
      */
@@ -35,7 +33,7 @@ public interface QuadEdgeMap {
      * @return new need.
      */
     default int incNeed() {
-        return need.incrementAndGet();
+        return getNeed().incrementAndGet();
     }
 
     /**
@@ -43,9 +41,14 @@ public interface QuadEdgeMap {
      * @return new need.
      */
     default int decNeed() {
-        return need.decrementAndGet();
+        return getNeed().decrementAndGet();
     }
 
+    /**
+     * @return the current needs.
+     */
+    AtomicInteger getNeed();
+    
     /**
      * Getting the size might mean a recalculation of the mask.
      * @return the number of remaining Quads.
@@ -58,7 +61,13 @@ public interface QuadEdgeMap {
      * @return true if needs are less than size.
      */
     default boolean needsSatisfied(long hash) {
-        return need.get() <= available(hash);
+        // TODO: Don't perform a full available-calculation as only need is necessary
+        return getNeed().get() <= available(hash);
     }
+
+    /**
+     * @return integer representation of edges: n=0b1000, e=0b0100, s=0b0010, w=0b0001
+     */
+    int getEdges();
 
 }

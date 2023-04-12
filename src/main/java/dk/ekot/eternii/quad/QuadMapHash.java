@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -30,6 +31,7 @@ import java.util.stream.IntStream;
 public class QuadMapHash implements QuadEdgeMap {
     private static final Logger log = LoggerFactory.getLogger(QuadMapHash.class);
 
+    private final AtomicInteger need = new AtomicInteger(0);
     private final int edges;
     private final QuadBag quadBag;
     // (hash, quadIDs)
@@ -62,8 +64,8 @@ public class QuadMapHash implements QuadEdgeMap {
     @Override
     public IntStream getAvailableQuadIDs(long hash) {
         int[] quadIDs = quadMap.get(hash);
-        log.debug("Unfiltered quads for hash {}: {}",
-                  hash, quadIDs != null ? quadIDs.length : "N/A");
+        //        log.debug("Unfiltered quads for hash {}: {}",
+        //          hash, quadIDs != null ? quadIDs.length : "N/A");
         if (quadIDs == null) {
             // We should never reach this as isOK should fail and cause a rolleback
             throw new IllegalArgumentException(
@@ -78,10 +80,25 @@ public class QuadMapHash implements QuadEdgeMap {
     public int available(long hash) {
         int[] quadIDs = quadMap.get(hash);
         if (quadIDs == null) {
-            log.debug("available({}) for type {} got null quadIDs from the map",
-                      hash, quadBag.getType());
+            //log.debug("available({}) for type {} got null quadIDs from the map",
+            //          hash, quadBag.getType());
             return 0;
         }
         return (int) Arrays.stream(quadIDs).filter(quadBag::isAvailable).count();
+    }
+
+    @Override
+    public int getEdges() {
+        return edges;
+    }
+
+    @Override
+    public AtomicInteger getNeed() {
+        return need;
+    }
+
+    public String toString() {
+        return "QuadMapHash(bag=" + quadBag.getType() + ", edges=" + QBits.toStringEdges(edges) +
+                ", #hashes=" + quadMap.size() + ")";
     }
 }

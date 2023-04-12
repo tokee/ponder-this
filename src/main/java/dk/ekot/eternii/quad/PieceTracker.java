@@ -89,6 +89,7 @@ public class PieceTracker {
         return stateID;
     }
 
+    // TODO: Cache this
     public int cardinality() {
         int cardinality = 0;
         for (int i = 0 ; i < pieceIDByteMap.length ; i++) {

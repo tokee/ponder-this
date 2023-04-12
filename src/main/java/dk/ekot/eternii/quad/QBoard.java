@@ -51,7 +51,7 @@ public class QBoard {
         log.debug("Auto selecting edge maps");
         autoSelectEdgeMaps();
         log.debug("Checking needsSatisfiedAll");
-        log.info("Board created with initial needsSatisfiedAll=" + isNeedsSatisfiedAll());
+        log.info("Board created with initial needsSatisfiedAll=" + areNeedsSatisfiedAll());
     }
 
 
@@ -91,7 +91,7 @@ public class QBoard {
      * Visit all fields and check that {@link QField#needsSatisfied()} is true.
      * @return true if {@link QField#needsSatisfied()} is true for all fields.
      */
-    private boolean isNeedsSatisfiedAll() {
+    public boolean areNeedsSatisfiedAll() {
         AtomicBoolean ok = new AtomicBoolean(true);
         visitAllFields(field -> ok.set(ok.get() && field.needsSatisfied()));
         return ok.get();
@@ -115,24 +115,9 @@ public class QBoard {
         field.setQuad(quadID);
         pieceTracker.removeQPiece(field.getQPiece()); // Must be done before calling needsSatisfied()
 
-        boolean allNeedsSatisfied = true;
-        if (y != 0) {
-            autoSelectEdgeMap(x, y-1);
-            allNeedsSatisfied &= getField(x, y-1).needsSatisfied();
-        }
-        if (x != 7) {
-            autoSelectEdgeMap(x+1, y);
-            allNeedsSatisfied &= getField(x+1, y).needsSatisfied();
-        }
-        if (y != 7) {
-            autoSelectEdgeMap(x, y+1);
-            allNeedsSatisfied &= getField(x, y+1).needsSatisfied();
-        }
-        if (x != 0) {
-            autoSelectEdgeMap(x-1, y);
-            allNeedsSatisfied &= getField(x-1, y).needsSatisfied();
-        }
+        boolean allNeedsSatisfied = autoSelectAdjacentEdgeMaps(x, y);
 //        System.out.println("Attempting to place " + QBits.toStringFull(field.getQPiece(), field.getQEdges()));
+
         placePieceOnEBoard(x, y, field.getQPiece(), field.getQEdges());
         return allNeedsSatisfied;
     }
@@ -143,12 +128,46 @@ public class QBoard {
             throw new IllegalStateException("The field " + fields[x][y] + " was already free");
         }
         pieceTracker.addQPiece(field.getQPiece());
+        field.setFree();
         autoSelectEdgeMap(x, y);
+        autoSelectAdjacentEdgeMaps(x, y);
+        
         removeQPieceFromEBoard(x, y);
     }
 
+    private boolean autoSelectAdjacentEdgeMaps(int x, int y) {
+        boolean allNeedsSatisfied = true;
+        if (y != 0) {
+            autoSelectEdgeMap(x, y -1);
+            allNeedsSatisfied &= getField(x, y -1).needsSatisfied();
+        }
+        if (x != 7) {
+            autoSelectEdgeMap(x +1, y);
+            allNeedsSatisfied &= getField(x +1, y).needsSatisfied();
+        }
+        if (y != 7) {
+            autoSelectEdgeMap(x, y +1);
+            allNeedsSatisfied &= getField(x, y +1).needsSatisfied();
+        }
+        if (x != 0) {
+            autoSelectEdgeMap(x -1, y);
+            allNeedsSatisfied &= getField(x -1, y).needsSatisfied();
+        }
+        return allNeedsSatisfied;
+    }
+
     private void removeQPieceFromEBoard(int x, int y) {
-        // TODO: Implement this
+        if (eboard.getPiece(x << 1, y << 1) ==          EPieces.NULL_P ||
+            eboard.getPiece((x << 1 )+1, y << 1) ==     EPieces.NULL_P ||
+            eboard.getPiece((x << 1 )+1, (y << 1)+1) == EPieces.NULL_P ||
+            eboard.getPiece(x << 1, (y << 1)+1) ==      EPieces.NULL_P) {
+            throw new IllegalStateException(
+                    "Attempting to remove quad at (" + x + ", " + y + ") but it was already free");
+        }
+        eboard.removeUntrackedPiece(x << 1, y << 1);
+        eboard.removeUntrackedPiece((x << 1) + 1, y << 1);
+        eboard.removeUntrackedPiece((x << 1) + 1, (y << 1) + 1);
+        eboard.removeUntrackedPiece(x << 1, (y << 1) + 1);
     }
 
 
@@ -196,4 +215,7 @@ public class QBoard {
         return fields[x][y];
     }
 
+    public PieceTracker getPieceTracker() {
+        return pieceTracker;
+    }
 }

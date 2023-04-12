@@ -17,6 +17,7 @@ package dk.ekot.eternii.quad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 /**
@@ -26,9 +27,13 @@ public class QuadMapAll implements QuadEdgeMap {
     private static final Logger log = LoggerFactory.getLogger(QuadMapAll.class);
 
     private final QuadBag quadBag;
+    private final int edges;
+    private final AtomicInteger need = new AtomicInteger(0);
 
-    public QuadMapAll(QuadBag quadBag) {
+
+    public QuadMapAll(QuadBag quadBag, int edges) {
         this.quadBag = quadBag;
+        this.edges = edges;
     }
 
     @Override
@@ -39,5 +44,19 @@ public class QuadMapAll implements QuadEdgeMap {
     @Override
     public int available(long hash) {
         return quadBag.available();
+    }
+
+    @Override
+    public int getEdges() {
+        return edges;
+    }
+
+    @Override
+    public AtomicInteger getNeed() {
+        return need;
+    }
+
+    public String toString() {
+        return "QuadMapAll(edges=" + QBits.toStringEdges(edges) + ")";
     }
 }

@@ -14,13 +14,7 @@
  */
 package dk.ekot.eternii.quad;
 
-import dk.ekot.eternii.EBits;
 import dk.ekot.eternii.EPieces;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static dk.ekot.eternii.EPieces.QNULL_E;
-import static dk.ekot.eternii.EPieces.QNULL_P;
 
 /**
  * Handles quads (2x2 pieces)
