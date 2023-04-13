@@ -108,6 +108,17 @@ class QField {
         return edgeMap.getAvailableQuadIDsNoCache(edgeHash);
     }
 
+    /**
+     * Maximum number of quads that can be retrieved from {@link #getAvailableQuadIDs()} and
+     * {@link #getAvailableQuadIDsNoCache()}, ignoring {@link PieceTracker} state.
+     */
+    public int getMaxAvailable() {
+        if (!free) {
+            return 0;
+        }
+        return edgeMap.getMaxAvailable(edgeHash);
+    }
+
     public QuadBag getBag() {
         return quadBag;
     }
@@ -224,4 +235,5 @@ class QField {
     public void setSequence(int sequence) {
         this.sequence = sequence;
     }
+
 }

@@ -108,6 +108,12 @@ public class QuadMapHash implements QuadEdgeMap {
     }
 
     @Override
+    public int getMaxAvailable(long hash) {
+        int[] quadIDs = quadMap.get(hash);
+        return quadIDs == null ? 0 : quadIDs.length;
+    }
+
+    @Override
     public int available(long hash) {
         int[] quadIDs = quadMap.get(hash);
         if (quadIDs == null) {

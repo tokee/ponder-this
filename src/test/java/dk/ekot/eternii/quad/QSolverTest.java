@@ -34,6 +34,7 @@ public class QSolverTest extends TestCase {
         
         QWalker walker = new QWalkerImpl(board,
                 Comparator.comparingInt(QWalker.cornersOrdered()).
+                        thenComparingInt(QWalker.minMaxAvailable()).
                         thenComparingInt(QWalker.borders()).
                         thenComparingInt(QWalker.borderBorders()).
                         thenComparingInt(QWalker.topLeft()));

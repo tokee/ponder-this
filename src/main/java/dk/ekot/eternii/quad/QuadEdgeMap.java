@@ -31,6 +31,12 @@ public interface QuadEdgeMap {
     IntStream getAvailableQuadIDsNoCache(long hash);
 
     /**
+     * Maximum number of quads that can be retrieved from {@link #getAvailableQuadIDs(long)} and
+     * {@link #getAvailableQuadIDsNoCache(long)}, ignoring {@link PieceTracker} state.
+     */
+
+    int getMaxAvailable(long edgeHash);
+    /**
      * Increment need.
      * @return new need.
      */

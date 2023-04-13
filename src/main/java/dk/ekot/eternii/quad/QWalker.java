@@ -62,6 +62,10 @@ public interface QWalker {
         return move -> move.getY() * BOARD_SIDE + move.getX();
     }
 
+    static ToIntFunction<? super Move> minMaxAvailable() {
+        return move -> move.getField().getMaxAvailable();
+    }
+
     /**
      * @return borders first, no special order.
      */

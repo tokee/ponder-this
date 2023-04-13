@@ -51,6 +51,11 @@ public class QuadMapAll implements QuadEdgeMap {
     }
 
     @Override
+    public int getMaxAvailable(long edgeHash) {
+        return quadBag.size();
+    }
+
+    @Override
     public int available(long hash) {
         return quadBag.available();
     }
