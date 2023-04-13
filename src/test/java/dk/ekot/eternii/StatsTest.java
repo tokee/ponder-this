@@ -75,16 +75,6 @@ public class StatsTest extends TestCase {
                 board, new int[][]{{0, 5}, {1, 5}, {2, 5}, {0, 6}, {1, 6}, {2, 6}, {0, 7}, {1, 7}, {2, 7}}), 9));
     }
 
-    public void testCornerHexTL() {
-        System.out.println("Possible hex top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
-                board, new int[][]{
-                {0, 0}, {1, 0}, {2, 0}, {3, 0},
-                {0, 1}, {1, 1}, {2, 1}, {3, 1},
-                {0, 2}, {1, 2}, {2, 2}, {3, 2},
-                {0, 3}, {1, 3}, {2, 3}, {3, 3}
-                }), 15)); // There's already a clue piece
-    }
-
     public void test3x3() {
         System.out.println("Possible 3x3 corners: " + HexCorners.countSolutions(board -> new WalkerRectangle(
                 board, new Rect(0, 0, 2, 2)), 9));
@@ -100,13 +90,8 @@ public class StatsTest extends TestCase {
     }
 
     public void testEdgeHex() {
-        System.out.println("Possible hex top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
-                board, new int[][]{
-                {0, 4}, {1, 4}, {2, 4}, {3, 4},
-                {0, 5}, {1, 5}, {2, 5}, {3, 5},
-                {0, 6}, {1, 6}, {2, 6}, {3, 6},
-                {0, 7}, {1, 7}, {2, 7}, {3, 7}
-                }), 16)); // There's already a clue piece
+        System.out.println("Possible hex top edges: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(4, 0, 7, 3)), 16));
     }
 
     public void testCornerHexTL5x5() {
@@ -143,6 +128,16 @@ public class StatsTest extends TestCase {
                 {0, 5}, {1, 5}, {2, 5}, {3, 5}, {4, 5}, {5, 5}, {6, 5},
                 {0, 6}, {1, 6}, {2, 6}, {3, 6}, {4, 6}, {5, 6}, {6, 6},
                 }), 48)); // There's already a clue piece
+    }
+
+    public void testCornerHexTL() {
+        System.out.println("Possible hex top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
+                board, new int[][]{
+                {0, 0}, {1, 0}, {2, 0}, {3, 0},
+                {0, 1}, {1, 1}, {2, 1}, {3, 1},
+                {0, 2}, {1, 2}, {2, 2}, {3, 2},
+                {0, 3}, {1, 3}, {2, 3}, {3, 3}
+                }), 15)); // There's already a clue piece
     }
 
     // TODO: Make a dedicated walker that only visits the given fields in the given order and start from the corner or clue piece
