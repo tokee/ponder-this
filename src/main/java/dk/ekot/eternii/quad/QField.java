@@ -36,7 +36,7 @@ class QField {
     private int quadID = -1;
     private int qpiece = 0;
     private long qedges = 0;
-    private int sequence = -1;
+    private String text = "";
 
     public QField(QuadBag quadBag, int x, int y) {
         this.quadBag = quadBag;
@@ -113,7 +113,7 @@ class QField {
      * {@link #getAvailableQuadIDsNoCache()}, ignoring {@link PieceTracker} state.
      */
     public int getMaxAvailable() {
-        if (!free) {
+        if (edgeMap == null) {
             return 0;
         }
         return edgeMap.getMaxAvailable(edgeHash);
@@ -228,12 +228,12 @@ class QField {
         return (!free || quadBag == null) ? "N/A" : edgeMap.approximateQuadCount(edgeHash);
     }
 
-    public int getSequence() {
-        return sequence;
+    public String getText() {
+        return text;
     }
 
-    public void setSequence(int sequence) {
-        this.sequence = sequence;
+    public void setText(String text) {
+        this.text = text;
     }
 
 }

@@ -30,12 +30,13 @@ public class QSolverTest extends TestCase {
     public void testBasic() {
         QBoard board = new QBoard();
         BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
+        visualiser.setOverflow(true);
         board.registerObserver(visualiser);
         
         QWalker walker = new QWalkerImpl(board,
                 Comparator.comparingInt(QWalker.cornersOrdered()).
-                        thenComparingInt(QWalker.minMaxAvailable()).
                         thenComparingInt(QWalker.borders()).
+                        thenComparingInt(QWalker.minMaxAvailable()).
                         thenComparingInt(QWalker.borderBorders()).
                         thenComparingInt(QWalker.topLeft()));
         QSolverBacktrack solver = new QSolverBacktrack(board, walker);

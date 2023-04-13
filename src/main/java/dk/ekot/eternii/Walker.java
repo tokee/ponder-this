@@ -210,9 +210,11 @@ public interface Walker {
         EBoard.Field field = pair.left;
         List<EBoard.Piece> pieces = pair.right.stream()
                 .map(p -> new EBoard.Piece(p, field.getValidRotation(p)))
+//                .filter(piece -> isValidPieceOnPosition(field.getX(), field.getY(), piece))
                 .collect(Collectors.toList());
         return new EBoard.Pair<>(field, pieces);
     }
+
     /**
      * @return All free fields, with corresponding valid pieces, rotated and sorted.
      * @deprecated use {@link #getAll} instead and switch to delayed rotation.
