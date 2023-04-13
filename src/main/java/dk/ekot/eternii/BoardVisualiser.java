@@ -46,6 +46,7 @@ public class BoardVisualiser implements BoardObserver {
 
     private int best = 0;
     private boolean showPossiblePieces = true;
+    private boolean overflow = false;
 
     public enum TYPE {live, best, best_unplaced}
 
@@ -153,6 +154,28 @@ public class BoardVisualiser implements BoardObserver {
     }
 
     private void drawPlaced() {
+        if (overflow) {
+            drawPlacedBRTL();
+        } else {
+            drawPlacedTLBR();
+        }
+    }
+
+    /**
+     * Draw from top left to lower right, limiting text to the concrete tile.
+     */
+    private void drawPlacedTLBR() {
+        for (int y = 0 ; y < board.getHeight() ; y++) {
+            for (int x = 0 ; x < board.getWidth() ; x++) {
+                updateTile(x, y);
+            }
+        }
+    }
+
+    /**
+     * Draw from lower right to top left, allowing text to overflow to next tile.
+     */
+    private void drawPlacedBRTL() {
         for (int y = 0 ; y < board.getHeight() ; y++) {
             for (int x = 0 ; x < board.getWidth() ; x++) {
                 updateTile(x, y);
@@ -207,4 +230,11 @@ public class BoardVisualiser implements BoardObserver {
         boardImage.getGraphics().drawString(attributedString.getIterator(), x * edgeWidth + 3, y * edgeHeight + 30);
     }
 
+    public boolean isOverflow() {
+        return overflow;
+    }
+
+    public void setOverflow(boolean overflow) {
+        this.overflow = overflow;
+    }
 }
