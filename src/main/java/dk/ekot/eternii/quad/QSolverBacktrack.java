@@ -14,9 +14,10 @@
  */
 package dk.ekot.eternii.quad;
 
-import dk.ekot.eternii.Walker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  *
@@ -93,11 +94,14 @@ public class QSolverBacktrack implements Runnable {
         }
         final QField field = move.getField();
         //log.debug("Walking depth={}, field=({}, {})", depth, field.getX(), field.getY());
+        AtomicInteger quadsTried = new AtomicInteger(0);
+        final String maxQuads = field.getMaxAvailable() + "-";
         move.getAvailableQuadIDs().limit(maxAttempts-attempts).forEach(quadID -> {
+            quadsTried.incrementAndGet();
             attempts++;
             //log.debug("Placing quad {} on ({}, {})", quadID, field.getX(), field.getY());
             board.placePiece(move.getX(), move.getY(), quadID);
-            board.setSequence(move.getX(), move.getY(), depth);
+            board.setText(move.getX(), move.getY(), depth + ": " + quadsTried.get() + "/" + maxQuads);
             if (board.areNeedsSatisfiedAll()) {
                 // TODO: Optimize field.getAvailableQuadIDs().count() and use that instead of 2
                 if (dive(depth + 1, possibilities * 2)) {
