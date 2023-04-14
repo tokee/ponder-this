@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.stream.IntStream;
 
 /**
  *
@@ -42,8 +43,11 @@ public class QSolverTest extends TestCase {
                         thenComparingInt(QWalker.borderBorders()).
                         thenComparingInt(QWalker.topLeft()));
 
-        QMoveStreamAdjuster moveStreamAdjuster = QMoveStreamAdjuster.RANDOM_BORDER;
-
+        QMoveStreamAdjuster moveStreamAdjuster = move ->
+                move.isBorderOrCorner() ?
+                        move.getAvailableQuadIDsByNeighbours() :
+                        move.getAvailableQuadIDs();
+        
         QSolverBacktrack solver = new QSolverBacktrack(
                 board, walker, moveStreamAdjuster);
 

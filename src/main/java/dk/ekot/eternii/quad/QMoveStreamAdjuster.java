@@ -22,9 +22,10 @@ import java.util.stream.IntStream;
 /**
  *
  */
+@FunctionalInterface
 public interface QMoveStreamAdjuster extends Function<QWalker.Move, IntStream> {
-    QMoveStreamAdjuster IDENTITY = new QMoveStreamAdjuster() {
-    };
+    QMoveStreamAdjuster IDENTITY = QWalker.Move::getAvailableQuadIDs;
+
     QMoveStreamAdjuster RANDOM_BORDER = new QMoveStreamAdjuster() {
         final Random random = new Random(); // TODO: Introduce seed
 
@@ -33,14 +34,9 @@ public interface QMoveStreamAdjuster extends Function<QWalker.Move, IntStream> {
             if (!move.isBorderOrCorner()) {
                 return move.getAvailableQuadIDs();
             }
-            return Arrays.stream(move.getAvailableQuadIDs().toArray());
+            return Arrays.stream(shuffle(move.getAvailableQuadIDs().toArray(), random));
         }
     };
-
-    @Override
-    default IntStream apply(QWalker.Move move) {
-        return move.getAvailableQuadIDs();
-    }
 
     // Destructive to the original array
     static int[] shuffle(int[] array, Random random) {

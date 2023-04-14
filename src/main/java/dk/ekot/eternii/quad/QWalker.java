@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 /**
@@ -55,12 +56,9 @@ public interface QWalker {
      * @return fewest valid quads for any neighbour for any of the valid quads for the move.
      */
     static ToIntFunction<Move> fewestNeighboursAvailable() {
-        return move ->
-                move.getAvailableQuadIDs().
-                        mapToLong(quadID -> (fewestNeighboursAvailable(move.getField(), quadID) << 32) | quadID).
-                        sorted().
-                        mapToInt(compound -> (int) (compound & 0xFFFF)).
-                        findFirst().orElseThrow(() -> new IllegalStateException("No quads available"));
+        return move -> move.getNeighbourCompounds().
+                mapToInt(compound -> (int) (compound >>> 32)).
+                findFirst().orElseThrow(() -> new IllegalStateException("No quads available"));
     }
 
     /**
@@ -70,19 +68,24 @@ public interface QWalker {
      */
     static long fewestNeighboursAvailable(QField field, int quadID) {
         int min = Integer.MAX_VALUE;
-        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
-        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
-        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
-        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
+        min = Math.min(min, field.getY() == 0 ? Integer.MAX_VALUE : validQuadCountNorthOf(field, quadID));
+        min = Math.min(min, field.getX() == 7 ? Integer.MAX_VALUE : validQuadCountEastOf(field, quadID));
+        min = Math.min(min, field.getY() == 7 ? Integer.MAX_VALUE : validQuadCountSouthOf(field, quadID));
+        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountWestOf(field, quadID));
+
+        if (min == Integer.MAX_VALUE) {
+            System.out.println("Got zero fewest for " + field + " and quadID " + quadID);
+        }
+        return min == Integer.MAX_VALUE ? 0 : min;
     }
 
     /**
      * @return the number of valid quads if the field to the north had the quad with {@code quadID} set.
      */
-    static int validQuadCountIfNorthIs(QField field, int quadID) {
+    static int validQuadCountSouthOf(QField field, int quadID) {
         QBoard board = field.getBoard();
         final int x = field.getX();
-        final int y = field.getY();
+        final int y = field.getY()+1;
         QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
                 true,
                 x < 7 && !board.getField(x+1, y).isFree(),
@@ -99,9 +102,9 @@ public interface QWalker {
     /**
      * @return the number of valid quads if the field to the east had the quad with {@code quadID} set.
      */
-    static int validQuadCountIfEastIs(QField field, int quadID) {
+    static int validQuadCountWestOf(QField field, int quadID) {
         QBoard board = field.getBoard();
-        final int x = field.getX();
+        final int x = field.getX()-1;
         final int y = field.getY();
         QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
                 y > 0 && !board.getField(x, y-1).isFree(),
@@ -119,10 +122,10 @@ public interface QWalker {
     /**
      * @return the number of valid quads if the field to the south had the quad with {@code quadID} set.
      */
-    static int validQuadCountIfSouthIs(QField field, int quadID) {
+    static int validQuadCountNorthOf(QField field, int quadID) {
         QBoard board = field.getBoard();
         final int x = field.getX();
-        final int y = field.getY();
+        final int y = field.getY()-1;
         QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
                 y > 0 && !board.getField(x, y-1).isFree(),
                 x < 7 && !board.getField(x+1, y).isFree(),
@@ -139,9 +142,9 @@ public interface QWalker {
     /**
      * @return the number of valid quads if the field to the west had the quad with {@code quadID} set.
      */
-    static int validQuadCountIfWestIs(QField field, int quadID) {
+    static int validQuadCountEastOf(QField field, int quadID) {
         QBoard board = field.getBoard();
-        final int x = field.getX();
+        final int x = field.getX()+1;
         final int y = field.getY();
         QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
                 y > 0 && !board.getField(x, y-1).isFree(),
@@ -152,7 +155,7 @@ public interface QWalker {
                 y == 0 ? -1 : board.getField(x, y-1).getEdgeIfDefinedS(),
                 x == 7 ? -1 : board.getField(x+1, y).getEdgeIfDefinedW(),
                 y == 7 ? -1 : board.getField(x, y+1).getEdgeIfDefinedN(),
-                QBits.getColN(field.getBag().getQEdges(quadID)),
+                QBits.getColE(field.getBag().getQEdges(quadID)),
                 false);
         return edgeMap.available(edgeHash);
     }
@@ -282,6 +285,11 @@ public interface QWalker {
             return getField().getAvailableQuadIDsNoCache();
         }
 
+        public IntStream getAvailableQuadIDsByNeighbours() {
+            return getNeighbourCompounds().
+                    mapToInt(compound -> (int) (compound & 0xFFFF));
+        }
+
         public boolean isBorderOrCorner() {
             return x == 0 || y == 0 || x == 7 || y== 7;
         }
@@ -297,6 +305,28 @@ public interface QWalker {
         public boolean isClue() {
             return isClueCorner() || isClueCenter();
         }
+
+        @Override
+        public String toString() {
+            return "Move(" + x + ", " + y + ")";
+        }
+
+        /**
+         * A compound is a long where the first 32 bits holds the minimum number of possible quads for all
+         * neighbour fields and the last 32 bits holds a quad ID.
+         * @return a stream of compounds, ordered by neighbours low to high.
+         */
+        public LongStream getNeighbourCompounds() {
+            if (ncompounds == null) {
+                ncompounds = getAvailableQuadIDs().
+                        mapToLong(quadID -> (fewestNeighboursAvailable(getField(), quadID) << 32) | quadID).
+                        sorted().
+                        toArray();
+                //System.out.println("Created " + ncompounds.length + " for " + this);
+            }
+            return Arrays.stream(ncompounds);
+        }
+        private long[] ncompounds = null;
     }
 
 }
