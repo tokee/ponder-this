@@ -17,6 +17,7 @@ package dk.ekot.eternii.quad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -30,12 +31,15 @@ public class QSolverBacktrack implements Runnable {
     private final int maxDepth;
     private final long maxAttempts;
 
+    private final long printDeltaMS = 1000;
+    // Until this depth, the stats are precise
+    private final int fineCountDepth = 25;
+
     private long attempts = 0;
     private int minFree = 256;
     private String best = "";
     private long startTimeMS;
     private long nextPrintMS = System.currentTimeMillis();
-    private long printDeltaMS = 1000;
 
 
     public QSolverBacktrack(QBoard board, QWalker walker) {
@@ -51,11 +55,11 @@ public class QSolverBacktrack implements Runnable {
 
     @Override
     public void run() {
-        startTimeMS = System.currentTimeMillis();
+        startTimeMS = System.currentTimeMillis()-1; // -1 to avoid devision by zero
         dive(0, 1.0);
         log.debug(board.getEboard().getDisplayURL());
     }
-
+    final DecimalFormat eFormat = new DecimalFormat("##0.0E0");
     private boolean dive(int depth, double possibilities) {
         //log.debug("Starting dive at depth {} with {} possibilities, attempts {}/{}",
         //        depth, possibilities, attempts, maxAttempts);
@@ -95,16 +99,23 @@ public class QSolverBacktrack implements Runnable {
         final QField field = move.getField();
         //log.debug("Walking depth={}, field=({}, {})", depth, field.getX(), field.getY());
         AtomicInteger quadsTried = new AtomicInteger(0);
-        final String maxQuads = field.getMaxAvailable() + "-";
+
+        final int max = field.getMaxAvailable();
+        final int available = depth < fineCountDepth ? field.available() : -1;
+        final String maxQuads = depth < fineCountDepth ? "=" + available :
+                max > 1000000 ? max / 1000000 + "M-" :
+                        max > 1000 ? max / 1000 + "K-" :
+                                max + "-";
         move.getAvailableQuadIDs().limit(maxAttempts-attempts).forEach(quadID -> {
             quadsTried.incrementAndGet();
             attempts++;
             //log.debug("Placing quad {} on ({}, {})", quadID, field.getX(), field.getY());
             board.placePiece(move.getX(), move.getY(), quadID);
-            board.setText(move.getX(), move.getY(), depth + ": " + quadsTried.get() + "/" + maxQuads);
+            board.setFieldText(move.getX(), move.getY(), depth + ": " + quadsTried.get() + "/" + maxQuads,
+                               eFormat.format(possibilities));
             if (board.areNeedsSatisfiedAll()) {
                 // TODO: Optimize field.getAvailableQuadIDs().count() and use that instead of 2
-                if (dive(depth + 1, possibilities * 2)) {
+                if (dive(depth + 1, possibilities * (available == -1 ? max : available))) {
                     log.debug("Got solution for maxDepth={}: {}", depth, board.getEboard().getDisplayURL());
                 }
             //} else {

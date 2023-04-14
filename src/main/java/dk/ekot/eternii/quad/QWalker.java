@@ -14,13 +14,8 @@
  */
 package dk.ekot.eternii.quad;
 
-import dk.ekot.eternii.EBoard;
-import dk.ekot.eternii.Walker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.ToIntFunction;
@@ -62,9 +57,28 @@ public interface QWalker {
         return move -> move.getY() * BOARD_SIDE + move.getX();
     }
 
-    static ToIntFunction<? super Move> minMaxAvailable() {
+    /**
+     * @return lowest maximum number of quads, where quads are all potential quads from the field on a blank board
+     */
+    static ToIntFunction<Move> minMaxAvailable() {
         return move -> move.getField().getMaxAvailable();
     }
+
+    /**
+     * @return lowest number of available valid quads if the field is on the border of the board, else Integer.MAX_VALUE
+     */
+    static ToIntFunction<Move> bordersByAvailable() {
+        return move -> move.isBorder() ? move.getField().available() : Integer.MAX_VALUE;
+    }
+
+    /**
+     * @return lowest number of available valid quads if the field is on the border of the board or is a corner clue,
+     *         else Integer.MAX_VALUE
+     */
+    static ToIntFunction<Move> bordersOrClueCornerSubAvailable() {
+        return move -> move.isBorder() || move.isClueCorner() ? move.getField().available() : Integer.MAX_VALUE;
+    }
+
 
     /**
      * @return borders first, no special order.
@@ -76,56 +90,56 @@ public interface QWalker {
     /**
      * @return the border to the border (aka inner "ring)), no special order.
      */
-    static ToIntFunction<? super Move> borderBorders() {
+    static ToIntFunction<Move> borderBorders() {
         return move -> move.getX() == 1 || move.getX() == 6 || move.getY() == 1 || move.getY() == 6 ? 1 : 2;
     }
 
     /**
-     * @return corners (2x2 quads) in order, each corner ordered corner->middle.
+     * Prioritizes the given coordinates over others and order candidates by the order in coordinates.
+     * @param coordinates array of {@code {x, y}}.
      */
-    // TODO: Performance: Replace this with efficient array based priority
-    static ToIntFunction<Move> cornersOrdered() {
-        return move -> {
-            final int x = move.getX();
-            final int y = move.getY();
-            if (x <= 1 && y <= 1) { // NW
-                if (x == 0 && y == 0) {
-                    return 10;
-                }
-                if (x == 1) {
-                    return y == 0 ? 11 : 12;
-                }
-                return 13;
-            }
-            if (x >= 6 && y <= 1) { // NE
-                if (x == 7 && y == 0) {
-                    return 20;
-                }
-                if (y == 1) {
-                    return x == 7 ? 21 : 22;
-                }
-                return 23;
-            }
-            if (x >= 6 && y >= 6) { // SE
-                if (x == 7 && y == 7) {
-                    return 30;
-                }
-                if (x == 6) {
-                    return y == 7 ? 31 : 32;
-                }
-                return 33;
-            }
-            if (x <= 1 && y >= 6) { // SW
-                if (x == 0 && y == 7) {
-                    return 40;
-                }
-                if (y == 6) {
-                    return x == 0 ? 41 : 42;
-                }
-                return 43;
-            }
-            return 50;
-        };
+    static ToIntFunction<Move> fixedOrder(int[][] coordinates) {
+        int[] indices = xysToIndices(coordinates);
+        final int[] all = new int[64];
+        Arrays.fill(all, 65);
+        for (int priority = 0 ; priority < indices.length ; priority++) {
+            all[indices[priority]] = priority;
+        }
+        return move -> all[move.getY()*8+move.getX()];
+    }
+
+    static int[] xysToIndices(int[][] coordinates) {
+        return Arrays.stream(coordinates).
+                map(coordinate -> coordinate[1]*8+coordinate[0]).
+                mapToInt(Integer::valueOf).
+                toArray();
+    }
+
+    /**
+     * @return corners (2x2 quads) in order NW, NE, SE, SW, each corner ordered corner->middle.
+     */
+    static ToIntFunction<Move> cornersClockwise() {
+        return fixedOrder(new int[][] {
+                {0, 0}, // NW
+                {1, 0},
+                {1, 1},
+                {0, 1},
+
+                {7, 0}, // NE
+                {7, 1},
+                {6, 1},
+                {6, 0},
+
+                {7, 7}, // SE
+                {6, 7},
+                {6, 6},
+                {7, 6},
+
+                {0, 7}, // SW
+                {0, 6},
+                {1, 6},
+                {1, 7},
+        });
     }
 
     class Move {
@@ -154,6 +168,22 @@ public interface QWalker {
         public IntStream getAvailableQuadIDs() {
             // TODO: Consider making this an option
             return getField().getAvailableQuadIDsNoCache();
+        }
+
+        public boolean isBorder() {
+            return x == 0 || y == 0 || x == 7 || y== 7;
+        }
+        public boolean isClueCorner() {
+            return (x == 1 && y == 1) ||
+                   (x == 6 && y == 1) ||
+                   (x == 6 && y == 6) ||
+                   (x == 1 && y == 6);
+        }
+        public boolean isClueCenter() {
+            return x == 3 && y == 4;
+        }
+        public boolean isClue() {
+            return isClueCorner() || isClueCenter();
         }
     }
 

@@ -34,8 +34,9 @@ public class QSolverTest extends TestCase {
         board.registerObserver(visualiser);
         
         QWalker walker = new QWalkerImpl(board,
-                Comparator.comparingInt(QWalker.cornersOrdered()).
-                        thenComparingInt(QWalker.borders()).
+                Comparator.comparingInt(QWalker.cornersClockwise()).
+                        //thenComparingInt(QWalker.borders()).
+                        thenComparingInt(QWalker.bordersOrClueCornerSubAvailable()).
                         thenComparingInt(QWalker.minMaxAvailable()).
                         thenComparingInt(QWalker.borderBorders()).
                         thenComparingInt(QWalker.topLeft()));
@@ -54,4 +55,11 @@ public class QSolverTest extends TestCase {
         }
 
     }
+
+    /*
+
+    20230414:
+    Attempts: 106104584, placed=144|188, att/sec=2924, possible=2e+66 best=188 free: https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaabgbacsbabhcafubafqfafgfackfacpcaepcaeteafoeaemfaeueaeseaabedidaggjisjwghhwjunvhqoqngllokpllppjppskptjisovmjmqlvuiwqsjgibabjdpcajnmpwlmnwoklaaaaaaaaaaaaaaaaaaaaaaaaiqwomokqlugowswugvgsbacvcrbamhmrmkqhkgikaaaaaaaaaaaaaaaaaaaaaaaawqlhkwhqgiiwwiligpnicabpbteamrgtaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalpluhsspiujslkvunhskbafheibagtgiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalomnsujojuouvususrtufacrbveagtqvaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaamtlgjkqtolnksnplthjncafhendaqgtnaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaluqrqnounvjnpsuvjuhsfafudhdatrwhkmnrttkmplmtqiklomniijjmaaaaaaaaaaaaaaaajmllupmmhtvpfabtdgdawstgnnnskvrnmtrvkuvtnhhujqphaaaaaaaaaaaaaaaalsnhmwksvjgwbafjdweatqqwngwqrjkgronjvuwohwkupmiwaaaaaaaaaaaaaaaantqvkvrtgouvfadoepbaqrqpwmmrkigmnqwiwsoqksssiuksaaaaaaaaaaaaaaaaqooirhmousthdadsboeaqtjomsutgruswvlromjvsommkuwoaaaaaaaaaaaaaaaaoggkmpqgtwhpdafwencajminujvmurijlslrjprsmonpwuioaaaaaaaaaaaaaaaagrinqvprhnlvfacncidaigqivvlgijvvlthjrujtnrquilprwmulqntmpgtnqmqgiommpstolgoscadgdcaaqeaclfaevcafhbacjfabqeafpdaeufadtdafteadqbaemdabtcadocacdaac
+
+     */
 }

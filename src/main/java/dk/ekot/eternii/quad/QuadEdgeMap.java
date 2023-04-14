@@ -31,12 +31,6 @@ public interface QuadEdgeMap {
     IntStream getAvailableQuadIDsNoCache(long hash);
 
     /**
-     * Maximum number of quads that can be retrieved from {@link #getAvailableQuadIDs(long)} and
-     * {@link #getAvailableQuadIDsNoCache(long)}, ignoring {@link PieceTracker} state.
-     */
-
-    int getMaxAvailable(long edgeHash);
-    /**
      * Increment need.
      * @return new need.
      */
@@ -58,7 +52,7 @@ public interface QuadEdgeMap {
     AtomicInteger getNeed();
     
     /**
-     * Getting the size might mean a recalculation of the mask.
+     * Getting the size might mean a recalculation of the mask and can be quite costly.
      * @return the number of remaining Quads.
      */
     int available(long hash);
@@ -75,6 +69,12 @@ public interface QuadEdgeMap {
      * @return approximate number of available quads.
      */
     String approximateQuadCount(long hash);
+
+    /**
+     * Maximum number of quads that can be retrieved from {@link #getAvailableQuadIDs(long)} and
+     * {@link #getAvailableQuadIDsNoCache(long)}, ignoring {@link PieceTracker} state.
+     */
+    int getMaxAvailable(long edgeHash);
 
     /**
      * needsSatisfied is an upper bound as some quads might share pieces.

@@ -176,8 +176,8 @@ public class BoardVisualiser implements BoardObserver {
      * Draw from lower right to top left, allowing text to overflow to next tile.
      */
     private void drawPlacedBRTL() {
-        for (int y = 0 ; y < board.getHeight() ; y++) {
-            for (int x = 0 ; x < board.getWidth() ; x++) {
+        for (int y = board.getHeight()-1 ; y >= 0 ; y--) {
+            for (int x = board.getWidth()-1 ; x >= 0 ; x--) {
                 updateTile(x, y);
             }
         }

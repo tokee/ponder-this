@@ -36,7 +36,7 @@ class QField {
     private int quadID = -1;
     private int qpiece = 0;
     private long qedges = 0;
-    private String text = "";
+    private String[] text = new String[0];
 
     public QField(QuadBag quadBag, int x, int y) {
         this.quadBag = quadBag;
@@ -228,12 +228,18 @@ class QField {
         return (!free || quadBag == null) ? "N/A" : edgeMap.approximateQuadCount(edgeHash);
     }
 
-    public String getText() {
+    public String[] getText() {
         return text;
     }
 
-    public void setText(String text) {
+    public void setText(String... text) {
         this.text = text;
     }
 
+    /**
+     * @return precise counting of available quads (might be slow).
+     */
+    public int available() {
+        return (!free || quadBag == null) ? 0 : edgeMap.available(edgeHash);
+    }
 }

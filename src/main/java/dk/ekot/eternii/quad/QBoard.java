@@ -204,7 +204,10 @@ public class QBoard {
             setObserverText(field.getX()<<1, field.getY()<<1, field.approximateQuadCount());
             //setObserverText(field.getX()<<1, field.getY()<<1, Integer.toString(field.getEdgeMap().getNeed().get()));
         } else {
-            setObserverText(field.getX()<<1, field.getY()<<1, field.getText());
+            String[] texts = field.getText().length == 0 ? new String[]{""} : field.getText();
+            for (int i = 0 ; i < texts.length ; i++) {
+                setObserverText(field.getX() << 1, (field.getY() << 1)+i, texts[i]);
+            }
         }
     }
 
@@ -260,11 +263,11 @@ public class QBoard {
         return wasThere;
     }
 
-    private void setObserverText(int x, int y, String label) {
+    public void setObserverText(int x, int y, String label) {
         observers.forEach(o -> o.setText(x, y, label));
     }
 
-    public void setText(int x, int y, String text) {
+    public void setFieldText(int x, int y, String... text) {
         fields[x][y].setText(text);
     }
 }

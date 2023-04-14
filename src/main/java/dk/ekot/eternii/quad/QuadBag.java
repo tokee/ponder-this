@@ -299,9 +299,6 @@ public class QuadBag implements QuadHolder {
     }
 
     void validateAvailability() {
-        if (1 == 1) {
-            throw new IllegalStateException("Nopes!");
-        }
         long startTimeNS = System.nanoTime();
         if (existingStateID == pieceTracker.getStateID()) {
 //            log.info("validateAvailability for {} had matching statedID={} with {} available",
