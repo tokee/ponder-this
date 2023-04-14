@@ -18,10 +18,9 @@ import junit.framework.TestCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.IntPredicate;
+import java.util.stream.IntStream;
 
 /**
  * Calculate stats for quad (2x2) pieces and similar. With check for proper edge/no-ege
@@ -41,11 +40,28 @@ import java.util.Set;
  Possible hex bottom left corners:  32,476,466
  Possible hex bottom right corners: 29,493,137
 
+ Possible 1x4 edges: 118,062
+ Possible 1x4 inner: 191,782
+
+ Possible 2x4 edges: 314,512
+ Possible 2x4 inner: 61,493,258
+
+ Possible 3x3 corners: 2,932
+ 
+
  Hex center not finished: Complete solutions so far: 1,354,267,040 (a night's work)
  5x5 TL corner:       Complete solutions so far: 1,442,343,927 (~20 hours)
                       Complete solutions so far: 5,524,240,878 (3 days)
-6x6 TL Complete solutions so far: 13,587,510,981 (3-4 days? A week?)
-7x7 TL Complete solutions so far: 12,171,379,454 (3-4 days? A week?)
+ 6x6 TL Complete solutions so far: 13,587,510,981 (3-4 days? A week?)
+ 7x7 TL Complete solutions so far: 12,171,379,454 (3-4 days? A week?)
+
+ 4x4 edge Complete solutions so far: 8,807,230,312 (1½ day)
+
+ Edges between borders: 5
+ Edges from borders towards inner: 17
+ Edges from inner: 17
+ Edges between borders but not on inner: 5
+ Edges on inner but not between borders: 17
 
  All permutations of the corner @ clue 1: Clue_1 * Corners * Edge * Edge = 4112 * 1301 * 62807 * 62807 = 21*10^15
  */
@@ -65,23 +81,112 @@ public class StatsTest extends TestCase {
                         board, new int[][]{{5, 2}, {6, 2}, {5, 3}, {6, 3}}), 4));
     }
 
+    public void testColorStats() {
+        EPieces pieces = EPieces.getEternii();
+        Set<Integer> betweenBorderColors = new HashSet<>();
+        Set<Integer> towardsInnerBorderColors = new HashSet<>();
+        Set<Integer> innerColors = new HashSet<>();
+
+        for (int pieceID = 0 ; pieceID < 256 ; pieceID++) {
+            final int piece = pieceID;
+            switch (pieces.getType(piece)) {
+                case EPieces.CORNER: {
+                    IntStream.range(0, 4).forEach(rotation -> {
+                        if (pieces.getLeft(piece, rotation) == EPieces.EDGE_EDGE &&
+                                pieces.getTop(piece, rotation) == EPieces.EDGE_EDGE) {
+                            betweenBorderColors.add(pieces.getRight(piece, rotation));
+                            betweenBorderColors.add(pieces.getBottom(piece, rotation));
+                        }
+                    });
+                    break;
+                }
+                case EPieces.EDGE: {
+                    IntStream.range(0, 4).forEach(rotation -> {
+                        if (pieces.getTop(piece, rotation) == EPieces.EDGE_EDGE) {
+                            betweenBorderColors.add(pieces.getLeft(piece, rotation));
+                            betweenBorderColors.add(pieces.getRight(piece, rotation));
+                            towardsInnerBorderColors.add(pieces.getBottom(piece, rotation));
+                        }
+                    });
+                    break;
+                }
+                case EPieces.INNER: {
+                    IntStream.range(0, 4).forEach(rotation ->
+                            innerColors.add(pieces.getLeft(piece, rotation)));
+                    break;
+                }
+                default: throw new UnsupportedOperationException(
+                        "The piece type '" + pieces.getType(piece) + " is unknown");
+            }
+        }
+
+        Set<Integer> betweenBorderNotInner = new HashSet<>(betweenBorderColors);
+        betweenBorderNotInner.removeAll(innerColors);
+
+        Set<Integer> innerNotBetweenBorder = new HashSet<>(innerColors);
+        innerNotBetweenBorder.removeAll(betweenBorderColors);
+
+        System.out.println("Edges between borders: " + betweenBorderColors.size());
+        System.out.println("Edges from borders towards inner: " + towardsInnerBorderColors.size());
+        System.out.println("Edges from inner: " + innerColors.size());
+        System.out.println("Edges between borders but not on inner: " + betweenBorderNotInner.size());
+        System.out.println("Edges on inner but not between borders: " + innerNotBetweenBorder.size());
+    }
+
+    public Set<Integer> extractPieceEdges(IntPredicate pieceFilter) {
+        EPieces pieces = EPieces.getEternii();
+        Set<Integer> edges = new HashSet<>();
+        IntStream.range(0, 256).
+                filter(pieceFilter).
+                forEach(piece -> {
+                    IntStream.range(0, 4).
+                            map(rotation -> pieces.getTop(piece, rotation)).
+                            forEach(edges::add);
+                });
+        return edges;
+    }
+
     public void testEdge() {
         System.out.println("Possible quad edge: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{0, 5}, {1, 5}, {0, 6}, {1, 6}}), 4));
     }
 
-    public void testEdge3x3() {
+    public void invalidtestEdge3x3() {
         System.out.println("Possible 3x3 edge: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{{0, 5}, {1, 5}, {2, 5}, {0, 6}, {1, 6}, {2, 6}, {0, 7}, {1, 7}, {2, 7}}), 9));
     }
 
     public void test3x3() {
         System.out.println("Possible 3x3 corners: " + HexCorners.countSolutions(board -> new WalkerRectangle(
-                board, new Rect(0, 0, 2, 2)), 9));
+                board, new Rect(0, 0, 2, 2)), 8));
         System.out.println("Possible 3x3 edges: " + HexCorners.countSolutions(board -> new WalkerRectangle(
-                board, new Rect(1, 0, 3, 2)), 9));
+                board, new Rect(4, 0, 6, 2)), 9));
         System.out.println("Possible 3x3 inner: " + HexCorners.countSolutions(board -> new WalkerRectangle(
-                board, new Rect(5, 5, 7, 7)), 9));
+                board, new Rect(4, 1, 6, 3)), 9));
+    }
+
+    public void test1x4() {
+        System.out.println("Possible 1x4 edges: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(1, 0, 1, 3)), 4));
+        System.out.println("Possible 1x4 inner: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(2, 1, 2, 4)), 4));
+    }
+
+    public void test1x8edge() {
+        System.out.println("Possible 1x8 edges: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(1, 0, 1, 7)), 8));
+    }
+
+    public void test1x8inner() {
+        System.out.println("Possible 1x8 inner: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(1, 1, 1, 8)), 8));
+    }
+
+    public void test2x4() {
+        System.out.println("Possible 2x4 edges: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(1, 0, 2, 3)), 8));
+        System.out.println("Possible 2x4 inner: " + HexCorners.countSolutions(board -> new WalkerRectangle(
+                board, new Rect(2, 1, 3, 4)), 8));
     }
 
     public void testCenterClue3x3() {
@@ -94,7 +199,7 @@ public class StatsTest extends TestCase {
                 board, new Rect(4, 0, 7, 3)), 16));
     }
 
-    public void testCornerHexTL5x5() {
+    public void testCornerTL5x5() {
         System.out.println("Possible 5x5 top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0},
@@ -105,7 +210,7 @@ public class StatsTest extends TestCase {
                 }), 24)); // There's already a clue piece
     }
 
-    public void testCornerHexTL6x6() {
+    public void testCornerTL6x6() {
         System.out.println("Possible 6x6 top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0},
@@ -117,7 +222,7 @@ public class StatsTest extends TestCase {
                 }), 35)); // There's already a clue piece
     }
 
-    public void testCornerHexTL7x7() {
+    public void testCornerTL7x7() {
         System.out.println("Possible 7x7 top left corners: " + HexCorners.countSolutions(board -> new WalkerQuadSelected(
                 board, new int[][]{
                 {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}, {6, 0},
