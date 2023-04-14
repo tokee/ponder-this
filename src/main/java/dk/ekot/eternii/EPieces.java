@@ -293,6 +293,11 @@ public class EPieces {
         bag.add(piece);
     }
 
+    /**
+     *
+     * @param piece
+     * @return {@link #CORNER}, {@link #EDGE} or {@link #INNER};
+     */
     public int getType(int piece) {
         return type[piece];
     }

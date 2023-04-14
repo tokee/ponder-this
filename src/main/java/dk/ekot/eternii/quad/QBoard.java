@@ -51,13 +51,12 @@ public class QBoard {
         log.debug("Creating bagHandler");
         bagHandler = new QuadBagHandler(pieceTracker);
         log.debug("Assigning bags to fields");
-        bagHandler.assignBagsToFields(fields);
+        bagHandler.assignBagsToFields(this, fields);
         log.debug("Auto selecting edge maps");
         autoSelectEdgeMaps();
         log.debug("Checking needsSatisfiedAll");
         log.info("Board created with initial needsSatisfiedAll=" + areNeedsSatisfiedAll());
     }
-
 
     public EBoard getEboard() {
         return eboard;

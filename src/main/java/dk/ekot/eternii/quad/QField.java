@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
 class QField {
     private static final Logger log = LoggerFactory.getLogger(QField.class);
 
+    private final QBoard board;
     private final QuadBag quadBag;
     private final int x;
     private final int y;
@@ -38,7 +39,8 @@ class QField {
     private long qedges = 0;
     private String[] text = new String[0];
 
-    public QField(QuadBag quadBag, int x, int y) {
+    public QField(QBoard board, QuadBag quadBag, int x, int y) {
+        this.board = board;
         this.quadBag = quadBag;
         this.x = x;
         this.y = y;
@@ -241,5 +243,9 @@ class QField {
      */
     public int available() {
         return (!free || quadBag == null) ? 0 : edgeMap.available(edgeHash);
+    }
+
+    public QBoard getBoard() {
+        return board;
     }
 }

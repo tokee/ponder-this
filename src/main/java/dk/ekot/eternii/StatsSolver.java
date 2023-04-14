@@ -98,7 +98,9 @@ public class StatsSolver implements Runnable {
             if (board.placePiece(field.getX(), field.getY(), piece.piece, piece.rotation, depth + "," + free.right.size())) {
                 if (dive(depth+1, possibilities*free.right.size())) {
                     if (piecesPosOK()) {
-                        ++foundSolutions;
+                        if (++foundSolutions == 1) {
+                            System.out.println("Got first solution: " + board.getDisplayURL());
+                        }
                         solutionConsumer.accept(board);
                     }
                 }

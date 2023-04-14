@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 /**
  *
@@ -28,6 +29,8 @@ public class QSolverBacktrack implements Runnable {
 
     private final QBoard board;
     private final QWalker walker;
+    private final QMoveStreamAdjuster moveStreamAdjuster;
+
     private final int maxDepth;
     private final long maxAttempts;
 
@@ -43,12 +46,19 @@ public class QSolverBacktrack implements Runnable {
 
 
     public QSolverBacktrack(QBoard board, QWalker walker) {
-        this(board, walker, Integer.MAX_VALUE, Long.MAX_VALUE);
+        this(board, walker, QMoveStreamAdjuster.IDENTITY, Integer.MAX_VALUE, Long.MAX_VALUE);
     }
 
-    public QSolverBacktrack(QBoard board, QWalker walker, int maxDepth, long maxAttempts) {
+    public QSolverBacktrack(QBoard board, QWalker walker, QMoveStreamAdjuster moveStreamAdjuster) {
+        this(board, walker, moveStreamAdjuster, Integer.MAX_VALUE, Long.MAX_VALUE);
+    }
+
+    public QSolverBacktrack(QBoard board, QWalker walker, QMoveStreamAdjuster moveStreamAdjuster,
+                            int maxDepth, long maxAttempts) {
         this.board = board;
         this.walker = walker;
+        this.moveStreamAdjuster = moveStreamAdjuster;
+
         this.maxDepth = maxDepth;
         this.maxAttempts = maxAttempts;
     }
@@ -106,7 +116,10 @@ public class QSolverBacktrack implements Runnable {
                 max > 1000000 ? max / 1000000 + "M-" :
                         max > 1000 ? max / 1000 + "K-" :
                                 max + "-";
-        move.getAvailableQuadIDs().limit(maxAttempts-attempts).forEach(quadID -> {
+
+        // TODO: Consider removing the limit as it is a leftover from experimentation
+        IntStream moves = moveStreamAdjuster.apply(move).limit(maxAttempts-attempts);
+        moves.forEach(quadID -> {
             quadsTried.incrementAndGet();
             attempts++;
             //log.debug("Placing quad {} on ({}, {})", quadID, field.getX(), field.getY());
@@ -127,4 +140,6 @@ public class QSolverBacktrack implements Runnable {
         });
         return false;
     }
+
+
 }

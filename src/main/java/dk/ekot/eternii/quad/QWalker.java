@@ -51,6 +51,120 @@ public interface QWalker {
     Comparator<QWalker.Move> getMoveComparator();
 
     /**
+     * Warning: Heavy.
+     * @return fewest valid quads for any neighbour for any of the valid quads for the move.
+     */
+    static ToIntFunction<Move> fewestNeighboursAvailable() {
+        return move ->
+                move.getAvailableQuadIDs().
+                        mapToLong(quadID -> (fewestNeighboursAvailable(move.getField(), quadID) << 32) | quadID).
+                        sorted().
+                        mapToInt(compound -> (int) (compound & 0xFFFF)).
+                        findFirst().orElseThrow(() -> new IllegalStateException("No quads available"));
+    }
+
+    /**
+     * Conceptually places the quad with {@code quadID} on the {@code field}, then checks the free neighbour fields
+     * and return the minimum amount of available quads for those.
+     * @return minimum amount of available quads neighbour fields if the quad was placed on the field.
+     */
+    static long fewestNeighboursAvailable(QField field, int quadID) {
+        int min = Integer.MAX_VALUE;
+        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
+        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
+        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
+        min = Math.min(min, field.getX() == 0 ? Integer.MAX_VALUE : validQuadCountIfEastIs(field, quadID));
+    }
+
+    /**
+     * @return the number of valid quads if the field to the north had the quad with {@code quadID} set.
+     */
+    static int validQuadCountIfNorthIs(QField field, int quadID) {
+        QBoard board = field.getBoard();
+        final int x = field.getX();
+        final int y = field.getY();
+        QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
+                true,
+                x < 7 && !board.getField(x+1, y).isFree(),
+                y < 7 && !board.getField(x, y+1).isFree(),
+                y > 0 && !board.getField(x-1, y).isFree());
+        long edgeHash = QBits.getHash(
+                QBits.getColS(field.getBag().getQEdges(quadID)),
+                x == 7 ? -1 : board.getField(x+1, y).getEdgeIfDefinedW(),
+                y == 7 ? -1 : board.getField(x, y+1).getEdgeIfDefinedN(),
+                x == 0 ? -1 : board.getField(x-1, y).getEdgeIfDefinedE(),
+                false);
+        return edgeMap.available(edgeHash);
+    }
+    /**
+     * @return the number of valid quads if the field to the east had the quad with {@code quadID} set.
+     */
+    static int validQuadCountIfEastIs(QField field, int quadID) {
+        QBoard board = field.getBoard();
+        final int x = field.getX();
+        final int y = field.getY();
+        QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
+                y > 0 && !board.getField(x, y-1).isFree(),
+                true,
+                y < 7 && !board.getField(x, y+1).isFree(),
+                y > 0 && !board.getField(x-1, y).isFree());
+        long edgeHash = QBits.getHash(
+                y == 0 ? -1 : board.getField(x, y-1).getEdgeIfDefinedS(),
+                QBits.getColW(field.getBag().getQEdges(quadID)),
+                y == 7 ? -1 : board.getField(x, y+1).getEdgeIfDefinedN(),
+                x == 0 ? -1 : board.getField(x-1, y).getEdgeIfDefinedE(),
+                false);
+        return edgeMap.available(edgeHash);
+    }
+    /**
+     * @return the number of valid quads if the field to the south had the quad with {@code quadID} set.
+     */
+    static int validQuadCountIfSouthIs(QField field, int quadID) {
+        QBoard board = field.getBoard();
+        final int x = field.getX();
+        final int y = field.getY();
+        QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
+                y > 0 && !board.getField(x, y-1).isFree(),
+                x < 7 && !board.getField(x+1, y).isFree(),
+                true,
+                y > 0 && !board.getField(x-1, y).isFree());
+        long edgeHash = QBits.getHash(
+                y == 0 ? -1 : board.getField(x, y-1).getEdgeIfDefinedS(),
+                x == 7 ? -1 : board.getField(x+1, y).getEdgeIfDefinedW(),
+                QBits.getColN(field.getBag().getQEdges(quadID)),
+                x == 0 ? -1 : board.getField(x-1, y).getEdgeIfDefinedE(),
+                false);
+        return edgeMap.available(edgeHash);
+    }
+    /**
+     * @return the number of valid quads if the field to the west had the quad with {@code quadID} set.
+     */
+    static int validQuadCountIfWestIs(QField field, int quadID) {
+        QBoard board = field.getBoard();
+        final int x = field.getX();
+        final int y = field.getY();
+        QuadEdgeMap edgeMap = field.getBag().getQuadEdgeMap(
+                y > 0 && !board.getField(x, y-1).isFree(),
+                x < 7 && !board.getField(x+1, y).isFree(),
+                y < 7 && !board.getField(x, y+1).isFree(),
+                true);
+        long edgeHash = QBits.getHash(
+                y == 0 ? -1 : board.getField(x, y-1).getEdgeIfDefinedS(),
+                x == 7 ? -1 : board.getField(x+1, y).getEdgeIfDefinedW(),
+                y == 7 ? -1 : board.getField(x, y+1).getEdgeIfDefinedN(),
+                QBits.getColN(field.getBag().getQEdges(quadID)),
+                false);
+        return edgeMap.available(edgeHash);
+    }
+
+    /**
+     * @return is the given move is a border then {@code inner} is called, else {@code Integer.MAX_VALUE} is returned.
+     */
+    static ToIntFunction<Move> isBorderOrCorner(ToIntFunction<Move> inner) {
+        return move -> move.isBorderOrCorner() ? inner.applyAsInt(move) : Integer.MAX_VALUE;
+    }
+
+    /**
      * @return nearest to top-left corner, measured row by row.
      */
     static ToIntFunction<Move> topLeft() {
@@ -68,17 +182,15 @@ public interface QWalker {
      * @return lowest number of available valid quads if the field is on the border of the board, else Integer.MAX_VALUE
      */
     static ToIntFunction<Move> bordersByAvailable() {
-        return move -> move.isBorder() ? move.getField().available() : Integer.MAX_VALUE;
+        return move -> move.isBorderOrCorner() ? move.getField().available() : Integer.MAX_VALUE;
     }
 
     /**
-     * @return lowest number of available valid quads if the field is on the border of the board or is a corner clue,
-     *         else Integer.MAX_VALUE
+     * @return true count of available quads. Can be very heavy.
      */
-    static ToIntFunction<Move> bordersOrClueCornerSubAvailable() {
-        return move -> move.isBorder() || move.isClueCorner() ? move.getField().available() : Integer.MAX_VALUE;
+    static ToIntFunction<Move> available() {
+        return move -> move.getField().available();
     }
-
 
     /**
      * @return borders first, no special order.
@@ -170,7 +282,7 @@ public interface QWalker {
             return getField().getAvailableQuadIDsNoCache();
         }
 
-        public boolean isBorder() {
+        public boolean isBorderOrCorner() {
             return x == 0 || y == 0 || x == 7 || y== 7;
         }
         public boolean isClueCorner() {

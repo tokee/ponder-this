@@ -36,11 +36,16 @@ public class QSolverTest extends TestCase {
         QWalker walker = new QWalkerImpl(board,
                 Comparator.comparingInt(QWalker.cornersClockwise()).
                         //thenComparingInt(QWalker.borders()).
-                        thenComparingInt(QWalker.bordersOrClueCornerSubAvailable()).
+                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighboursAvailable())).
+                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
                         thenComparingInt(QWalker.minMaxAvailable()).
                         thenComparingInt(QWalker.borderBorders()).
                         thenComparingInt(QWalker.topLeft()));
-        QSolverBacktrack solver = new QSolverBacktrack(board, walker);
+
+        QMoveStreamAdjuster moveStreamAdjuster = QMoveStreamAdjuster.RANDOM_BORDER;
+
+        QSolverBacktrack solver = new QSolverBacktrack(
+                board, walker, moveStreamAdjuster);
 
         try {
             solver.run();
@@ -59,7 +64,8 @@ public class QSolverTest extends TestCase {
     /*
 
     20230414:
-    Attempts: 106104584, placed=144|188, att/sec=2924, possible=2e+66 best=188 free: https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaabgbacsbabhcafubafqfafgfackfacpcaepcaeteafoeaemfaeueaeseaabedidaggjisjwghhwjunvhqoqngllokpllppjppskptjisovmjmqlvuiwqsjgibabjdpcajnmpwlmnwoklaaaaaaaaaaaaaaaaaaaaaaaaiqwomokqlugowswugvgsbacvcrbamhmrmkqhkgikaaaaaaaaaaaaaaaaaaaaaaaawqlhkwhqgiiwwiligpnicabpbteamrgtaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalpluhsspiujslkvunhskbafheibagtgiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalomnsujojuouvususrtufacrbveagtqvaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaamtlgjkqtolnksnplthjncafhendaqgtnaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaluqrqnounvjnpsuvjuhsfafudhdatrwhkmnrttkmplmtqiklomniijjmaaaaaaaaaaaaaaaajmllupmmhtvpfabtdgdawstgnnnskvrnmtrvkuvtnhhujqphaaaaaaaaaaaaaaaalsnhmwksvjgwbafjdweatqqwngwqrjkgronjvuwohwkupmiwaaaaaaaaaaaaaaaantqvkvrtgouvfadoepbaqrqpwmmrkigmnqwiwsoqksssiuksaaaaaaaaaaaaaaaaqooirhmousthdadsboeaqtjomsutgruswvlromjvsommkuwoaaaaaaaaaaaaaaaaoggkmpqgtwhpdafwencajminujvmurijlslrjprsmonpwuioaaaaaaaaaaaaaaaagrinqvprhnlvfacncidaigqivvlgijvvlthjrujtnrquilprwmulqntmpgtnqmqgiommpstolgoscadgdcaaqeaclfaevcafhbacjfabqeafpdaeufadtdafteadqbaemdabtcadocacdaac
+    Laptop:  Attempts: 106104584, placed=144|188, att/sec=2924, possible=2e+66 best=188 free: https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaabgbacsbabhcafubafqfafgfackfacpcaepcaeteafoeaemfaeueaeseaabedidaggjisjwghhwjunvhqoqngllokpllppjppskptjisovmjmqlvuiwqsjgibabjdpcajnmpwlmnwoklaaaaaaaaaaaaaaaaaaaaaaaaiqwomokqlugowswugvgsbacvcrbamhmrmkqhkgikaaaaaaaaaaaaaaaaaaaaaaaawqlhkwhqgiiwwiligpnicabpbteamrgtaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalpluhsspiujslkvunhskbafheibagtgiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalomnsujojuouvususrtufacrbveagtqvaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaamtlgjkqtolnksnplthjncafhendaqgtnaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaluqrqnounvjnpsuvjuhsfafudhdatrwhkmnrttkmplmtqiklomniijjmaaaaaaaaaaaaaaaajmllupmmhtvpfabtdgdawstgnnnskvrnmtrvkuvtnhhujqphaaaaaaaaaaaaaaaalsnhmwksvjgwbafjdweatqqwngwqrjkgronjvuwohwkupmiwaaaaaaaaaaaaaaaantqvkvrtgouvfadoepbaqrqpwmmrkigmnqwiwsoqksssiuksaaaaaaaaaaaaaaaaqooirhmousthdadsboeaqtjomsutgruswvlromjvsommkuwoaaaaaaaaaaaaaaaaoggkmpqgtwhpdafwencajminujvmurijlslrjprsmonpwuioaaaaaaaaaaaaaaaagrinqvprhnlvfacncidaigqivvlgijvvlthjrujtnrquilprwmulqntmpgtnqmqgiommpstolgoscadgdcaaqeaclfaevcafhbacjfabqeafpdaeufadtdafteadqbaemdabtcadocacdaac
+    Desktop: Attempts: 377501663, placed=156|196, att/sec=4156, possible=5e+11 best=196 free: https://e2.bucas.name/#puzzle=TokeEskildsen&board_w=16&board_h=16&board_edges=abdaabgbacsbabhcafjbacrfaepcadweadsdaepdaeteafqeaemfaeueaeseaabedidaggjisjwghhwjjqphrqpqphiqwushsuvupmmuttkmqvgtmqlvuiwqsjgibabjdpcajnmpwlmnwoklppropvwpijnvskqjvkokmnrkkvrngouvlugowswugvgsbacvcrbamhmrmkqhkgikrtrgwvwtntovqvntoknvrvmkrkhvuwokgiiwwiligpnicabpbtfamqntqwtqinqwrqunwlrqogllnnpgnvjnmtrvhjltosujiukslkvunhskbafhfufanvhutkuvqmokulwmrlsllkplppskjttprqrtlhwqunhhkolnvmjosowmfadofgfahhlgaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalsuhjprswnspdaenfubalpluaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaauisorilisoiieafobjfalijjaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaasvpnlrwviqorfafqfhcajumhaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaphtvwkuhounkfaducpcamiwpaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatlqtuqrlngwqdadgchbawmqhaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqooirrmowhtrdadhboeaqtjomsutgrusilprwvvlpsuvpgmsrjkgmlljsnhllktnoggkmpqgtwhpdafwencajminujvmurijphhrvjshuoujmniokpgnlmtphgimtnqggrinqvprhnlvfacncidaigqivvlgijvvhukjsrtuujtrijpjgwvjtgiwigtgqmqgiommpstolgoscadgdcaaqeaclfaevcafkfactdafteadpbaeveabibaeteabqbaemdabtcadocacdaac
 
      */
 }

@@ -73,26 +73,26 @@ public class QuadBagHandler {
         BAG_INNER =  QuadCreator.createInners(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.inner)).trim();
     }
 
-    public void assignBagsToFields(QField[][] fields) {
+    public void assignBagsToFields(QBoard board, QField[][] fields) {
         for (int x = 0 ; x <= 7 ; x++) {
             for (int y = 0 ; y <= 7 ;y++) {
-                fields[x][y] = new QField(BAG_INNER, x, y);
+                fields[x][y] = new QField(board, BAG_INNER, x, y);
             }
         }
-        fields[0][0] = new QField(BAG_CORNER_NW, 0, 0);
-        fields[7][0] = new QField(BAG_CORNER_NE, 7, 0);
-        fields[7][7] = new QField(BAG_CORNER_SE, 7, 7);
-        fields[0][7] = new QField(BAG_CORNER_SW, 0, 7);
+        fields[0][0] = new QField(board, BAG_CORNER_NW, 0, 0);
+        fields[7][0] = new QField(board, BAG_CORNER_NE, 7, 0);
+        fields[7][7] = new QField(board, BAG_CORNER_SE, 7, 7);
+        fields[0][7] = new QField(board, BAG_CORNER_SW, 0, 7);
         for (int t = 1 ; t <= 6 ; t++) {
-            fields[t][0] = new QField(BAG_BORDER_N, t, 0);
-            fields[t][7] = new QField(BAG_BORDER_S, t, 7);
-            fields[0][t] = new QField(BAG_BORDER_W, 0, t);
-            fields[7][t] = new QField(BAG_BORDER_E, 7, t);
+            fields[t][0] = new QField(board, BAG_BORDER_N, t, 0);
+            fields[t][7] = new QField(board, BAG_BORDER_S, t, 7);
+            fields[0][t] = new QField(board, BAG_BORDER_W, 0, t);
+            fields[7][t] = new QField(board, BAG_BORDER_E, 7, t);
         }
-        fields[1][1] = new QField(BAG_CLUE_NW, 1, 1);
-        fields[6][1] = new QField(BAG_CLUE_NE, 6, 1);
-        fields[6][6] = new QField(BAG_CLUE_SE, 6, 6);
-        fields[1][6] = new QField(BAG_CLUE_SW, 1, 6);
-        fields[3][4] = new QField(BAG_CLUE_C,  3, 4);
+        fields[1][1] = new QField(board, BAG_CLUE_NW, 1, 1);
+        fields[6][1] = new QField(board, BAG_CLUE_NE, 6, 1);
+        fields[6][6] = new QField(board, BAG_CLUE_SE, 6, 6);
+        fields[1][6] = new QField(board, BAG_CLUE_SW, 1, 6);
+        fields[3][4] = new QField(board, BAG_CLUE_C,  3, 4);
     }
 }
