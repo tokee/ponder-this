@@ -20,17 +20,21 @@ import dk.ekot.eternii.EPieces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Represents a board of 8x8 Quads.
  *
  * The boards guaranties a consistent internal state.
  */
+// TODO: Make getField return pseudo fields outside of the board
 public class QBoard {
     private static final Logger log = LoggerFactory.getLogger(QBoard.class);
 
@@ -63,8 +67,8 @@ public class QBoard {
     }
 
     public void testMoveAll() {
-        for (int x = 0 ; x <= 7 ; x++) {
-            for (int y = 0 ; y <= 7 ;y++) {
+        for (int y = 0 ; y <= 7 ;y++) {
+            for (int x = 0 ; x <= 7 ; x++) {
                 placePiece(x, y, y + x * 8);
             }
         }
@@ -91,13 +95,23 @@ public class QBoard {
     }
 
     /**
+     * @return all fields as a Stream.
+     */
+    public Stream<QField> streamAllFields() {
+        if (allFields == null) {
+            allFields = new ArrayList<>(64);
+            visitAllFields(allFields::add);
+        }
+        return allFields.stream();
+    }
+    private List<QField> allFields = null;
+
+    /**
      * Visit all fields and check that {@link QField#needsSatisfied()} is true.
      * @return true if {@link QField#needsSatisfied()} is true for all fields.
      */
     public boolean areNeedsSatisfiedAll() {
-        AtomicBoolean ok = new AtomicBoolean(true);
-        visitAllFields(field -> ok.set(ok.get() && field.needsSatisfied()));
-        return ok.get();
+        return streamAllFields().allMatch(QField::needsSatisfied);
     }
 
     /**
@@ -236,6 +250,13 @@ public class QBoard {
         return fields[x][y];
     }
 
+    /**
+     * @return Optional for the field. Coordinates outside of the board are andled gracefully.
+     */
+    public Optional<QField> getOptionalField(int x, int y) {
+        return x < 0 || x > 7 || y < 0 || y > 7 ? Optional.empty() : Optional.of(fields[x][y]);
+    }
+
     public PieceTracker getPieceTracker() {
         return pieceTracker;
     }
@@ -269,4 +290,5 @@ public class QBoard {
     public void setFieldText(int x, int y, String... text) {
         fields[x][y].setText(text);
     }
+
 }

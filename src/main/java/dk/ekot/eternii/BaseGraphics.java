@@ -50,6 +50,9 @@ public class BaseGraphics {
     }
 
     public static JComponent displayImage(BufferedImage img) {
+        return displayImage(img, null);
+    }
+    public static JComponent displayImage(BufferedImage img, String title) {
         ImageIcon imageIcon = new ImageIcon(img);
         JFrame jFrame;
         jFrame = new JFrame();
@@ -67,7 +70,7 @@ public class BaseGraphics {
         jFrame.setVisible(true);
 
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        jFrame.setTitle("Eternii - TE");
+        jFrame.setTitle("Eternii - TE" + (title == null ? "" : (" - " + title)));
         lastFrame = jFrame;
         return jLabel;
     }

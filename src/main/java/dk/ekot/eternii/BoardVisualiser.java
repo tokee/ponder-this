@@ -54,9 +54,15 @@ public class BoardVisualiser implements BoardObserver {
         this(board, TYPE.best);
     }
     public BoardVisualiser(EBoard board, boolean onlyUpdateOnBetter) {
-        this(board, onlyUpdateOnBetter ? TYPE.best : TYPE.live);
+        this(board, onlyUpdateOnBetter ? TYPE.best : TYPE.live, null);
+    }
+    public BoardVisualiser(EBoard board, boolean onlyUpdateOnBetter, String title) {
+        this(board, onlyUpdateOnBetter ? TYPE.best : TYPE.live, title);
     }
     public BoardVisualiser(EBoard board, TYPE type) {
+        this(board, type, null);
+    }
+    public BoardVisualiser(EBoard board, TYPE type, String title) {
         this.board = board;
         this.type = type;
 
@@ -74,7 +80,7 @@ public class BoardVisualiser implements BoardObserver {
         edgeHeight = edge0.getHeight();
         boardImage = new BufferedImage(edgeWidth*board.getWidth(), edgeHeight*board.getHeight(), BufferedImage.TYPE_INT_RGB);
         invalidateAll();
-        boardDisplayComponent = BaseGraphics.displayImage(boardImage);
+        boardDisplayComponent = BaseGraphics.displayImage(boardImage, title);
 
         if (type == TYPE.live) {
             startThread();

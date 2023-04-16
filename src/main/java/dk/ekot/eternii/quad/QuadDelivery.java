@@ -23,10 +23,10 @@ import java.util.stream.IntStream;
  *
  */
 @FunctionalInterface
-public interface QMoveStreamAdjuster extends Function<QWalker.Move, IntStream> {
-    QMoveStreamAdjuster IDENTITY = QWalker.Move::getAvailableQuadIDs;
+public interface QuadDelivery extends Function<QWalker.Move, IntStream> {
+    QuadDelivery IDENTITY = QWalker.Move::getAvailableQuadIDs;
 
-    QMoveStreamAdjuster RANDOM_BORDER = new QMoveStreamAdjuster() {
+    QuadDelivery RANDOM_BORDER = new QuadDelivery() {
         final Random random = new Random(); // TODO: Introduce seed
 
         @Override
@@ -37,6 +37,11 @@ public interface QMoveStreamAdjuster extends Function<QWalker.Move, IntStream> {
             return Arrays.stream(shuffle(move.getAvailableQuadIDs().toArray(), random));
         }
     };
+
+    QuadDelivery BORDER_BY_NEIGHBOURS = move ->
+            move.isBorderOrCorner() ?
+                    move.getAvailableQuadIDsByNeighbours() :
+                    move.getAvailableQuadIDs();
 
     // Destructive to the original array
     static int[] shuffle(int[] array, Random random) {

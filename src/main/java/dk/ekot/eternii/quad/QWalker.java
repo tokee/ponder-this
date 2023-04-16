@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -28,6 +29,7 @@ import java.util.stream.Stream;
  */
 public interface QWalker {
     int BOARD_SIDE = 8;
+
 
     QBoard getBoard();
 
@@ -52,10 +54,34 @@ public interface QWalker {
     Comparator<QWalker.Move> getMoveComparator();
 
     /**
+     * The number of free fields surrounding the move field.
+     * <br/>
+     * Fields outside of the board are counted as not free (they lock the inner edge).
+     * @return amount of free neighbor fields for the move.
+     */
+    static ToIntFunction<Move> freeNeighbourFields() {
+        return move -> (int) Arrays.stream(RELATIVE_NEIGHBOURS).
+                map(rel -> move.getField().getBoard().
+                        getOptionalField(move.getX()+rel[0], move.getY()+rel[1])).
+                filter(Optional::isPresent).
+                map(Optional::get).
+                map(QField::isFree).
+                count();
+    }
+    int[][] RELATIVE_NEIGHBOURS = new int[][]{{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+    /**
+     * @return 0 if corner (only the 4 single field corners are considered), else 1.
+     */
+    static ToIntFunction<Move> corners() {
+        return move -> move.isCorner() ? 0 : 1;
+    }
+
+    /**
      * Warning: Heavy.
      * @return fewest valid quads for any neighbour for any of the valid quads for the move.
      */
-    static ToIntFunction<Move> fewestNeighboursAvailable() {
+    static ToIntFunction<Move> fewestNeighbourQuads() {
         return move -> move.getNeighbourCompounds().
                 mapToInt(compound -> (int) (compound >>> 32)).
                 findFirst().orElseThrow(() -> new IllegalStateException("No quads available"));
@@ -66,7 +92,7 @@ public interface QWalker {
      * and return the minimum amount of available quads for those.
      * @return minimum amount of available quads neighbour fields if the quad was placed on the field.
      */
-    static long fewestNeighboursAvailable(QField field, int quadID) {
+    static long fewestNeighbourQuads(QField field, int quadID) {
         int min = Integer.MAX_VALUE;
         min = Math.min(min, field.getY() == 0 ? Integer.MAX_VALUE : validQuadCountNorthOf(field, quadID));
         min = Math.min(min, field.getX() == 7 ? Integer.MAX_VALUE : validQuadCountEastOf(field, quadID));
@@ -90,7 +116,7 @@ public interface QWalker {
                 true,
                 x < 7 && !board.getField(x+1, y).isFree(),
                 y < 7 && !board.getField(x, y+1).isFree(),
-                y > 0 && !board.getField(x-1, y).isFree());
+                x > 0 && !board.getField(x-1, y).isFree());
         long edgeHash = QBits.getHash(
                 QBits.getColS(field.getBag().getQEdges(quadID)),
                 x == 7 ? -1 : board.getField(x+1, y).getEdgeIfDefinedW(),
@@ -110,7 +136,7 @@ public interface QWalker {
                 y > 0 && !board.getField(x, y-1).isFree(),
                 true,
                 y < 7 && !board.getField(x, y+1).isFree(),
-                y > 0 && !board.getField(x-1, y).isFree());
+                x > 0 && !board.getField(x-1, y).isFree());
         long edgeHash = QBits.getHash(
                 y == 0 ? -1 : board.getField(x, y-1).getEdgeIfDefinedS(),
                 QBits.getColW(field.getBag().getQEdges(quadID)),
@@ -130,7 +156,7 @@ public interface QWalker {
                 y > 0 && !board.getField(x, y-1).isFree(),
                 x < 7 && !board.getField(x+1, y).isFree(),
                 true,
-                y > 0 && !board.getField(x-1, y).isFree());
+                x > 0 && !board.getField(x-1, y).isFree());
         long edgeHash = QBits.getHash(
                 y == 0 ? -1 : board.getField(x, y-1).getEdgeIfDefinedS(),
                 x == 7 ? -1 : board.getField(x+1, y).getEdgeIfDefinedW(),
@@ -158,6 +184,15 @@ public interface QWalker {
                 QBits.getColE(field.getBag().getQEdges(quadID)),
                 false);
         return edgeMap.available(edgeHash);
+    }
+
+
+    /**
+     * Constant mapping to 0 to avoid changing the order when used for comparison.
+     * @return 0.
+     */
+    static ToIntFunction<Move> identity() {
+        return move -> 0;
     }
 
     /**
@@ -223,6 +258,22 @@ public interface QWalker {
         return move -> all[move.getY()*8+move.getX()];
     }
 
+    /**
+     * Prioritizes the given coordinates over others and order candidates by the order in coordinates.
+     * @param coordinateGroups array of {@code {{x, y}} where the outer array is group.
+     */
+    static ToIntFunction<? super Move> fixedOrderGroup(int[][][] coordinateGroups) {
+        final int[] all = new int[64];
+        Arrays.fill(all, 65);
+        for (int group = 0 ; group < coordinateGroups.length ; group++){
+            int[][] coordinates = coordinateGroups[0];
+            for (int index : xysToIndices(coordinates)) {
+                all[index] = group;
+            }
+        }
+        return move -> all[move.getY()*8+move.getX()];
+    }
+
     static int[] xysToIndices(int[][] coordinates) {
         return Arrays.stream(coordinates).
                 map(coordinate -> coordinate[1]*8+coordinate[0]).
@@ -230,10 +281,40 @@ public interface QWalker {
                 toArray();
     }
 
+
+    /**
+     * @return 0 if in a quad corner, else 1.
+     */
+    static ToIntFunction<? super Move> quadCorners() {
+        return fixedOrderGroup(new int[][][] {
+                { // All in the same group
+                        {0, 0}, // NW
+                        {1, 0},
+                        {1, 1},
+                        {0, 1},
+
+                        {7, 0}, // NE
+                        {7, 1},
+                        {6, 1},
+                        {6, 0},
+
+                        {7, 7}, // SE
+                        {6, 7},
+                        {6, 6},
+                        {7, 6},
+
+                        {0, 7}, // SW
+                        {0, 6},
+                        {1, 6},
+                        {1, 7},
+                }
+        });
+    }
+
     /**
      * @return corners (2x2 quads) in order NW, NE, SE, SW, each corner ordered corner->middle.
      */
-    static ToIntFunction<Move> cornersClockwise() {
+    static ToIntFunction<Move> quadCornersClockwise() {
         return fixedOrder(new int[][] {
                 {0, 0}, // NW
                 {1, 0},
@@ -287,11 +368,14 @@ public interface QWalker {
 
         public IntStream getAvailableQuadIDsByNeighbours() {
             return getNeighbourCompounds().
-                    mapToInt(compound -> (int) (compound & 0xFFFF));
+                    mapToInt(compound -> (int) compound); // Right 32 bits = quad ID
         }
 
         public boolean isBorderOrCorner() {
             return x == 0 || y == 0 || x == 7 || y== 7;
+        }
+        public boolean isCorner() {
+            return (x == 0 || x == 7) && (y == 0 || y== 7);
         }
         public boolean isClueCorner() {
             return (x == 1 && y == 1) ||
@@ -319,7 +403,7 @@ public interface QWalker {
         public LongStream getNeighbourCompounds() {
             if (ncompounds == null) {
                 ncompounds = getAvailableQuadIDs().
-                        mapToLong(quadID -> (fewestNeighboursAvailable(getField(), quadID) << 32) | quadID).
+                        mapToLong(quadID -> (fewestNeighbourQuads(getField(), quadID) << 32) | quadID).
                         sorted().
                         toArray();
                 //System.out.println("Created " + ncompounds.length + " for " + this);
@@ -327,6 +411,7 @@ public interface QWalker {
             return Arrays.stream(ncompounds);
         }
         private long[] ncompounds = null;
+
     }
 
 }

@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
-import java.util.stream.IntStream;
 
 /**
  *
@@ -28,28 +27,53 @@ import java.util.stream.IntStream;
 public class QSolverTest extends TestCase {
     private static final Logger log = LoggerFactory.getLogger(QSolverTest.class);
 
-    public void testBasic() {
+    public void testExperimental() {
         QBoard board = new QBoard();
-        BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live);
+        BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live, "Experimental");
         visualiser.setOverflow(true);
         board.registerObserver(visualiser);
-        
+
+        // 120 after a day
         QWalker walker = new QWalkerImpl(board,
-                Comparator.comparingInt(QWalker.cornersClockwise()).
+                Comparator.comparingInt(QWalker.identity()). // For easier experiments below
+                        thenComparingInt(QWalker.corners()).
+                        thenComparingInt(QWalker.freeNeighbourFields()).
+                        thenComparingInt(QWalker.quadCorners()).
+                        //thenComparingInt(QWalker.quadCornersClockwise()).
                         //thenComparingInt(QWalker.borders()).
-                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighboursAvailable())).
+                        //thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighboursAvailable())).
                         thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
                         thenComparingInt(QWalker.minMaxAvailable()).
                         thenComparingInt(QWalker.borderBorders()).
                         thenComparingInt(QWalker.topLeft()));
 
-        QMoveStreamAdjuster moveStreamAdjuster = move ->
-                move.isBorderOrCorner() ?
-                        move.getAvailableQuadIDsByNeighbours() :
-                        move.getAvailableQuadIDs();
+        QuadDelivery quadDelivery = QuadDelivery.IDENTITY;
         
-        QSolverBacktrack solver = new QSolverBacktrack(
-                board, walker, moveStreamAdjuster);
+        runSolver(board, walker, quadDelivery);
+    }
+
+    public void testExplosionDamper() {
+        QBoard board = new QBoard();
+        BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live, "Explosion Damper");
+        visualiser.setOverflow(true);
+        board.registerObserver(visualiser);
+        // 188 after a day
+        QWalker walker = new QWalkerImpl(board,
+                Comparator.comparingInt(QWalker.quadCornersClockwise()).
+                        //thenComparingInt(QWalker.borders()).
+                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighbourQuads())).
+                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
+                        thenComparingInt(QWalker.minMaxAvailable()).
+                        thenComparingInt(QWalker.borderBorders()).
+                        thenComparingInt(QWalker.topLeft()));
+
+        QuadDelivery quadDelivery = QuadDelivery.BORDER_BY_NEIGHBOURS;
+
+        runSolver(board, walker, quadDelivery);
+    }
+
+    private void runSolver(QBoard board, QWalker walker, QuadDelivery quadDelivery) {
+        QSolverBacktrack solver = new QSolverBacktrack(board, walker, quadDelivery);
 
         try {
             solver.run();
@@ -62,7 +86,6 @@ public class QSolverTest extends TestCase {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     /*

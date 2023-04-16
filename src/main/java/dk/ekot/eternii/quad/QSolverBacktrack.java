@@ -29,7 +29,7 @@ public class QSolverBacktrack implements Runnable {
 
     private final QBoard board;
     private final QWalker walker;
-    private final QMoveStreamAdjuster moveStreamAdjuster;
+    private final QuadDelivery moveStreamAdjuster;
 
     private final int maxDepth;
     private final long maxAttempts;
@@ -46,14 +46,14 @@ public class QSolverBacktrack implements Runnable {
 
 
     public QSolverBacktrack(QBoard board, QWalker walker) {
-        this(board, walker, QMoveStreamAdjuster.IDENTITY, Integer.MAX_VALUE, Long.MAX_VALUE);
+        this(board, walker, QuadDelivery.IDENTITY, Integer.MAX_VALUE, Long.MAX_VALUE);
     }
 
-    public QSolverBacktrack(QBoard board, QWalker walker, QMoveStreamAdjuster moveStreamAdjuster) {
+    public QSolverBacktrack(QBoard board, QWalker walker, QuadDelivery moveStreamAdjuster) {
         this(board, walker, moveStreamAdjuster, Integer.MAX_VALUE, Long.MAX_VALUE);
     }
 
-    public QSolverBacktrack(QBoard board, QWalker walker, QMoveStreamAdjuster moveStreamAdjuster,
+    public QSolverBacktrack(QBoard board, QWalker walker, QuadDelivery moveStreamAdjuster,
                             int maxDepth, long maxAttempts) {
         this.board = board;
         this.walker = walker;
