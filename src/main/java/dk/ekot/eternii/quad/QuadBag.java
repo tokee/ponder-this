@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
@@ -42,6 +43,10 @@ public class QuadBag implements QuadHolder {
     // n=0b1000, e=0b0100, s=0b0010, w=0b0001
     private final QuadEdgeMap[] qeMaps = new QuadEdgeMap[16];
 
+    /**
+     * For hacking/testing purposes: This set contains the wantedEdges that should NOT be generated.
+     */
+    public static Set<Integer> disabledMaps = Collections.emptySet();
 
     public enum BAG_TYPE {
         corner_nw, corner_ne, corner_se, corner_sw, 
@@ -505,8 +510,7 @@ public class QuadBag implements QuadHolder {
     }
 
     private void generateEdgeMap(int wantedEdges, long maxHash) {
-        if (Integer.bitCount(wantedEdges) >= 3 && false) {
-            // TODO: enable
+        if (disabledMaps.contains(wantedEdges)) {
             log.warn("Skipping set for edges " + QBits.toStringEdges(wantedEdges) + " for now. Should be enabled later");
             return;
         }

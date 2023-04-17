@@ -73,6 +73,9 @@ public class QuadBagHandler {
         BAG_INNER =  QuadCreator.createInners(new QuadBag(pieceTracker, QuadBag.BAG_TYPE.inner)).trim();
     }
 
+    /**
+     * Once assigned, the bags for fields never changes.
+     */
     public void assignBagsToFields(QBoard board, QField[][] fields) {
         for (int x = 0 ; x <= 7 ; x++) {
             for (int y = 0 ; y <= 7 ;y++) {

@@ -51,7 +51,7 @@ public class QBoard {
 
     public QBoard() {
         epieces = EPieces.getEternii();
-        eboard = new EBoard(epieces, WIDTH*2, HEIGHT*2);
+        eboard = new EBoard(epieces, 16, 16);
         log.debug("Creating bagHandler");
         bagHandler = new QuadBagHandler(pieceTracker);
         log.debug("Assigning bags to fields");

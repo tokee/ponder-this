@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
 /**
@@ -30,6 +32,17 @@ public class QSolverBacktrack implements Runnable {
     private final QBoard board;
     private final QWalker walker;
     private final QuadDelivery moveStreamAdjuster;
+    /**
+     * Called whenever a call to {@link #dive(int, double)} returns true.<br/>
+     * Integer: Current depth, counting from 0.<br/>
+     * QBoard: The current board.
+     * Boolean (return value): If true, continue trying quads at current depth, else return to higher level.
+     */
+    private final BiFunction<Integer, QBoard, Boolean> solutionCallback;
+    public final static BiFunction<Integer, QBoard, Boolean> PRINT_ALL = (depth, board) -> {
+        log.debug("Got solution for maxDepth={}: {}", (depth+1), board.getEboard().getDisplayURL());
+        return true;
+    };
 
     private final int maxDepth;
     private final long maxAttempts;
@@ -46,18 +59,20 @@ public class QSolverBacktrack implements Runnable {
 
 
     public QSolverBacktrack(QBoard board, QWalker walker) {
-        this(board, walker, QuadDelivery.IDENTITY, Integer.MAX_VALUE, Long.MAX_VALUE);
+        this(board, walker, QuadDelivery.IDENTITY, PRINT_ALL, Integer.MAX_VALUE, Long.MAX_VALUE);
     }
 
     public QSolverBacktrack(QBoard board, QWalker walker, QuadDelivery moveStreamAdjuster) {
-        this(board, walker, moveStreamAdjuster, Integer.MAX_VALUE, Long.MAX_VALUE);
+        this(board, walker, moveStreamAdjuster, PRINT_ALL, Integer.MAX_VALUE, Long.MAX_VALUE);
     }
 
     public QSolverBacktrack(QBoard board, QWalker walker, QuadDelivery moveStreamAdjuster,
+                            BiFunction<Integer, QBoard, Boolean> solutionCallback,
                             int maxDepth, long maxAttempts) {
         this.board = board;
         this.walker = walker;
         this.moveStreamAdjuster = moveStreamAdjuster;
+        this.solutionCallback = solutionCallback;
 
         this.maxDepth = maxDepth;
         this.maxAttempts = maxAttempts;
@@ -129,7 +144,8 @@ public class QSolverBacktrack implements Runnable {
             if (board.areNeedsSatisfiedAll()) {
                 // TODO: Optimize field.getAvailableQuadIDs().count() and use that instead of 2
                 if (dive(depth + 1, possibilities * (available == -1 ? max : available))) {
-                    log.debug("Got solution for maxDepth={}: {}", depth, board.getEboard().getDisplayURL());
+                    solutionCallback.apply(depth, board);
+                    //log.debug("Got solution for maxDepth={}: {}", (depth+1), board.getEboard().getDisplayURL());
                 }
             //} else {
             //    log.debug("Needs not satisfied when positioning quad {} on ({}, {})",
@@ -142,4 +158,17 @@ public class QSolverBacktrack implements Runnable {
     }
 
 
+    /**
+     * Prints solutions, but only every {@code modulo}.
+     */
+    public static BiFunction<Integer, QBoard, Boolean> getSolutionPrinter(int modulo) {
+        final AtomicLong counter = new AtomicLong(0);
+        return (depth, board) -> {
+            if (counter.getAndIncrement() % modulo == 0) {
+                log.debug("Got solution #{} from depth={}: {}",
+                          counter, (depth + 1), board.getEboard().getDisplayURL());
+            }
+            return true;
+        };
+    }
 }
