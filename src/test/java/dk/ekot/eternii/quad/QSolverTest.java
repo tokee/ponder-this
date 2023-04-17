@@ -19,36 +19,10 @@ import junit.framework.TestCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 
-/**
- *
- */
 public class QSolverTest extends TestCase {
     private static final Logger log = LoggerFactory.getLogger(QSolverTest.class);
-
-    public void testCounter() {
-        QuadBag.disabledMaps = new HashSet<>(
-                Arrays.asList(0b1111, 0b1110, 0b1101, 0b1011, 0b0111));
-        QBoard board = new QBoard();
-        BoardVisualiser visualiser = new BoardVisualiser(board.getEboard(), BoardVisualiser.TYPE.live, "Experimental");
-        visualiser.setOverflow(true);
-        board.registerObserver(visualiser);
-
-        QWalker walker = new QWalkerImpl(board,
-                Comparator.comparingInt(QWalker.identity()). // For easier experiments below
-                        thenComparingInt(QWalker.quadCornersClockwise()));
-
-        QuadDelivery quadDelivery = QuadDelivery.IDENTITY;
-
-
-
-        QSolverBacktrack solver = new QSolverBacktrack(
-                board, walker, quadDelivery, QSolverBacktrack.getSolutionPrinter(1000), 4, Long.MAX_VALUE);
-        runSolver(solver);
-    }
 
     public void testExperimental() {
         QBoard board = new QBoard();
@@ -105,7 +79,7 @@ public class QSolverTest extends TestCase {
         runSolver(solver);
     }
 
-    private void runSolver(QSolverBacktrack solver) {
+    public static void runSolver(QSolverBacktrack solver) {
         try {
             solver.run();
         } catch (Exception e) {
