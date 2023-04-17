@@ -35,7 +35,7 @@ public class QStatsTest extends TestCase {
 
 
     // 27.8K/sec, 44M unfinished
-    public void testBorder2x4() {
+    public void testBorder1x2() {
         QuadBag.disabledMaps = new HashSet<>(
                 Arrays.asList(0b1111,
                               0b1110, 0b1101, 0b1011, 0b0111,
@@ -45,21 +45,17 @@ public class QStatsTest extends TestCase {
         visualiser.setOverflow(true);
         board.registerObserver(visualiser);
 
-        QWalker walker = new QWalkerImpl(
-                board,
-                Comparator.comparingInt(QWalker.identity()). // For easier experiments below
+        QSetup setup = new QSetup().
+                walker(Comparator.comparingInt(QWalker.identity()). // For easier experiments below
                         thenComparingInt(QWalker.fixedOrder(new int[][] {
                         {2, 0},
                         {2, 1}
-                })));
+                }))).
+                solutionCallback(QSolverBacktrack.getSolutionPrinter(10000)).
+                maxDepth(2);
 
-        QuadDelivery quadDelivery = QuadDelivery.IDENTITY;
-
-        QSolverBacktrack solver = new QSolverBacktrack(
-                board, walker, quadDelivery, QSolverBacktrack.getSolutionPrinter(1000), 2, Long.MAX_VALUE);
-        QSolverTest.runSolver(solver);
+        QSolverTest.runSolver(board, setup);
     }
-
 
     public void testCornerNWHex() {
         QuadBag.disabledMaps = new HashSet<>(
@@ -69,16 +65,13 @@ public class QStatsTest extends TestCase {
         visualiser.setOverflow(true);
         board.registerObserver(visualiser);
 
-        QWalker walker = new QWalkerImpl(
-                board,
-                Comparator.comparingInt(QWalker.identity()). // For easier experiments below
-                        thenComparingInt(QWalker.quadCornersClockwise()));
+        QSetup setup = new QSetup().
+                walker(Comparator.comparingInt(QWalker.identity()). // For easier experiments below
+                        thenComparingInt(QWalker.quadCornersClockwise())).
+                solutionCallback(QSolverBacktrack.getSolutionPrinter(10000)).
+                maxDepth(4);
 
-        QuadDelivery quadDelivery = QuadDelivery.IDENTITY;
-
-        QSolverBacktrack solver = new QSolverBacktrack(
-                board, walker, quadDelivery, QSolverBacktrack.getSolutionPrinter(1000), 4, Long.MAX_VALUE);
-        QSolverTest.runSolver(solver);
+        QSolverTest.runSolver(board, setup);
     }
 
 }

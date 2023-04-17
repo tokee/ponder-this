@@ -30,23 +30,20 @@ public class QSolverTest extends TestCase {
         visualiser.setOverflow(true);
         board.registerObserver(visualiser);
 
-        // 120 after a day
-        QWalker walker = new QWalkerImpl(board,
-                Comparator.comparingInt(QWalker.identity()). // For easier experiments below
+        QSetup setup = new QSetup().
+                walker(Comparator.comparingInt(QWalker.identity()). // For easier experiments below
                         thenComparingInt(QWalker.corners()).
-                        thenComparingInt(QWalker.freeNeighbourFields()).
-                        thenComparingInt(QWalker.quadCorners()).
-                        //thenComparingInt(QWalker.quadCornersClockwise()).
-                        //thenComparingInt(QWalker.borders()).
-                        //thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighboursAvailable())).
-                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
-                        thenComparingInt(QWalker.minMaxAvailable()).
-                        thenComparingInt(QWalker.borderBorders()).
-                        thenComparingInt(QWalker.topLeft()));
+                               thenComparingInt(QWalker.freeNeighbourFields()).
+                               thenComparingInt(QWalker.quadCorners()).
+                               //thenComparingInt(QWalker.quadCornersClockwise()).
+                               //thenComparingInt(QWalker.borders()).
+                               //thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighboursAvailable())).
+                                       thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
+                               thenComparingInt(QWalker.minMaxAvailable()).
+                               thenComparingInt(QWalker.borderBorders()).
+                               thenComparingInt(QWalker.topLeft()));
 
-        QuadDelivery quadDelivery = QuadDelivery.IDENTITY;
-        
-        runSolver(board, walker, quadDelivery);
+        runSolver(board, setup);
     }
 
     public void testExplosionDamper() {
@@ -55,31 +52,23 @@ public class QSolverTest extends TestCase {
         visualiser.setOverflow(true);
         board.registerObserver(visualiser);
         // 188 after a day
-        QWalker walker = new QWalkerImpl(board,
-                Comparator.comparingInt(QWalker.quadCornersClockwise()).
-                        //thenComparingInt(QWalker.borders()).
-                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighbourQuads())).
-                        thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
-                        thenComparingInt(QWalker.minMaxAvailable()).
-                        thenComparingInt(QWalker.borderBorders()).
-                        thenComparingInt(QWalker.topLeft()));
+        QSetup setup = new QSetup().
+                walker(Comparator.comparingInt(QWalker.quadCornersClockwise()).
+                               //thenComparingInt(QWalker.borders()).
+                                       thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighbourQuads())).
+                               thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
+                               thenComparingInt(QWalker.minMaxAvailable()).
+                               thenComparingInt(QWalker.borderBorders()).
+                               thenComparingInt(QWalker.topLeft())).
+                quadDelivery(QuadDelivery.BORDER_BY_NEIGHBOURS);
 
-        QuadDelivery quadDelivery = QuadDelivery.BORDER_BY_NEIGHBOURS;
-
-        runSolver(board, walker, quadDelivery);
+        runSolver(board, setup);
     }
 
-    private void runSolver(QBoard board, QWalker walker, QuadDelivery quadDelivery) {
-        runSolver(board, walker, quadDelivery, 65);
-    }
-    private void runSolver(QBoard board, QWalker walker, QuadDelivery quadDelivery, int maxDepth) {
-        QSolverBacktrack solver = new QSolverBacktrack(
-                board, walker, quadDelivery, QSolverBacktrack.PRINT_ALL, maxDepth, Long.MAX_VALUE);
+    public static void runSolver(QBoard board, QSetup setup) {
 
-        runSolver(solver);
-    }
+        QSolverBacktrack solver = new QSolverBacktrack(board, setup);
 
-    public static void runSolver(QSolverBacktrack solver) {
         try {
             solver.run();
         } catch (Exception e) {
