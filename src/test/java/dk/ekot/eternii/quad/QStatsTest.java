@@ -30,9 +30,9 @@ import java.util.HashSet;
  From Statstest: Possible hex top left corners:     31,738,684
 
  */
+@SuppressWarnings("unchecked")
 public class QStatsTest extends TestCase {
     private static final Logger log = LoggerFactory.getLogger(QStatsTest.class);
-
 
     // 27.8K/sec, 44M unfinished
     public void testBorder1x2() {
@@ -46,11 +46,10 @@ public class QStatsTest extends TestCase {
         board.registerObserver(visualiser);
 
         QSetup setup = new QSetup().
-                walker(Comparator.comparingInt(QWalker.identity()). // For easier experiments below
-                        thenComparingInt(QWalker.fixedOrder(new int[][] {
+                walker(QWalker.fixedOrder(new int[][] {
                         {2, 0},
                         {2, 1}
-                }))).
+                })).
                 solutionCallback(QSolverBacktrack.getSolutionPrinter(10000)).
                 maxDepth(2);
 
@@ -66,8 +65,7 @@ public class QStatsTest extends TestCase {
         board.registerObserver(visualiser);
 
         QSetup setup = new QSetup().
-                walker(Comparator.comparingInt(QWalker.identity()). // For easier experiments below
-                        thenComparingInt(QWalker.quadCornersClockwise())).
+                walker(QWalker.quadCornersClockwise()).
                 solutionCallback(QSolverBacktrack.getSolutionPrinter(10000)).
                 maxDepth(4);
 

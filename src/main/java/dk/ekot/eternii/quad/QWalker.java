@@ -262,7 +262,7 @@ public interface QWalker {
      * Prioritizes the given coordinates over others and order candidates by the order in coordinates.
      * @param coordinateGroups array of {@code {{x, y}} where the outer array is group.
      */
-    static ToIntFunction<? super Move> fixedOrderGroup(int[][][] coordinateGroups) {
+    static ToIntFunction<Move> fixedOrderGroup(int[][][] coordinateGroups) {
         final int[] all = new int[64];
         Arrays.fill(all, 65);
         for (int group = 0 ; group < coordinateGroups.length ; group++){
@@ -285,7 +285,7 @@ public interface QWalker {
     /**
      * @return 0 if in a quad corner, else 1.
      */
-    static ToIntFunction<? super Move> quadCorners() {
+    static ToIntFunction<Move> quadCorners() {
         return fixedOrderGroup(new int[][][] {
                 { // All in the same group
                         {0, 0}, // NW

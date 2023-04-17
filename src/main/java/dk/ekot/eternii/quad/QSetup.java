@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Comparator;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
 
 /**
  * Misc. settings for the quads.
@@ -117,6 +118,17 @@ public class QSetup {
 
     public QSetup walker(Comparator<QWalker.Move> moveComparator) {
         walkerFactory = board -> new QWalkerImpl(board, moveComparator);
+        return this;
+    }
+
+    public QSetup walker(ToIntFunction<QWalker.Move>... comparators) {
+        Comparator<QWalker.Move> chained = Comparator.comparingInt(comparators[0]);
+        for (int i = 1 ; i < comparators.length ; i++) {
+            chained = chained.thenComparingInt(comparators[i]);
+        }
+        final Comparator<QWalker.Move> complete = chained;
+
+        walkerFactory = board -> new QWalkerImpl(board, complete);
         return this;
     }
 

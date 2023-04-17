@@ -19,8 +19,7 @@ import junit.framework.TestCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-
+@SuppressWarnings("unchecked")
 public class QSolverTest extends TestCase {
     private static final Logger log = LoggerFactory.getLogger(QSolverTest.class);
 
@@ -31,17 +30,16 @@ public class QSolverTest extends TestCase {
         board.registerObserver(visualiser);
 
         QSetup setup = new QSetup().
-                walker(Comparator.comparingInt(QWalker.identity()). // For easier experiments below
-                        thenComparingInt(QWalker.corners()).
-                               thenComparingInt(QWalker.freeNeighbourFields()).
-                               thenComparingInt(QWalker.quadCorners()).
-                               //thenComparingInt(QWalker.quadCornersClockwise()).
-                               //thenComparingInt(QWalker.borders()).
-                               //thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighboursAvailable())).
-                                       thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
-                               thenComparingInt(QWalker.minMaxAvailable()).
-                               thenComparingInt(QWalker.borderBorders()).
-                               thenComparingInt(QWalker.topLeft()));
+                walker(QWalker.corners(),
+                       QWalker.freeNeighbourFields(),
+                       QWalker.quadCorners(),
+                       //QWalker.quadCornersClockwise(),
+                       //QWalker.borders(),
+                       //QWalker.isBorderOrCorner(QWalker.fewestNeighboursQuads()),
+                       QWalker.isBorderOrCorner(QWalker.available()),
+                       QWalker.minMaxAvailable(),
+                       QWalker.borderBorders(),
+                       QWalker.topLeft());
 
         runSolver(board, setup);
     }
@@ -53,13 +51,13 @@ public class QSolverTest extends TestCase {
         board.registerObserver(visualiser);
         // 188 after a day
         QSetup setup = new QSetup().
-                walker(Comparator.comparingInt(QWalker.quadCornersClockwise()).
-                               //thenComparingInt(QWalker.borders()).
-                                       thenComparingInt(QWalker.isBorderOrCorner(QWalker.fewestNeighbourQuads())).
-                               thenComparingInt(QWalker.isBorderOrCorner(QWalker.available())).
-                               thenComparingInt(QWalker.minMaxAvailable()).
-                               thenComparingInt(QWalker.borderBorders()).
-                               thenComparingInt(QWalker.topLeft())).
+                walker(QWalker.quadCornersClockwise(),
+                       //thenComparingInt(QWalker.borders()).
+                       QWalker.isBorderOrCorner(QWalker.fewestNeighbourQuads()),
+                       QWalker.isBorderOrCorner(QWalker.available()),
+                       QWalker.minMaxAvailable(),
+                       QWalker.borderBorders(),
+                       QWalker.topLeft()).
                 quadDelivery(QuadDelivery.BORDER_BY_NEIGHBOURS);
 
         runSolver(board, setup);
