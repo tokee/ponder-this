@@ -143,7 +143,6 @@ public class QuadBag implements QuadHolder {
                  pieceMask[(pieceIDs >>> 24) & 0xFF]) >>> 2) == 1;
     }
 
-
     /**
      * Get the quad map corresponding to the given colors.
      * The colors are extracted using e.g. {@link QBits#getColN} for the quad in the given direction.
@@ -153,18 +152,11 @@ public class QuadBag implements QuadHolder {
      * @return the quad set for the given defined border colors.
      */
     public QuadEdgeMap getMap(int colN, int colE, int colS, int colW) {
-        return getMapReduced(bagType == BAG_TYPE.border_n || bagType == BAG_TYPE.corner_nw ? -1 : colN,
-                             bagType == BAG_TYPE.border_e || bagType == BAG_TYPE.corner_ne ? -1 : colE,
-                             bagType == BAG_TYPE.border_s || bagType == BAG_TYPE.corner_se ? -1 : colS,
-                             bagType == BAG_TYPE.border_w || bagType == BAG_TYPE.corner_sw ? -1 : colW);
-    }
-
-    private QuadEdgeMap getMapReduced(int colN, int colE, int colS, int colW) {
         final int defined = (colN != -1 ? 0b1000 : 0b000) |
                             (colE != -1 ? 0b0100 : 0b000) |
                             (colS != -1 ? 0b0010 : 0b000) |
                             (colW != -1 ? 0b0001 : 0b000);
-        return qeMaps[defined];
+        return qeMaps[defined & bagType.variableEdges()];
     }
 
     /**
