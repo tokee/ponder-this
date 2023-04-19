@@ -43,8 +43,9 @@ import java.util.stream.IntStream;
  Possible 1x4 edges: 118,062
  Possible 1x4 inner: 191,782
 
- Possible 2x4 edges:
- Possible 2x4 inner: 61,493,258
+ Possible 2x4 edges:   593,955,794
+ Possible 2x4 inner: 6,827,678,803
+
 
  Possible 3x3 corners: 2,932
  
@@ -182,9 +183,12 @@ public class StatsTest extends TestCase {
                 board, new Rect(1, 1, 1, 8)), 8));
     }
 
-    public void test2x4() {
+    public void test2x4edges() {
         System.out.println("Possible 2x4 edges: " + HexCorners.countSolutions(board -> new WalkerRectangle(
                 board, new Rect(5, 0, 6, 3)), 8));
+    }
+
+    public void test2x4inner() {
         System.out.println("Possible 2x4 inner: " + HexCorners.countSolutions(board -> new WalkerRectangle(
                 board, new Rect(5, 1, 6, 4)), 8));
     }

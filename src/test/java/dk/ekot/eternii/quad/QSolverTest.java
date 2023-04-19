@@ -30,16 +30,18 @@ public class QSolverTest extends TestCase {
         board.registerObserver(visualiser);
 
         QSetup setup = new QSetup().
-                walker(QWalker.corners(),
-                       QWalker.freeNeighbourFields(),
-                       QWalker.quadCorners(),
-                       //QWalker.quadCornersClockwise(),
-                       //QWalker.borders(),
-                       //QWalker.isBorderOrCorner(QWalker.fewestNeighboursQuads()),
-                       QWalker.isBorderOrCorner(QWalker.available()),
-                       QWalker.minMaxAvailable(),
-                       QWalker.borderBorders(),
-                       QWalker.topLeft());
+                walker(
+                        //QWalker.corners(),
+                        QWalker.quadCornersClockwise(),
+                        //QWalker.freeNeighbourFields(),
+                        //QWalker.quadCorners(),
+                        //QWalker.borders(),
+                        //QWalker.isBorderOrCorner(QWalker.fewestNeighboursQuads()),
+                        QWalker.isBorderOrCorner(QWalker.available()),
+                        QWalker.minMaxAvailable(),
+                        QWalker.borderBorders(),
+                        QWalker.topLeft()).
+                quadDelivery(QuadDelivery.RANDOM_BORDER);
 
         runSolver(board, setup);
     }
