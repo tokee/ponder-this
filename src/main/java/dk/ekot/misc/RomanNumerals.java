@@ -16,6 +16,7 @@ import java.util.Arrays;
 /**
  *
  */
+@SuppressWarnings({"StatementWithEmptyBody", "NonAsciiCharacters"})
 public class RomanNumerals {
     final static String[] rules = new String[]{
             "IV\u0004", "IX\u0009", "I\u0001", "V\u0005", "XL\u0028", "XC\u005A", "X\n",
@@ -51,15 +52,15 @@ public class RomanNumerals {
             }
         }
 
-        String romans = "IVXLCDM";
-        for (char c: romans.toCharArray()) {
-            String message = c + " -> (c-0x42) " + (c-0x42) + " -> (c%'') " + (c%'B') + ": " + Integer.toBinaryString(c);
-            if (c-0x42 == (c&0b1000010)) {
-                System.out.println(message);
-            } else {
-                System.err.println(message);
-            }
-        }
+//        String romans = "IVXLCDM";
+//        for (char c: romans.toCharArray()) {
+//            String message = c + " -> (c-0x42) " + (c-0x42) + " -> (c%'') " + (c%'B') + ": " + Integer.toBinaryString(c);
+//            if (c-0x42 == (c&0b1000010)) {
+//                System.out.println(message);
+//            } else {
+//                System.err.println(message);
+//            }
+//        }
 //        dumpRomans();
     }
 
@@ -130,7 +131,7 @@ public class RomanNumerals {
         return dec;
     }
 
-    public static int romanToDecimal(String rom) {
+    public static int romanToDecimalSane(String rom) {
         char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
         char[] r = (rom+"E").toCharArray();
         int $, dec = 0;
@@ -139,6 +140,19 @@ public class RomanNumerals {
         }
         return dec;
     }
+
+
+    /* Current favourite */
+
+
+    public static int romanToDecimal(String rom) {
+        char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray(),
+                r = (rom+"E").toCharArray();
+        int Ɂ, $ = 0, dec = $;
+        for (; $ < rom.length() ; dec += (Ɂ=map[r[$++]-0x42]) < map[r[$]%'B'] ? '?'-Ɂ : Ɂ-'?');
+        return dec;
+    }
+
 
     public static int romanToDecimalC(String rom) {
         char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
