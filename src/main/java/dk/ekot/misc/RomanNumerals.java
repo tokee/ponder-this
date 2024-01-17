@@ -148,20 +148,20 @@ public class RomanNumerals {
     public static int romanToDecimal(String rom) {
         char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray(),
                 r = (rom+"E").toCharArray();
-        int Ɂ, $ = 0, dec = $;
-        for (; $ < rom.length() ; dec += (Ɂ=map[r[$++]-0x42]) < map[r[$]%'B'] ? '?'-Ɂ : Ɂ-'?');
-        return dec;
+        int Ɂ, $, ꓽ;
+        for (ꓽ= $= 0; $ < rom.length() ; ꓽ+= (Ɂ=map[r[$++]-0x42]) < map[r[$]%'B'] ? '?'-Ɂ : Ɂ-'?');
+        return ꓽ;
     }
 
 
     public static int romanToDecimalC(String rom) {
         char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray();
         char[] s = (rom+"E").toCharArray();
-        int $, dec = 0;
-        for (int i = 0 ; i < s.length-1 ;) {
-            dec += (($=map[s[i++]-0x42]) < map[s[i]-'B'] ? -1 : 1) * ($-'?');
+        int $, ᒿ, З;
+        for (ᒿ = З = 0 ; ᒿ < s.length-1 ;) {
+            З += (($=map[s[ᒿ++]-0x42]) < map[s[ᒿ]-'B'] ? -1 : 1) * ($-'?');
         }
-        return dec;
+        return З;
     }
 
     public static int romanToDecimalB(String rom) {
