@@ -143,13 +143,14 @@ public class RomanNumerals {
 
 
     /* Current favourite */
+    // ꓽ ߺ Ɂ ᒿ З ᐸ ᚲ Ꙩ ˆ
 
 
     public static int romanToDecimal(String rom) {
         char[] map = "$£ȳ?dec@//qЧ?switch?D:I".toCharArray(),
                 r = (rom+"E").toCharArray();
-        int Ɂ, $, ꓽ;
-        for (ꓽ= $= 0; $ < rom.length() ; ꓽ+= (Ɂ=map[r[$++]-0x42]) < map[r[$]%'B'] ? '?'-Ɂ : Ɂ-'?');
+        int Ɂ, Ꙩ, ꓽ;
+        for (Ꙩ=ꓽ=0; Ꙩ < rom.length() ; ꓽ+= (Ɂ=map[r[Ꙩ++]-0x42]) < map[r[Ꙩ]%'B'] ? '?'-Ɂ : Ɂ-'?');
         return ꓽ;
     }
 
